@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { useApp } from "../context";
+import { visibleCourses } from "../lib/access";
 import "./courses.css";
 
 function CourseCover({ course, index }) {
@@ -153,10 +154,10 @@ function CourseCover({ course, index }) {
 }
 
 export default function Courses() {
-  const { data, user, navigate } = useApp();
+  const { data, user, actor, navigate } = useApp();
   const [query, setQuery] = useState("");
   const [term, setTerm] = useState("All terms");
-  const courses = data.courses || [];
+  const courses = visibleCourses(data, actor);
   const terms = [...new Set(courses.map((item) => item.term).filter(Boolean))];
   const shown = useMemo(
     () =>
@@ -228,7 +229,10 @@ export default function Courses() {
         <div className="courses-grid">
           {shown.map((item, index) => {
             const materials = (data.materials || []).filter(
-              (material) => material.courseId === item.id && !material.ownerId,
+              (material) =>
+                material.courseId === item.id &&
+                !material.ownerId &&
+                !material.archivedAt,
             );
             const sessions = (data.sessions || [])
               .filter(

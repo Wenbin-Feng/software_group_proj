@@ -21,6 +21,7 @@ import { useApp } from "../context";
 import { ACCEPTED_FILES, formatBytes, readMaterialFile } from "../lib/files";
 import { saveOriginal } from "../lib/originals";
 import { outgoingLinks } from "../lib/wikiLinks";
+import { canReadMaterial, canReadSession } from "../lib/access";
 import { Modal } from "./ui";
 import Studio from "./Studio";
 import WorkspacePreview, { validMaterialPage } from "./WorkspacePreview";
@@ -35,6 +36,8 @@ export default function CourseWorkspace() {
     courseId,
     user,
     role,
+    actor,
+    route,
     activeSessionId,
     toast,
     openMaterial,
@@ -46,13 +49,20 @@ export default function CourseWorkspace() {
     () =>
       (data.sessions || []).filter(
         (session) =>
-          session.courseId === courseId &&
-          (isTeacher || session.studentId === user.id),
+          session.courseId === courseId && canReadSession(data, actor, session),
       ),
-    [data.sessions, courseId, isTeacher, user.id],
+    [data, courseId, actor],
   );
-  const currentSession =
-    sessions.find((session) => session.id === activeSessionId) || sessions[0];
+  const requestedSession = sessions.find(
+    (session) =>
+      session.id === activeSessionId &&
+      (!isTeacher ||
+        !route?.studentId ||
+        session.studentId === route.studentId),
+  );
+  const currentSession = isTeacher
+    ? requestedSession
+    : requestedSession || sessions[0];
   const student = isTeacher
     ? (data.students || []).find(
         (item) => item.id === currentSession?.studentId,
@@ -68,16 +78,21 @@ export default function CourseWorkspace() {
       (data.materials || []).filter(
         (material) =>
           material.courseId === courseId &&
+          canReadMaterial(data, actor, material) &&
+          (!isTeacher || Boolean(currentSession)) &&
           (!material.ownerId || ownedByStudent(material.ownerId)),
       ),
-    [data.materials, courseId, ownedByStudent],
+    [data, actor, courseId, currentSession?.id, isTeacher, ownedByStudent],
   );
   const notes = useMemo(
     () =>
-      (data.notes || []).filter(
-        (note) => note.courseId === courseId && ownedByStudent(note.studentId),
-      ),
-    [data.notes, courseId, ownedByStudent],
+      isTeacher
+        ? []
+        : (data.notes || []).filter(
+            (note) =>
+              note.courseId === courseId && ownedByStudent(note.studentId),
+          ),
+    [data.notes, courseId, isTeacher, ownedByStudent],
   );
   const [tabs, setTabs] = useState([]);
   const [activeKey, setActiveKey] = useState(null);
@@ -101,14 +116,20 @@ export default function CourseWorkspace() {
   const scope = `${courseId}:${role}:${user.id}:${studentKey || "none"}`;
   const matched = (text) =>
     String(text).toLowerCase().includes(search.trim().toLowerCase());
-  const publicMaterials = materials.filter((material) => !material.ownerId);
-  const personalMaterials = materials.filter((material) => material.ownerId);
+  const publicMaterials = materials.filter(
+    (material) => !material.ownerId && !material.archivedAt,
+  );
+  const personalMaterials = materials.filter(
+    (material) => material.ownerId && !material.archivedAt,
+  );
 
   // Identity changes must never leave another student's private tabs visible.
   useEffect(() => {
     if (previousScope.current === scope) return;
     previousScope.current = scope;
-    const first = materials.find((material) => !material.ownerId);
+    const first = materials.find(
+      (material) => !material.ownerId && !material.archivedAt,
+    );
     const initial = first
       ? {
           key: tabKey("material", first.id),
@@ -283,6 +304,7 @@ export default function CourseWorkspace() {
   }
 
   function startUpload() {
+    if (isTeacher) return;
     setFiles([]);
     setUploadError("");
     setUploadOpen(true);
@@ -290,7 +312,7 @@ export default function CourseWorkspace() {
   }
 
   async function uploadFiles() {
-    if (!files.length || uploadBusy.current) return;
+    if (isTeacher || !files.length || uploadBusy.current) return;
     uploadBusy.current = true;
     setUploading(true);
     setUploadError("");
@@ -401,7 +423,7 @@ export default function CourseWorkspace() {
       items: notes,
       description: "Connected knowledge pages",
     },
-  ];
+  ].filter((group) => !isTeacher || group.id !== "wiki");
 
   return (
     <div className="course-workspace" data-mobile-panel={mobilePanel}>
@@ -463,22 +485,24 @@ export default function CourseWorkspace() {
             <FolderOpen size={16} /> Files
           </span>
           <div>
-            <button
-              className="workspace-icon-button"
-              aria-label={
-                isTeacher
-                  ? "Upload course material"
-                  : "Upload personal material"
-              }
-              title={
-                isTeacher
-                  ? "Upload course material"
-                  : "Upload personal material"
-              }
-              onClick={startUpload}
-            >
-              <Plus size={18} />
-            </button>
+            {!isTeacher && (
+              <button
+                className="workspace-icon-button"
+                aria-label={
+                  isTeacher
+                    ? "Upload course material"
+                    : "Upload personal material"
+                }
+                title={
+                  isTeacher
+                    ? "Upload course material"
+                    : "Upload personal material"
+                }
+                onClick={startUpload}
+              >
+                <Plus size={18} />
+              </button>
+            )}
             <button
               className="workspace-icon-button workspace-tree-close"
               aria-label="Close files"
@@ -579,7 +603,9 @@ export default function CourseWorkspace() {
                         {search.trim()
                           ? "No matching files"
                           : group.id === "personal"
-                            ? "Upload your own files"
+                            ? isTeacher
+                              ? "No personal uploads"
+                              : "Upload your own files"
                             : group.id === "wiki"
                               ? "Save insights from a chat"
                               : "No course materials yet"}
@@ -704,7 +730,7 @@ export default function CourseWorkspace() {
           </div>
         )}
       </aside>
-      {uploadOpen && (
+      {!isTeacher && uploadOpen && (
         <Modal
           title={isTeacher ? "Add course material" : "Add personal material"}
           subtitle={

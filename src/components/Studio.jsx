@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { useApp } from "../context";
+import { canReadMaterial, canReadSession, isEnrolled } from "../lib/access";
 import LearningAnimation from "./Animation";
 import "./studio.css";
 
@@ -165,6 +166,8 @@ export default function Studio({
     course,
     user,
     role,
+    actor,
+    route,
     activeSessionId,
     setActiveSessionId,
     navigate,
@@ -173,23 +176,28 @@ export default function Studio({
   } = useApp();
   const isTeacher = role === "teacher";
   const allSessions = (data.sessions || []).filter(
-    (s) => s.courseId === courseId && (isTeacher || s.studentId === user.id),
+    (s) => s.courseId === courseId && canReadSession(data, actor, s),
   );
-  const [teacherStudentId, setTeacherStudentId] = useState("all");
-  const sessions = allSessions.filter(
+  const sessions = allSessions;
+  const requestedSession = allSessions.find(
     (s) =>
-      teacherStudentId === "all" ||
-      !isTeacher ||
-      s.studentId === teacherStudentId,
+      s.id === activeSessionId &&
+      (!isTeacher || !route?.studentId || route.studentId === s.studentId),
   );
-  const requestedSession = allSessions.find((s) => s.id === activeSessionId);
-  const session = requestedSession || sessions[0];
+  const session = isTeacher
+    ? requestedSession
+    : requestedSession || sessions[0];
   const sessionStudent =
     (data.students || []).find((s) => s.id === session?.studentId) || user;
   const allowedMaterials = (data.materials || []).filter(
     (m) =>
       m.courseId === courseId &&
-      (!m.ownerId || m.ownerId === (isTeacher ? session?.studentId : user.id)),
+      !m.archivedAt &&
+      canReadMaterial(data, actor, m) &&
+      (!isTeacher || Boolean(session)) &&
+      (!m.ownerId ||
+        m.ownerId === sessionStudent.id ||
+        m.ownerId === sessionStudent.studentId),
   );
   const [selectedIds, setSelectedIds] = useState(null);
   const [input, setInput] = useState("");
@@ -222,20 +230,6 @@ export default function Studio({
     if (session && session.id !== activeSessionId)
       setActiveSessionId(session.id);
   }, [session?.id]);
-  useEffect(() => {
-    if (
-      isTeacher &&
-      requestedSession &&
-      teacherStudentId !== "all" &&
-      requestedSession.studentId !== teacherStudentId
-    )
-      setTeacherStudentId(requestedSession.studentId);
-  }, [
-    isTeacher,
-    requestedSession?.id,
-    requestedSession?.studentId,
-    teacherStudentId,
-  ]);
   useEffect(() => {
     setSelectedIds(null);
     setSourcePicker(false);
@@ -273,7 +267,7 @@ export default function Studio({
   }, []);
 
   function createSession() {
-    if (isTeacher) return;
+    if (isTeacher || !isEnrolled(data, courseId, user.id)) return;
     const next = {
       id: uid("session"),
       courseId,
@@ -294,7 +288,7 @@ export default function Studio({
 
   function ask(value) {
     const question = (typeof value === "string" ? value : input).trim();
-    if (!question || isTeacher) return;
+    if (!question || isTeacher || !isEnrolled(data, courseId, user.id)) return;
     const targetId = session?.id || uid("session");
     const now = new Date().toISOString();
     const entry = { id: uid("msg"), role: "user", content: question };
@@ -363,7 +357,7 @@ export default function Studio({
   }
 
   function saveNote(message = lastAnswer) {
-    if (!message || isTeacher) return;
+    if (!message || isTeacher || !isEnrolled(data, courseId, user.id)) return;
     if (isMessageSaved(message.id)) {
       toast("This explanation is already in your Wiki.");
       return;
@@ -421,19 +415,18 @@ export default function Studio({
   }
 
   function selectSession(id) {
+    const next = sessions.find((item) => item.id === id);
+    if (!next || !canReadSession(data, actor, next)) return;
     setActiveSessionId(id);
-    navigate("studio", { sessionId: id });
+    if (isTeacher)
+      navigate("teacher-review", {
+        courseId,
+        studentId: next.studentId,
+        sessionId: id,
+        returnTo: route?.returnTo,
+      });
+    else navigate("studio", { sessionId: id, courseId });
     setSessionPicker(false);
-  }
-  function filterTeacherSessions(studentId) {
-    setTeacherStudentId(studentId);
-    const matches = (item) =>
-      studentId === "all" || item.studentId === studentId;
-    const next =
-      allSessions.find(
-        (item) => item.id === activeSessionId && matches(item),
-      ) || allSessions.find(matches);
-    navigate("studio", { courseId, sessionId: next?.id });
   }
   function visualize(message) {
     const type = messageAnimation(message);
@@ -462,6 +455,12 @@ export default function Studio({
     allowedMaterials[0];
 
   function renderSources() {
+    if (isTeacher)
+      return (
+        <span className="studio-review-source-count">
+          <Library size={14} /> {allowedMaterials.length} available sources
+        </span>
+      );
     return (
       <div className="studio-material-control">
         <button
@@ -553,12 +552,14 @@ export default function Studio({
             <span className="studio-demo-label">
               <span /> Demo responses
             </span>
-            <button
-              className="btn btn-outline"
-              onClick={() => navigate("wiki")}
-            >
-              <BookOpen size={16} /> My Wiki <ArrowUpRight size={14} />
-            </button>
+            {!isTeacher && (
+              <button
+                className="btn btn-outline"
+                onClick={() => navigate("wiki")}
+              >
+                <BookOpen size={16} /> My Wiki <ArrowUpRight size={14} />
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -629,18 +630,6 @@ export default function Studio({
               <span className="studio-readonly">
                 <LockKeyhole size={13} /> Read-only
               </span>
-              <select
-                aria-label="Filter sessions by student"
-                value={teacherStudentId}
-                onChange={(e) => filterTeacherSessions(e.target.value)}
-              >
-                <option value="all">All students</option>
-                {(data.students || []).map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
             </>
           ) : (
             <>
@@ -670,12 +659,17 @@ export default function Studio({
           )}
         </div>
       </div>
-      {isTeacher && !embedded && (
+      {isTeacher && (
         <div className="studio-teacher-notice">
           <LockKeyhole size={14} />
           <span>
-            You are viewing {sessionStudent.name}’s learning session. Messages,
-            files and Wiki notes stay attributed to this student.
+            <strong>
+              {session ? sessionStudent.name : "Session unavailable"}
+              {session && ` · ${sessionStudent.studentId || "Student"}`}
+            </strong>
+            {session
+              ? " · Session review. Messages and uploaded files are read-only."
+              : " · Select an accessible student session to review."}
           </span>
         </div>
       )}
@@ -717,31 +711,41 @@ export default function Studio({
                 </span>
                 <h2>
                   {embedded
-                    ? "What would you like to understand?"
+                    ? isTeacher
+                      ? "No messages to review"
+                      : "What would you like to understand?"
                     : "What’s on your mind?"}
                 </h2>
                 <p>
                   {embedded
-                    ? "Ask about your course files, explore an idea, or create a visual explanation."
+                    ? isTeacher
+                      ? "This session has no recorded conversation yet."
+                      : "Ask about your course files, explore an idea, or create a visual explanation."
                     : "Your course materials are here. Let’s turn a tricky concept into something that clicks."}
                 </p>
-                <div className="studio-starters">
-                  {suggestedQuestions.map((s, i) => (
-                    <button key={s} onClick={() => ask(s)} disabled={isTeacher}>
-                      <span>
-                        {
-                          [
-                            "Understand a concept",
-                            "See the bigger picture",
-                            "Explore an example",
-                          ][i]
-                        }
-                      </span>
-                      {s}
-                      <ArrowUpRight size={14} />
-                    </button>
-                  ))}
-                </div>
+                {!isTeacher && (
+                  <div className="studio-starters">
+                    {suggestedQuestions.map((s, i) => (
+                      <button
+                        key={s}
+                        onClick={() => ask(s)}
+                        disabled={isTeacher}
+                      >
+                        <span>
+                          {
+                            [
+                              "Understand a concept",
+                              "See the bigger picture",
+                              "Explore an example",
+                            ][i]
+                          }
+                        </span>
+                        {s}
+                        <ArrowUpRight size={14} />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {messages.map((message) => (
@@ -935,28 +939,30 @@ export default function Studio({
                 </div>
               </div>
             )}
-            <div className="studio-takeaway">
-              <span className="studio-takeaway-icon">
-                <BookOpen size={17} />
-              </span>
-              <div>
-                <div className="studio-takeaway-heading">
-                  From a moment to a mental model
+            {!isTeacher && (
+              <div className="studio-takeaway">
+                <span className="studio-takeaway-icon">
+                  <BookOpen size={17} />
+                </span>
+                <div>
+                  <div className="studio-takeaway-heading">
+                    From a moment to a mental model
+                  </div>
+                  <p>
+                    Keep the explanation. Connect it to what you already know.
+                  </p>
+                  <button
+                    disabled={isTeacher || !lastAnswer}
+                    onClick={() => saveNote()}
+                  >
+                    {isTeacher
+                      ? "Student Wiki is read-only"
+                      : "Add this insight to my Wiki"}
+                    <ArrowUpRight size={13} />
+                  </button>
                 </div>
-                <p>
-                  Keep the explanation. Connect it to what you already know.
-                </p>
-                <button
-                  disabled={isTeacher || !lastAnswer}
-                  onClick={() => saveNote()}
-                >
-                  {isTeacher
-                    ? "Student Wiki is read-only"
-                    : "Add this insight to my Wiki"}
-                  <ArrowUpRight size={13} />
-                </button>
               </div>
-            </div>
+            )}
             <div className="studio-source-card">
               <span className="studio-source-card-label">
                 <Link2 size={12} /> CONNECTED TO YOUR COURSE

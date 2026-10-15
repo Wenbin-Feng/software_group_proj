@@ -8,14 +8,13 @@ import {
   Network,
   Plus,
   Search,
+  ShieldCheck,
   X,
 } from "lucide-react";
 import { useApp } from "../context";
+import { canReadPrivateNote, visibleCourses } from "../lib/access";
 import { outgoingLinks } from "../lib/wikiLinks";
 import "./wiki-library.css";
-
-const owns = (note, user) =>
-  note.studentId === user.id || note.studentId === user.studentId;
 
 const plainExcerpt = (content = "") =>
   content
@@ -129,22 +128,24 @@ function NoteCover({ index, course }) {
 }
 
 export default function WikiLibrary({ onCreate }) {
-  const { data, user, role, navigate } = useApp();
+  const { data, user, actor, role, navigate } = useApp();
   const [query, setQuery] = useState("");
   const [courseFilter, setCourseFilter] = useState("all");
   const isTeacher = role === "teacher";
   const notes = useMemo(
     () =>
       (data.notes || [])
-        .filter((note) => isTeacher || owns(note, user))
+        .filter(
+          (note) => role === "student" && canReadPrivateNote(data, actor, note),
+        )
         .sort(
           (a, b) =>
             (Date.parse(b.updatedAt) || 0) - (Date.parse(a.updatedAt) || 0),
         ),
-    [data.notes, isTeacher, user.id, user.studentId],
+    [data, role, actor],
   );
   const courseIds = new Set(notes.map((note) => note.courseId));
-  const courses = (data.courses || []).filter((course) =>
+  const courses = visibleCourses(data, actor).filter((course) =>
     courseIds.has(course.id),
   );
   const shown = useMemo(() => {
@@ -164,6 +165,15 @@ export default function WikiLibrary({ onCreate }) {
     setQuery("");
     setCourseFilter("all");
   };
+
+  if (role !== "student")
+    return (
+      <div className="vault-unavailable">
+        <ShieldCheck size={32} />
+        <h1>Personal wikis belong to students</h1>
+        <p>Only published snapshots are shared with course teachers.</p>
+      </div>
+    );
 
   return (
     <div className="wiki-library">

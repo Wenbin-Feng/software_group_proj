@@ -2620,3 +2620,38 @@
     transform: none;
   }
 }
+
+.market-featured-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: #9a753f;
+  background: #fbf3e3;
+  border: 1px solid #efdfbf;
+  border-radius: 4px;
+  padding: 2px 5px;
+  margin-left: 7px;
+  white-space: nowrap;
+}
+.market-card-footer .market-feature-toggle.is-featured {
+  color: #9a753f;
+}
+.market-teacher-page .wiki-page-heading {
+  margin-bottom: 30px;
+}
+.market-teacher-page .market-browse-heading {
+  margin-top: 0;
+}
+@media (max-width: 600px) {
+  .market-featured-badge {
+    margin-left: 0;
+    margin-top: 5px;
+  }
+  .market-card-topic > span:first-child {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+  }
+}

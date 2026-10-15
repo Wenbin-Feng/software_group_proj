@@ -14,9 +14,11 @@ import {
   Layers3,
   Search,
   Sparkles,
+  Star,
   Users,
 } from "lucide-react";
 import { useApp } from "../context";
+import { canReadCourse, canTeach, enrolledStudents } from "../lib/access";
 import { Modal } from "./ui";
 import { WikiMarkdown, friendlyDate } from "./Wiki";
 const matchKey = (value) =>
@@ -115,15 +117,29 @@ function CoverArt({ kind = 0, title = "", hasAnimation = false }) {
 }
 
 export default function Market() {
-  const { data, setData, courseId, course, user, navigate, toast } = useApp();
+  const {
+    data,
+    setData,
+    courseId,
+    course,
+    user,
+    actor,
+    role,
+    navigate,
+    toast,
+  } = useApp();
+  const isTeacher = role === "teacher";
+  const courseStudents = enrolledStudents(data, courseId);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All topics");
   const [onlySaved, setOnlySaved] = useState(false);
+  const [onlyFeatured, setOnlyFeatured] = useState(false);
   const [sort, setSort] = useState("Recommended");
   const [readingId, setReadingId] = useState(null);
   const [readingPageId, setReadingPageId] = useState(null);
   const items = (data.market || []).filter(
-    (item) => item.courseId === courseId,
+    (item) =>
+      item.courseId === courseId && canReadCourse(data, actor, item.courseId),
   );
   const categories = [
     "All topics",
@@ -161,7 +177,8 @@ export default function Market() {
     const matching = items.filter(
       (item) =>
         (category === "All topics" || item.category === category) &&
-        (!onlySaved || saved(item)) &&
+        (!onlySaved || isTeacher || saved(item)) &&
+        (!onlyFeatured || item.featured) &&
         `${item.title} ${item.description} ${item.author} ${(item.tags || []).join(" ")}`
           .toLowerCase()
           .includes(query.toLowerCase()),
@@ -175,9 +192,52 @@ export default function Market() {
           : Date.parse(item.updatedAt);
       return [...matching].sort((a, b) => time(b) - time(a));
     }
-    return matching;
-  }, [items, category, onlySaved, query, sort, user.id]);
+    return [...matching].sort(
+      (a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)),
+    );
+  }, [
+    items,
+    category,
+    onlySaved,
+    onlyFeatured,
+    isTeacher,
+    query,
+    sort,
+    user.id,
+  ]);
+  const canParticipate = (item) =>
+    !isTeacher &&
+    actor?.role === "student" &&
+    item.courseId === courseId &&
+    canReadCourse(data, actor, item.courseId);
+  const toggleFeatured = (item) => {
+    if (
+      !isTeacher ||
+      !canTeach(data, actor?.id, item.courseId) ||
+      item.courseId !== courseId
+    )
+      return;
+    setData((previous) => ({
+      ...previous,
+      market: previous.market.map((publication) =>
+        publication.id === item.id &&
+        canTeach(previous, actor.id, publication.courseId)
+          ? {
+              ...publication,
+              featured: !publication.featured,
+              featuredBy: !publication.featured ? actor.id : null,
+            }
+          : publication,
+      ),
+    }));
+    toast(
+      item.featured
+        ? "Removed from teacher picks."
+        : "Featured for this course.",
+    );
+  };
   const bookmark = (item) => {
+    if (!canParticipate(item)) return;
     const wasSaved = saved(item);
     setData((prev) => ({
       ...prev,
@@ -199,6 +259,7 @@ export default function Market() {
     );
   };
   const importNote = (item) => {
+    if (!canParticipate(item)) return;
     const existing = (data.notes || []).find(
       (n) =>
         n.importedFrom === item.id &&
@@ -302,6 +363,7 @@ export default function Market() {
   };
   const likes = (item) => (item.likedBy || []).includes(user.id);
   const appreciate = (item) => {
+    if (!canParticipate(item)) return;
     const liked = likes(item);
     setData((prev) => ({
       ...prev,
@@ -319,94 +381,104 @@ export default function Market() {
     }));
   };
   return (
-    <div className="market-page">
+    <div className={`market-page ${isTeacher ? "market-teacher-page" : ""}`}>
       <div className="wiki-page-heading">
         <div>
           <div className="eyebrow">GOOD KNOWLEDGE IS BETTER SHARED</div>
           <h1>
             The wiki market<span className="wiki-title-dot">.</span>
           </h1>
-          <p>A different perspective might be the one that makes it click.</p>
-        </div>
-        <button className="btn btn-outline" onClick={() => navigate("wiki")}>
-          <BookOpen size={16} /> Share from my wiki <ArrowRight size={15} />
-        </button>
-      </div>
-      <section className="market-feature">
-        <div className="market-feature-copy">
-          <span className="market-feature-kicker">
-            <span /> YOUR COURSE, CONNECTED
-          </span>
-          <h2>
-            Learn it your way.
-            <br />
-            See it through <em>theirs.</em>
-          </h2>
           <p>
-            Explore notes, visual explanations, and little breakthroughs
-            <br className="market-desktop-break" /> made by the people learning
-            alongside you.
+            {isTeacher
+              ? "Discover your students’ published work and highlight useful perspectives."
+              : "A different perspective might be the one that makes it click."}
           </p>
-          <div className="market-community">
-            <div className="market-avatar-stack">
-              {(data.students || []).slice(0, 4).map((s) => (
-                <span key={s.id} style={avatarStyle(s.color)}>
-                  {s.initials}
-                </span>
-              ))}
-            </div>
-            <span>
-              <strong>
-                {Math.max((data.students || []).length, 4)} curious minds
-              </strong>{" "}
-              in {course?.code || "this course"}
-            </span>
-          </div>
         </div>
-        <div className="market-feature-illustration" aria-hidden="true">
-          <div className="market-feature-orbit orbit-one" />
-          <div className="market-feature-orbit orbit-two" />
-          <div className="market-floating-note floating-note-back">
-            <span className="market-floating-icon peach">
-              <GitBranch size={19} />
+        {!isTeacher && (
+          <button className="btn btn-outline" onClick={() => navigate("wiki")}>
+            <BookOpen size={16} /> Share from my wiki <ArrowRight size={15} />
+          </button>
+        )}
+      </div>
+      {!isTeacher && (
+        <section className="market-feature">
+          <div className="market-feature-copy">
+            <span className="market-feature-kicker">
+              <span /> YOUR COURSE, CONNECTED
             </span>
-            <strong>A new connection.</strong>
-            <i />
-            <i />
-            <div>
-              <span>concepts</span>
-              <span>examples</span>
+            <h2>
+              Learn it your way.
+              <br />
+              See it through <em>theirs.</em>
+            </h2>
+            <p>
+              Explore notes, visual explanations, and little breakthroughs
+              <br className="market-desktop-break" /> made by the people
+              learning alongside you.
+            </p>
+            <div className="market-community">
+              <div className="market-avatar-stack">
+                {courseStudents.slice(0, 4).map((s) => (
+                  <span key={s.id} style={avatarStyle(s.color)}>
+                    {s.initials}
+                  </span>
+                ))}
+              </div>
+              <span>
+                <strong>{courseStudents.length} curious minds</strong> in{" "}
+                {course?.code || "this course"}
+              </span>
             </div>
           </div>
-          <div className="market-floating-note floating-note-front">
-            <span className="market-floating-icon blue">
-              <Sparkles size={20} />
-            </span>
-            <span className="market-note-mini-kicker">
-              A LITTLE BREAKTHROUGH
-            </span>
-            <strong>“Oh, now I get it.”</strong>
-            <i />
-            <i />
-            <div>
-              <span>understood</span>
-              <Check size={14} />
+          <div className="market-feature-illustration" aria-hidden="true">
+            <div className="market-feature-orbit orbit-one" />
+            <div className="market-feature-orbit orbit-two" />
+            <div className="market-floating-note floating-note-back">
+              <span className="market-floating-icon peach">
+                <GitBranch size={19} />
+              </span>
+              <strong>A new connection.</strong>
+              <i />
+              <i />
+              <div>
+                <span>concepts</span>
+                <span>examples</span>
+              </div>
             </div>
+            <div className="market-floating-note floating-note-front">
+              <span className="market-floating-icon blue">
+                <Sparkles size={20} />
+              </span>
+              <span className="market-note-mini-kicker">
+                A LITTLE BREAKTHROUGH
+              </span>
+              <strong>“Oh, now I get it.”</strong>
+              <i />
+              <i />
+              <div>
+                <span>understood</span>
+                <Check size={14} />
+              </div>
+            </div>
+            <span className="market-feature-spark">
+              <Sparkles size={23} />
+            </span>
+            <span className="market-feature-link">
+              <LinkIcon />
+            </span>
           </div>
-          <span className="market-feature-spark">
-            <Sparkles size={23} />
-          </span>
-          <span className="market-feature-link">
-            <LinkIcon />
-          </span>
-        </div>
-      </section>
+        </section>
+      )}
       <div className="market-browse-heading">
         <div>
           <h2>
             From your course community <span>{items.length}</span>
           </h2>
-          <p>Small notes. Shared understanding.</p>
+          <p>
+            {isTeacher
+              ? "Published student snapshots. Highlight ideas worth sharing."
+              : "Small notes. Shared understanding."}
+          </p>
         </div>
         <div className="market-browse-controls">
           <label className="market-search">
@@ -419,13 +491,23 @@ export default function Market() {
             />
           </label>
           <button
-            className={`market-saved-toggle ${onlySaved ? "active" : ""}`}
-            onClick={() => setOnlySaved(!onlySaved)}
-            aria-pressed={onlySaved}
+            className={`market-saved-toggle ${onlyFeatured ? "active" : ""}`}
+            onClick={() => setOnlyFeatured(!onlyFeatured)}
+            aria-pressed={onlyFeatured}
           >
-            <Bookmark size={15} fill={onlySaved ? "currentColor" : "none"} />{" "}
-            Saved
+            <Star size={15} fill={onlyFeatured ? "currentColor" : "none"} />{" "}
+            Teacher picks
           </button>
+          {!isTeacher && (
+            <button
+              className={`market-saved-toggle ${onlySaved ? "active" : ""}`}
+              onClick={() => setOnlySaved(!onlySaved)}
+              aria-pressed={onlySaved}
+            >
+              <Bookmark size={15} fill={onlySaved ? "currentColor" : "none"} />{" "}
+              Saved
+            </button>
+          )}
         </div>
       </div>
       <div className="market-filter-row">
@@ -474,7 +556,14 @@ export default function Market() {
               </button>
               <div className="market-card-content">
                 <div className="market-card-topic">
-                  <span>{item.category}</span>
+                  <span>
+                    {item.category}
+                    {item.featured && (
+                      <span className="market-featured-badge">
+                        <Star size={10} fill="currentColor" /> Teacher pick
+                      </span>
+                    )}
+                  </span>
                   <span>v{item.version || 1}.0</span>
                 </div>
                 <button
@@ -505,36 +594,53 @@ export default function Market() {
                     <strong>{item.author}</strong>
                     <small>{friendlyDate(item.updatedAt)}</small>
                   </span>
-                  <button
-                    className={`market-bookmark ${saved(item) ? "saved" : ""}`}
-                    aria-label={
-                      saved(item)
-                        ? `Unsave ${item.title}`
-                        : `Save ${item.title}`
-                    }
-                    onClick={() => bookmark(item)}
-                  >
-                    <Bookmark
-                      size={17}
-                      fill={saved(item) ? "currentColor" : "none"}
-                    />
-                  </button>
+                  {!isTeacher && (
+                    <button
+                      className={`market-bookmark ${saved(item) ? "saved" : ""}`}
+                      aria-label={
+                        saved(item)
+                          ? `Unsave ${item.title}`
+                          : `Save ${item.title}`
+                      }
+                      onClick={() => bookmark(item)}
+                    >
+                      <Bookmark
+                        size={17}
+                        fill={saved(item) ? "currentColor" : "none"}
+                      />
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="market-card-footer">
-                <button
-                  className={likes(item) ? "is-liked" : ""}
-                  onClick={() => appreciate(item)}
-                  aria-label={`Appreciate ${item.title}`}
-                  aria-pressed={likes(item)}
-                >
-                  <Heart
-                    size={14}
-                    fill={likes(item) ? "currentColor" : "none"}
-                  />
-                  <span>{item.likes || 0}</span>
-                  <span className="market-footer-word">appreciations</span>
-                </button>
+                {isTeacher ? (
+                  <button
+                    className={`market-feature-toggle ${item.featured ? "is-featured" : ""}`}
+                    onClick={() => toggleFeatured(item)}
+                    aria-label={`${item.featured ? "Unfeature" : "Feature"} ${item.title}`}
+                    aria-pressed={Boolean(item.featured)}
+                  >
+                    <Star
+                      size={14}
+                      fill={item.featured ? "currentColor" : "none"}
+                    />
+                    {item.featured ? "Featured" : "Feature note"}
+                  </button>
+                ) : (
+                  <button
+                    className={likes(item) ? "is-liked" : ""}
+                    onClick={() => appreciate(item)}
+                    aria-label={`Appreciate ${item.title}`}
+                    aria-pressed={likes(item)}
+                  >
+                    <Heart
+                      size={14}
+                      fill={likes(item) ? "currentColor" : "none"}
+                    />
+                    <span>{item.likes || 0}</span>
+                    <span className="market-footer-word">appreciations</span>
+                  </button>
+                )}
                 <button onClick={() => openPublication(item.id)}>
                   Explore note <ArrowRight size={13} />
                 </button>
@@ -561,6 +667,7 @@ export default function Market() {
               setQuery("");
               setCategory("All topics");
               setOnlySaved(false);
+              setOnlyFeatured(false);
             }}
           >
             Explore all notes
@@ -641,36 +748,56 @@ export default function Market() {
                 <div>
                   <strong>Understanding, in motion.</strong>
                   <span>
-                    This collection includes an interactive HTML explainer.
-                    Import it to play and explore in your wiki.
+                    {isTeacher
+                      ? "The author has included a visual explainer in this published collection."
+                      : "This collection includes an interactive HTML explainer. Import it to play and explore in your wiki."}
                   </span>
                 </div>
               </div>
             )}
             <div className="market-reader-bottom">
-              <button
-                className={`btn btn-outline ${saved(reading) ? "is-saved" : ""}`}
-                onClick={() => bookmark(reading)}
-              >
-                <Bookmark
-                  size={15}
-                  fill={saved(reading) ? "currentColor" : "none"}
-                />
-                {saved(reading) ? "Saved to collection" : "Save for later"}
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={() => importNote(reading)}
-              >
-                <ArrowDownToLine size={16} />{" "}
-                {readingPages.length > 1
-                  ? `Add ${readingPages.length} pages to my wiki`
-                  : "Add to my wiki"}
-              </button>
+              {isTeacher ? (
+                <button
+                  className={`btn ${reading.featured ? "btn-primary" : "btn-outline"}`}
+                  onClick={() => toggleFeatured(reading)}
+                  aria-pressed={Boolean(reading.featured)}
+                >
+                  <Star
+                    size={15}
+                    fill={reading.featured ? "currentColor" : "none"}
+                  />{" "}
+                  {reading.featured
+                    ? "Remove teacher pick"
+                    : "Feature for this course"}
+                </button>
+              ) : (
+                <>
+                  <button
+                    className={`btn btn-outline ${saved(reading) ? "is-saved" : ""}`}
+                    onClick={() => bookmark(reading)}
+                  >
+                    <Bookmark
+                      size={15}
+                      fill={saved(reading) ? "currentColor" : "none"}
+                    />
+                    {saved(reading) ? "Saved to collection" : "Save for later"}
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => importNote(reading)}
+                  >
+                    <ArrowDownToLine size={16} />{" "}
+                    {readingPages.length > 1
+                      ? `Add ${readingPages.length} pages to my wiki`
+                      : "Add to my wiki"}
+                  </button>
+                </>
+              )}
             </div>
             <p className="market-import-hint">
-              You’ll get your own editable copy. The author’s original stays as
-              published.
+              {isTeacher
+                ? "This is the author’s published snapshot. Their private Wiki is not visible."
+                : "You’ll get your own editable copy. The author’s original stays as published."}
             </p>
           </div>
         </Modal>

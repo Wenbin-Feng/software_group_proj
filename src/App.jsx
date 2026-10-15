@@ -12,6 +12,7 @@ import {
   CircleHelp,
   FileText,
   GraduationCap,
+  Inbox as InboxIcon,
   Layers3,
   Lightbulb,
   Menu,
@@ -25,36 +26,33 @@ import {
   X,
 } from "lucide-react";
 import { AppContext, useApp } from "./context";
-import { initialData } from "./data";
 import { Modal, Avatar } from "./components/ui";
 import Courses from "./components/Courses";
 import CourseWorkspace from "./components/CourseWorkspace";
 import Wiki from "./components/Wiki";
 import Market from "./components/Market";
 import Teacher from "./components/Teacher";
+import Inbox from "./components/Inbox";
 import { getOriginal } from "./lib/originals";
 import { buildRoute, parseRoute } from "./lib/navigation";
-
+import { migrateWorkspace, loadIdentity } from "./lib/workspaceData";
+import {
+  canReadCourse,
+  canReadMaterial,
+  canReadSession,
+  canReadPrivateNote,
+  canTeach,
+  inboxUnreadCount,
+  visibleCourses,
+  visibleThreads,
+} from "./lib/access";
 const STORAGE = "folio-workspace-v1";
-const navItems = [
-  { id: "courses", name: "Courses", icon: BookOpen },
-  { id: "wiki", name: "My wiki", icon: Network },
-  { id: "market", name: "Wiki market", icon: Store },
-];
 function loadData() {
+  let saved;
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE));
-    if (
-      saved?.courses?.length &&
-      ["sessions", "notes", "market", "students", "materials"].every((key) =>
-        Array.isArray(saved[key]),
-      )
-    )
-      return saved;
-  } catch {
-    /* Fall back to sample data when storage is unavailable. */
-  }
-  return structuredClone(initialData);
+    saved = JSON.parse(localStorage.getItem(STORAGE));
+  } catch {}
+  return migrateWorkspace(saved);
 }
 function savedCourse() {
   try {
@@ -63,39 +61,102 @@ function savedCourse() {
     return "se";
   }
 }
-
+function roleRoute(route, role, data) {
+  if (role !== "teacher") return route;
+  if (route.view === "courses")
+    return { ...route, view: "teacher", teacherPage: "courses" };
+  if (route.view === "course")
+    return {
+      ...route,
+      view: "teacher",
+      teacherPage: route.sessionId ? "review" : "overview",
+      studentId: data.sessions.find((session) => session.id === route.sessionId)
+        ?.studentId,
+    };
+  if (route.view === "market")
+    return { ...route, view: "teacher", teacherPage: "market" };
+  return route;
+}
 export default function App() {
   const [data, setData] = useState(loadData);
-  const [route, setRoute] = useState(() =>
+  const [identity, setIdentity] = useState(() => loadIdentity(data));
+  const role = identity.role,
+    userId = identity.studentId,
+    teacherId = identity.teacherId;
+  const user =
+    data.students.find((student) => student.id === userId) || data.students[0];
+  const teacher =
+    data.teachers.find((item) => item.id === teacherId) || data.teachers[0];
+  const actor = useMemo(
+    () => ({ id: role === "teacher" ? teacher.id : user.id, role }),
+    [role, teacher.id, user.id],
+  );
+  const [rawRoute, setRoute] = useState(() =>
     parseRoute(location.hash, data, savedCourse()),
   );
-  const [role, setRole] = useState("student");
-  const [userId, setUserId] = useState("wenbin");
+  const route = roleRoute(rawRoute, role, data),
+    view = route.view;
+  const course =
+    data.courses.find((item) => item.id === route.courseId) ||
+    visibleCourses(data, actor)[0] ||
+    data.courses[0];
   const [activeSessionId, setActiveSessionId] = useState(route.sessionId);
   const [activeNoteId, setActiveNoteId] = useState(route.noteId);
-  const [dialog, setDialog] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [workspaceRequest, setWorkspaceRequest] = useState(null);
-  const [toastMessage, setToastMessage] = useState("");
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const user =
-    data.students.find((item) => item.id === userId) || data.students[0];
-  const course =
-    data.courses.find((item) => item.id === route.courseId) || data.courses[0];
-  const view = route.view;
-  const inCourse = view === "course";
-  const inWiki = view === "wiki" && Boolean(activeNoteId);
+  const [dialog, setDialog] = useState(null),
+    [preview, setPreview] = useState(null),
+    [workspaceRequest, setWorkspaceRequest] = useState(null),
+    [composeRequest, setComposeRequest] = useState(null),
+    [toastMessage, setToastMessage] = useState(""),
+    [mobileOpen, setMobileOpen] = useState(false);
+  const clearComposeRequest = useCallback(() => setComposeRequest(null), []);
+  const isReview =
+    role === "teacher" && view === "teacher" && route.teacherPage === "review";
+  const inCourse = view === "course" || isReview;
+  const inWiki = role === "student" && view === "wiki" && Boolean(activeNoteId);
   const focusedWorkspace = inCourse || inWiki;
-  const wikiNote = data.notes.find(
-    (note) =>
-      note.id === activeNoteId &&
-      (role === "teacher" ||
-        note.studentId === user.id ||
-        note.studentId === user.studentId),
-  );
   const courseExists = data.courses.some((item) => item.id === route.courseId);
+  const scopedCourse =
+    view === "course" ||
+    view === "market" ||
+    (view === "teacher" && route.teacherPage !== "courses");
+  const courseAllowed =
+    !scopedCourse ||
+    (courseExists && canReadCourse(data, actor, route.courseId));
+  const requestedSession = data.sessions.find(
+    (session) => session.id === route.sessionId,
+  );
+  const reviewAllowed =
+    !isReview ||
+    Boolean(
+      requestedSession &&
+      requestedSession.courseId === route.courseId &&
+      requestedSession.studentId === route.studentId &&
+      canReadSession(data, actor, requestedSession),
+    );
+  const teacherOnly = view === "teacher" && role !== "teacher";
+  const privateWikiDenied = view === "wiki" && role === "teacher";
+  const wikiNote = data.notes.find(
+    (note) => note.id === activeNoteId && canReadPrivateNote(data, actor, note),
+  );
   const toast = useCallback((message) => setToastMessage(message), []);
-
+  const unread = inboxUnreadCount(data, actor);
+  const navItems =
+    role === "teacher"
+      ? [
+          { id: "teacher-courses", name: "Courses", icon: BookOpen },
+          { id: "inbox", name: "Inbox", icon: InboxIcon },
+        ]
+      : [
+          { id: "courses", name: "Courses", icon: BookOpen },
+          { id: "wiki", name: "My wiki", icon: Network },
+          { id: "market", name: "Wiki market", icon: Store },
+          { id: "inbox", name: "Inbox", icon: InboxIcon },
+        ];
+  const noteCount =
+    role === "student"
+      ? data.notes.filter((note) => canReadPrivateNote(data, actor, note))
+          .length
+      : 0;
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE, JSON.stringify(data));
@@ -106,32 +167,35 @@ export default function App() {
     }
   }, [data, toast]);
   useEffect(() => {
-    if (view !== "courses" && courseExists)
+    try {
+      localStorage.setItem("folio-identity", JSON.stringify(identity));
+    } catch {}
+  }, [identity]);
+  useEffect(() => {
+    if (route.courseId && courseExists && canReadCourse(data, actor, course.id))
       try {
         localStorage.setItem("folio-course", course.id);
-      } catch {
-        /* Optional preference. */
-      }
-  }, [course.id, view, courseExists]);
+      } catch {}
+  }, [course.id, route.courseId, courseExists, actor, data.courses]);
   useEffect(() => {
     if (!toastMessage) return;
     const timer = setTimeout(() => setToastMessage(""), 4500);
     return () => clearTimeout(timer);
   }, [toastMessage]);
   useEffect(() => {
-    function handler() {
+    const handler = () => {
       const next = parseRoute(location.hash, data, course.id);
       setRoute(next);
       setActiveSessionId(next.sessionId);
       setActiveNoteId(next.noteId);
       setMobileOpen(false);
-    }
+    };
     window.addEventListener("hashchange", handler);
     return () => window.removeEventListener("hashchange", handler);
   }, [data, course.id]);
   useEffect(() => {
     setWorkspaceRequest(null);
-  }, [user.id, role, course.id, view]);
+  }, [actor.id, actor.role, course.id, view]);
   useEffect(() => {
     const handler = (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -143,9 +207,15 @@ export default function App() {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, []);
-
   const navigate = useCallback(
     (next, params = {}) => {
+      if (role === "teacher") {
+        if (["courses", "overview"].includes(next)) next = "teacher-courses";
+        else if (["course", "studio"].includes(next))
+          next = params.sessionId ? "teacher-review" : "teacher-overview";
+        else if (next === "materials") next = "teacher-materials";
+        else if (next === "market") next = "teacher-market";
+      }
       const hash = buildRoute(next, params, data, course.id);
       const resolved = parseRoute(hash, data, course.id);
       setRoute(resolved);
@@ -157,30 +227,47 @@ export default function App() {
       setMobileOpen(false);
       window.scrollTo({ top: 0, behavior: "instant" });
     },
-    [data, course.id],
+    [data, course.id, role],
   );
-
+  function switchIdentity(next) {
+    setIdentity((previous) => ({ ...previous, ...next }));
+    setDialog(null);
+    setPreview(null);
+    setWorkspaceRequest(null);
+    setComposeRequest(null);
+    setActiveSessionId(null);
+    setActiveNoteId(null);
+    setMobileOpen(false);
+    const hash = next.role === "teacher" ? "#/teacher/courses" : "#/courses";
+    setRoute(parseRoute(hash, data, course.id));
+    location.hash = hash;
+  }
+  function askTeacher(params = {}) {
+    if (role !== "student") return;
+    const selected = params.courseId || course.id;
+    if (!canReadCourse(data, actor, selected))
+      return toast("This course is not available.");
+    setComposeRequest({
+      courseId: selected,
+      sessionId: params.sessionId || activeSessionId || null,
+      requestId: crypto.randomUUID(),
+    });
+    navigate("inbox", { courseId: selected });
+  }
   function openMaterial(id, page = 1) {
     const material = data.materials.find((item) => item.id === id);
-    if (
-      !material ||
-      material.courseId !== course.id ||
-      (role !== "teacher" && material.ownerId && material.ownerId !== user.id)
-    )
+    if (!canReadMaterial(data, actor, material))
       return toast("This material is not available in your learning space.");
-    const session =
-      data.sessions.find(
-        (item) => item.id === activeSessionId && item.courseId === course.id,
-      ) || data.sessions.find((item) => item.courseId === course.id);
-    const sessionStudent = data.students.find(
-      (item) => item.id === session?.studentId,
+    const session = data.sessions.find(
+      (item) => item.id === activeSessionId && item.courseId === course.id,
     );
-    const outsideStudentScope =
-      role === "teacher" &&
-      material.ownerId &&
-      material.ownerId !== sessionStudent?.id &&
-      material.ownerId !== sessionStudent?.studentId;
-    if (inCourse && !outsideStudentScope)
+    const owner = data.students.find((item) => item.id === session?.studentId);
+    const inScope =
+      !material.ownerId ||
+      material.ownerId === owner?.id ||
+      material.ownerId === owner?.studentId ||
+      role === "student";
+    if (inCourse && material.courseId === course.id && inScope)
       setWorkspaceRequest({
         kind: "material",
         id,
@@ -189,14 +276,42 @@ export default function App() {
       });
     else setPreview({ id, page });
   }
+  function backFromReview() {
+    const target = route.returnTo;
+    if (
+      target &&
+      (target.startsWith("#/teacher/") || target.startsWith("#/inbox"))
+    ) {
+      const parsed = parseRoute(target, data, course.id);
+      if (
+        parsed.view === "inbox" ||
+        (parsed.view === "teacher" &&
+          (!parsed.courseId || canTeach(data, teacher.id, parsed.courseId)))
+      ) {
+        setRoute(parsed);
+        setActiveSessionId(parsed.sessionId);
+        setActiveNoteId(parsed.noteId);
+        location.hash = target;
+        return;
+      }
+    }
+    navigate("teacher-student", {
+      courseId: course.id,
+      studentId: route.studentId,
+    });
+  }
   const context = {
     data,
     setData,
     courseId: course.id,
     course,
     user,
+    teacher,
+    teacherId,
+    actor,
     role,
     view,
+    route,
     activeSessionId,
     setActiveSessionId,
     activeNoteId,
@@ -206,28 +321,28 @@ export default function App() {
     openMaterial,
     workspaceRequest,
     workspacePanel: route.panel,
+    composeRequest,
+    clearComposeRequest,
+    askTeacher,
   };
-  const currentLabel =
-    navItems.find((item) => item.id === view)?.name ||
-    (view === "teacher" ? "Student activity" : course.name);
-  const noteCount = data.notes.filter(
-    (note) =>
-      role === "teacher" ||
-      note.studentId === user.id ||
-      note.studentId === user.studentId,
-  ).length;
+  const label =
+    view === "teacher"
+      ? route.teacherPage === "courses"
+        ? "Courses"
+        : course.name
+      : view === "inbox"
+        ? "Inbox"
+        : navItems.find((item) => item.id === view)?.name || course.name;
+  const currentActor = role === "teacher" ? teacher : user;
   const profile = (
     <button
       className="profile"
       onClick={() => setDialog("identity")}
       aria-label="Switch demo role or student"
     >
-      <Avatar
-        initials={role === "teacher" ? "RL" : user.initials}
-        color={role === "teacher" ? "#f6ddc4" : user.color}
-      />
+      <Avatar {...currentActor} />
       <span>
-        <strong>{role === "teacher" ? "Richard Lui" : user.name}</strong>
+        <strong>{currentActor.name}</strong>
         <small>
           {role === "teacher" ? "Instructor" : `Student · ${user.studentId}`}
         </small>
@@ -271,19 +386,37 @@ export default function App() {
                 folio<span className="brand-dot">.</span>
               </span>
             </button>
-            <div className="nav-label">YOUR WORKSPACE</div>
+            <div className="nav-label">
+              {role === "teacher" ? "TEACHING WORKSPACE" : "YOUR WORKSPACE"}
+            </div>
             <nav aria-label="Workspace">
               {navItems.map((item) => (
                 <button
                   key={item.id}
-                  className={`nav-item ${view === item.id || (item.id === "courses" && view === "teacher") ? "active" : ""}`}
-                  aria-current={view === item.id ? "page" : undefined}
-                  onClick={() => navigate(item.id)}
+                  className={`nav-item ${view === item.id || (item.id === "teacher-courses" && view === "teacher") ? "active" : ""}`}
+                  aria-current={
+                    view === item.id ||
+                    (item.id === "teacher-courses" && view === "teacher")
+                      ? "page"
+                      : undefined
+                  }
+                  onClick={() => {
+                    setComposeRequest(null);
+                    navigate(item.id);
+                  }}
                 >
                   <item.icon size={19} strokeWidth={1.7} />
                   <span>{item.name}</span>
                   {item.id === "wiki" && (
                     <span className="nav-count">{noteCount}</span>
+                  )}
+                  {item.id === "inbox" && unread > 0 && (
+                    <span
+                      className="nav-count inbox-unread-count"
+                      aria-label={`${unread} unread conversations`}
+                    >
+                      {unread}
+                    </span>
                   )}
                 </button>
               ))}
@@ -319,24 +452,26 @@ export default function App() {
                 <span className="course-topbar-separator" />
                 <Network size={16} className="course-topbar-code" />
                 <strong className="course-topbar-title">
-                  {wikiNote ? wikiNote.title : "Wiki note unavailable"}
+                  {wikiNote?.title || "Wiki note unavailable"}
                 </strong>
               </>
             ) : inCourse ? (
               <>
                 <button
                   className="course-back"
-                  onClick={() => navigate("courses")}
+                  onClick={
+                    isReview ? backFromReview : () => navigate("courses")
+                  }
                 >
                   <ArrowLeft size={17} />
-                  <span>Courses</span>
+                  <span>{isReview ? "Back to review list" : "Courses"}</span>
                 </button>
                 <span className="course-topbar-separator" />
                 <span className="course-topbar-code">
-                  {courseExists ? course.code : ""}
+                  {courseAllowed ? course.code : ""}
                 </span>
                 <strong className="course-topbar-title">
-                  {courseExists ? course.name : "Course unavailable"}
+                  {courseAllowed ? course.name : "Course unavailable"}
                 </strong>
               </>
             ) : (
@@ -348,36 +483,34 @@ export default function App() {
                 >
                   <Menu size={21} />
                 </button>
-                {view === "teacher" && (
+                {view === "teacher" && route.teacherPage !== "courses" && (
                   <>
                     <button
                       className="text-link"
-                      onClick={() =>
-                        navigate("course", { courseId: course.id })
-                      }
+                      onClick={() => navigate("teacher-courses")}
                     >
-                      {course.name}
+                      Courses
                     </button>
                     <ChevronRight size={14} />
                   </>
                 )}
-                <strong>{currentLabel}</strong>
+                <strong>{label}</strong>
               </>
             )}
           </div>
           <div className="topbar-actions">
-            {courseExists && view === "market" && (
+            {view === "market" && role === "student" && (
               <label className="global-course-filter">
                 <BookOpen size={15} />
                 <select
                   aria-label="Choose wiki course"
                   value={course.id}
                   onChange={(event) =>
-                    navigate(view, { courseId: event.target.value })
+                    navigate("market", { courseId: event.target.value })
                   }
                 >
-                  {data.courses.map((item) => (
-                    <option key={item.id} value={item.id}>
+                  {visibleCourses(data, actor).map((item) => (
+                    <option value={item.id} key={item.id}>
                       {item.name}
                     </option>
                   ))}
@@ -386,23 +519,56 @@ export default function App() {
             )}
             {inCourse && (
               <div className="course-global-links">
-                <button onClick={() => navigate("wiki")}>
-                  <Network size={16} />
-                  <span>My wiki</span>
-                </button>
-                <button
-                  onClick={() => navigate("market", { courseId: course.id })}
-                >
-                  <Store size={16} />
-                  <span>Wiki market</span>
-                </button>
-                {role === "teacher" && (
-                  <button
-                    onClick={() => navigate("teacher", { courseId: course.id })}
-                  >
-                    <Users size={16} />
-                    <span>Students</span>
-                  </button>
+                {isReview ? (
+                  <>
+                    <button
+                      aria-label="Course overview"
+                      onClick={() =>
+                        navigate("teacher-overview", { courseId: course.id })
+                      }
+                    >
+                      <Users size={16} />
+                      <span>Course overview</span>
+                    </button>
+                    <button
+                      aria-label="Inbox"
+                      onClick={() => navigate("inbox", { courseId: course.id })}
+                    >
+                      <InboxIcon size={16} />
+                      <span>Inbox</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      aria-label="My wiki"
+                      onClick={() => navigate("wiki")}
+                    >
+                      <Network size={16} />
+                      <span>My wiki</span>
+                    </button>
+                    <button
+                      aria-label="Wiki market"
+                      onClick={() =>
+                        navigate("market", { courseId: course.id })
+                      }
+                    >
+                      <Store size={16} />
+                      <span>Wiki market</span>
+                    </button>
+                    <button
+                      onClick={() =>
+                        askTeacher({
+                          courseId: course.id,
+                          sessionId: activeSessionId,
+                        })
+                      }
+                      aria-label="Ask teacher"
+                    >
+                      <MessageSquare size={16} />
+                      <span>Ask teacher</span>
+                    </button>
+                  </>
                 )}
               </div>
             )}
@@ -427,14 +593,25 @@ export default function App() {
         <main
           id="main-content"
           tabIndex={-1}
-          className={`page-container page-${view} ${inWiki ? "page-wiki-vault" : ""}`}
-          key={`${view}-${view === "wiki" ? "all" : course.id}-${user.id}-${role}`}
+          className={`page-container page-${inCourse ? "course" : view} ${inWiki ? "page-wiki-vault" : ""}`}
+          key={`${view}-${view === "wiki" || view === "inbox" ? "all" : course.id}-${actor.id}-${role}`}
         >
-          {view !== "courses" && view !== "wiki" && !courseExists ? (
+          {teacherOnly ||
+          privateWikiDenied ||
+          !courseAllowed ||
+          !reviewAllowed ? (
             <div className="empty-state course-not-found">
-              <BookOpen size={32} />
-              <h1>Course not found</h1>
-              <p>Choose a course from your learning space.</p>
+              <ShieldCheck size={32} />
+              <h1>
+                {privateWikiDenied
+                  ? "Personal wikis belong to students"
+                  : "This space is unavailable"}
+              </h1>
+              <p>
+                {privateWikiDenied
+                  ? "Browse published knowledge in your course’s wiki market."
+                  : "Choose a course or conversation available to your current identity."}
+              </p>
               <button
                 className="btn btn-primary"
                 onClick={() => navigate("courses")}
@@ -445,10 +622,12 @@ export default function App() {
           ) : (
             <>
               {view === "courses" && <Courses />}
+              {view === "teacher" &&
+                (isReview ? <CourseWorkspace /> : <Teacher />)}
               {view === "course" && <CourseWorkspace />}
               {view === "wiki" && <Wiki />}
               {view === "market" && <Market />}
-              {view === "teacher" && <Teacher />}
+              {view === "inbox" && <Inbox />}
             </>
           )}
         </main>
@@ -486,25 +665,24 @@ export default function App() {
               <Layers3 size={36} />
             </div>
             <p>
-              Choose a course, explore its files, and keep the conversation
-              going. Documents and interactive explanations open beside your
-              conversation.
+              Students learn through materials, conversations and a personal
+              wiki. Teachers manage courses and answer private messages in
+              Inbox.
             </p>
             <div className="notice-box">
               <Lightbulb size={20} />
               <div>
                 <strong>You’re exploring a local prototype.</strong>
                 <p>
-                  PDF parsing, original files, notes and wiki publications work
-                  in this browser. Tutor responses use source excerpts and
-                  prepared explanations. Animation scenes are authored demos; no
-                  live language model is connected.
+                  Files, conversations and replies are stored in this browser.
+                  Tutor responses and animations are prepared demos; no live LLM
+                  or server delivery is connected.
                 </p>
               </div>
             </div>
             <p className="muted">
-              The role switcher demonstrates different views. It is not a secure
-              login system.
+              Demo identity switching illustrates access rules and is not secure
+              authentication.
             </p>
           </div>
         </Modal>
@@ -512,7 +690,7 @@ export default function App() {
       {dialog === "identity" && (
         <Modal
           title="Explore another perspective"
-          subtitle="Choose a demo learner or instructor."
+          subtitle="Choose a demo learner or course instructor."
           onClose={() => setDialog(null)}
         >
           <div className="identity-options">
@@ -521,19 +699,16 @@ export default function App() {
               <button
                 key={student.id}
                 className={`identity-option ${role === "student" && user.id === student.id ? "selected" : ""}`}
-                onClick={() => {
-                  setUserId(student.id);
-                  setRole("student");
-                  setDialog(null);
-                  setPreview(null);
-                  setWorkspaceRequest(null);
-                  navigate("courses");
-                }}
+                onClick={() =>
+                  switchIdentity({ role: "student", studentId: student.id })
+                }
               >
                 <Avatar {...student} />
                 <span>
                   <strong>{student.name}</strong>
-                  <small>{student.studentId} · Own sessions and wiki</small>
+                  <small>
+                    {student.studentId} · Own sessions, wiki and inbox
+                  </small>
                 </span>
                 {role === "student" && user.id === student.id && (
                   <Check size={19} />
@@ -541,25 +716,33 @@ export default function App() {
               </button>
             ))}
             <div className="eyebrow identity-teacher-label">
-              INSTRUCTOR WORKSPACE
+              INSTRUCTOR WORKSPACES
             </div>
-            <button
-              className={`identity-option ${role === "teacher" ? "selected" : ""}`}
-              onClick={() => {
-                setRole("teacher");
-                setDialog(null);
-                setPreview(null);
-                setWorkspaceRequest(null);
-                navigate("courses");
-              }}
-            >
-              <Avatar initials="RL" color="#f6ddc4" />
-              <span>
-                <strong>Richard Lui</strong>
-                <small>Course materials and all student sessions</small>
-              </span>
-              <ShieldCheck size={19} />
-            </button>
+            {data.teachers.map((item) => (
+              <button
+                key={item.id}
+                className={`identity-option ${role === "teacher" && teacher.id === item.id ? "selected" : ""}`}
+                onClick={() =>
+                  switchIdentity({ role: "teacher", teacherId: item.id })
+                }
+              >
+                <Avatar {...item} />
+                <span>
+                  <strong>{item.name}</strong>
+                  <small>
+                    {data.courses
+                      .filter((course) => course.teacherId === item.id)
+                      .map((course) => course.code)
+                      .join(" · ") || "No assigned courses"}
+                  </small>
+                </span>
+                {role === "teacher" && teacher.id === item.id ? (
+                  <Check size={19} />
+                ) : (
+                  <ShieldCheck size={19} />
+                )}
+              </button>
+            ))}
           </div>
         </Modal>
       )}
@@ -575,7 +758,7 @@ export default function App() {
 }
 
 function MaterialPreview({ preview, setPreview, onClose }) {
-  const { data } = useApp();
+  const { data, actor } = useApp();
   const material = data.materials.find((item) => item.id === preview.id);
   const [original, setOriginal] = useState(null);
   const [originalUrl, setOriginalUrl] = useState(null);
@@ -586,7 +769,7 @@ function MaterialPreview({ preview, setPreview, onClose }) {
     setOriginal(null);
     setOriginalUrl(null);
     setMode("text");
-    if (material?.hasOriginal)
+    if (material?.hasOriginal && canReadMaterial(data, actor, material))
       getOriginal(material.id)
         .then((file) => {
           if (!file || disposed) return;
@@ -602,8 +785,8 @@ function MaterialPreview({ preview, setPreview, onClose }) {
       disposed = true;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [material?.id]);
-  if (!material) return null;
+  }, [material?.id, actor.id, actor.role]);
+  if (!canReadMaterial(data, actor, material)) return null;
   const pages = material.pages?.length
     ? material.pages
     : [{ page: 1, text: material.text || "No extracted text available." }];
@@ -709,61 +892,120 @@ function MaterialPreview({ preview, setPreview, onClose }) {
 }
 
 function SearchDialog({ onClose }) {
-  const { data, user, role, view, courseId, navigate, openMaterial } = useApp();
+  const {
+    data,
+    user,
+    role,
+    actor,
+    courseId,
+    route,
+    view,
+    navigate,
+    openMaterial,
+  } = useApp();
   const [query, setQuery] = useState("");
   const results = useMemo(() => {
-    const matches = (text) => text.toLowerCase().includes(query.toLowerCase());
+    const matches = (text) =>
+      String(text || "")
+        .toLowerCase()
+        .includes(query.toLowerCase());
+    const withinCourse = (item) =>
+      view === "inbox" ||
+      view === "courses" ||
+      view === "wiki" ||
+      (view === "teacher" && route.teacherPage === "courses") ||
+      item.courseId === courseId;
     return [
       ...data.sessions
         .filter(
           (item) =>
-            item.courseId === courseId &&
-            (role === "teacher" || item.studentId === user.id) &&
+            canReadSession(data, actor, item) &&
+            withinCourse(item) &&
             matches(item.title),
         )
         .map((item) => ({
           title: item.title,
-          subtitle: "Learning session",
+          subtitle: `Learning session · ${data.students.find((student) => student.id === item.studentId)?.name || "Student"}`,
           icon: MessageSquare,
-          action: () => navigate("studio", { sessionId: item.id }),
+          action: () =>
+            navigate(role === "teacher" ? "teacher-review" : "studio", {
+              courseId: item.courseId,
+              studentId: item.studentId,
+              sessionId: item.id,
+              returnTo: role === "teacher" ? location.hash : undefined,
+            }),
         })),
       ...data.notes
         .filter(
           (item) =>
-            (view === "wiki" || item.courseId === courseId) &&
-            (role === "teacher" ||
-              item.studentId === user.id ||
-              item.studentId === user.studentId) &&
+            canReadPrivateNote(data, actor, item) &&
+            withinCourse(item) &&
             matches(item.title),
         )
         .map((item) => ({
           title: item.title,
-          subtitle: `Wiki page · ${data.courses.find((course) => course.id === item.courseId)?.code || "Personal"}`,
+          subtitle: `Private wiki · ${data.courses.find((course) => course.id === item.courseId)?.code}`,
           icon: Network,
           action: () => navigate("wiki", { noteId: item.id }),
         })),
       ...data.materials
         .filter(
           (item) =>
-            item.courseId === courseId &&
-            (role === "teacher" || !item.ownerId || item.ownerId === user.id) &&
+            canReadMaterial(data, actor, item) &&
+            withinCourse(item) &&
+            !item.archivedAt &&
             matches(item.name),
         )
         .map((item) => ({
           title: item.name,
-          subtitle: "Course material",
+          subtitle: item.ownerId ? "Student material" : "Course material",
           icon: FileText,
           action: () => openMaterial(item.id),
         })),
-    ].slice(0, 9);
-  }, [query, data, courseId, role, user.id, user.studentId, view]);
+      ...(role === "teacher"
+        ? data.market
+            .filter(
+              (item) =>
+                canTeach(data, actor.id, item.courseId) &&
+                withinCourse(item) &&
+                matches(item.title),
+            )
+            .map((item) => ({
+              title: item.title,
+              subtitle: "Published wiki snapshot",
+              icon: Store,
+              action: () =>
+                navigate("teacher-market", { courseId: item.courseId }),
+            }))
+        : []),
+      ...visibleThreads(data, actor)
+        .filter((item) => matches(item.subject))
+        .map((item) => ({
+          title: item.subject,
+          subtitle: "Private Inbox conversation",
+          icon: InboxIcon,
+          action: () =>
+            navigate("inbox", { threadId: item.id, courseId: item.courseId }),
+        })),
+    ].slice(0, 15);
+  }, [
+    query,
+    data,
+    actor,
+    courseId,
+    view,
+    route.teacherPage,
+    role,
+    navigate,
+    openMaterial,
+  ]);
   return (
     <Modal
       title="Find your next thought"
       subtitle={
-        view === "wiki"
-          ? "Find wiki notes across your courses, plus this course’s sessions and materials."
-          : "Search this course’s sessions, materials, and wiki pages."
+        role === "teacher"
+          ? "Search your courses, student sessions, published wikis and Inbox."
+          : "Search your learning spaces and private Inbox."
       }
       onClose={onClose}
     >
@@ -771,7 +1013,7 @@ function SearchDialog({ onClose }) {
         <Search size={20} />
         <input
           aria-label="Search workspace"
-          placeholder="Try “transactions” or “requirements”…"
+          placeholder="Search by topic, document or conversation…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
@@ -798,13 +1040,13 @@ function SearchDialog({ onClose }) {
         {!results.length && (
           <div className="empty-state">
             <Search size={25} />
-            <p>No results. Try another concept.</p>
+            <p>No results. Try another topic.</p>
           </div>
         )}
       </div>
       <div className="search-footer">
-        <kbd>esc</kbd> to close{" "}
-        <span>Only content you can access is shown.</span>
+        <kbd>esc</kbd> to close
+        <span>Only content available to your identity is shown.</span>
       </div>
     </Modal>
   );

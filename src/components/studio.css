@@ -2206,3 +2206,37 @@
     font-size: 22px;
   }
 }
+
+.studio-review-source-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: #8492a8;
+  white-space: nowrap;
+}
+.studio-embedded .studio-teacher-notice {
+  flex-shrink: 0;
+  margin: 0;
+  border-radius: 0;
+  border-width: 0 0 1px;
+  font-size: 11px;
+  line-height: 1.7;
+  padding: 12px 20px;
+  background: #f5f7fc;
+  border-color: #e4e9f3;
+  color: #7787a1;
+}
+.studio-embedded .studio-teacher-notice > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.studio-embedded .studio-teacher-notice strong {
+  color: #526683;
+  font-weight: 500;
+}
+@media (max-width: 600px) {
+  .studio-review-source-count {
+    display: none;
+  }
+}

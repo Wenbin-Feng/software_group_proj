@@ -29,6 +29,11 @@ import {
   X,
 } from "lucide-react";
 import { useApp } from "../context";
+import {
+  canReadCourse,
+  canReadPrivateNote,
+  visibleCourses,
+} from "../lib/access";
 import { Modal } from "./ui";
 import LearningAnimation from "./Animation";
 import WikiLibrary from "./WikiLibrary";
@@ -239,15 +244,20 @@ export default function Wiki() {
     courseId: contextCourseId,
     user,
     role,
+    actor,
     activeNoteId,
     navigate,
     toast,
     openMaterial,
   } = useApp();
   const allowedNotes = useMemo(
-    () => data.notes.filter((note) => role === "teacher" || owns(note, user)),
-    [data.notes, role, user.id, user.studentId],
+    () =>
+      role === "student"
+        ? data.notes.filter((note) => canReadPrivateNote(data, actor, note))
+        : [],
+    [data, role, actor],
   );
+  const availableCourses = visibleCourses(data, actor);
   const active = allowedNotes.find((note) => note.id === activeNoteId);
   const notes = useMemo(
     () =>
@@ -263,7 +273,11 @@ export default function Wiki() {
       (item) =>
         item.id === active?.studentId || item.studentId === active?.studentId,
     ) || user;
-  const canEdit = role !== "teacher" && (!active || owns(active, user));
+  const canEdit =
+    role === "student" &&
+    (active
+      ? canReadPrivateNote(data, actor, active)
+      : availableCourses.length > 0);
   const [search, setSearch] = useState("");
   const [pendingHeading, setPendingHeading] = useState("");
   const [collapsed, setCollapsed] = useState({});
@@ -343,6 +357,13 @@ export default function Wiki() {
     articleRef.current?.scrollTo({ top: 0 });
   }, [active?.id, graphActive]);
   const selectNote = (id) => {
+    if (
+      role !== "student" ||
+      !data.notes.some(
+        (note) => note.id === id && canReadPrivateNote(data, actor, note),
+      )
+    )
+      return;
     setEditing(false);
     setGraphActive(false);
     navigate("wiki", { noteId: id });
@@ -416,12 +437,20 @@ export default function Wiki() {
     updated.links = outgoingLinks(updated, candidates)
       .map((link) => link.note?.id)
       .filter(Boolean);
-    setData((previous) => ({
-      ...previous,
-      notes: previous.notes.map((note) =>
-        note.id === active.id ? updated : note,
-      ),
-    }));
+    setData((previous) =>
+      !canReadPrivateNote(
+        previous,
+        actor,
+        previous.notes.find((note) => note.id === active.id),
+      )
+        ? previous
+        : {
+            ...previous,
+            notes: previous.notes.map((note) =>
+              note.id === active.id ? updated : note,
+            ),
+          },
+    );
     setDrafts((previous) => {
       const next = { ...previous };
       delete next[active.id];
@@ -431,12 +460,22 @@ export default function Wiki() {
     toast("Wiki note saved. Links and graph updated.");
   }
   function startNew() {
-    setNewCourseId(noteCourseId);
+    if (role !== "student" || !availableCourses.length) return;
+    setNewCourseId(
+      availableCourses.some((item) => item.id === noteCourseId)
+        ? noteCourseId
+        : availableCourses[0].id,
+    );
     setNewOpen(true);
   }
   function addNote(event) {
     event.preventDefault();
-    if (!newTitle.trim() || role === "teacher") return;
+    if (
+      !newTitle.trim() ||
+      role !== "student" ||
+      !canReadCourse(data, actor, newCourseId)
+    )
+      return;
     const note = {
       id: `note-${crypto.randomUUID()}`,
       courseId: newCourseId,
@@ -448,7 +487,11 @@ export default function Wiki() {
       links: [],
       updatedAt: new Date().toISOString(),
     };
-    setData((previous) => ({ ...previous, notes: [...previous.notes, note] }));
+    setData((previous) =>
+      canReadCourse(previous, actor, newCourseId)
+        ? { ...previous, notes: [...previous.notes, note] }
+        : previous,
+    );
     setNewOpen(false);
     setNewTitle("");
     navigate("wiki", { noteId: note.id, courseId: note.courseId });
@@ -457,6 +500,7 @@ export default function Wiki() {
     toast("New wiki note created.");
   }
   function downloadNote() {
+    if (role !== "student" || !canReadPrivateNote(data, actor, active)) return;
     const url = URL.createObjectURL(
       new Blob([active.content], { type: "text/markdown;charset=utf-8" }),
     );
@@ -476,13 +520,14 @@ export default function Wiki() {
   };
   const publish = (e) => {
     e.preventDefault();
+    if (role !== "student" || !canReadCourse(data, actor, noteCourseId)) return;
     if (!selectedIds.length)
       return toast("Select at least one page to publish.");
     const pages = notes.filter(
       (n) =>
         n.courseId === noteCourseId &&
         selectedIds.includes(n.id) &&
-        owns(n, user),
+        canReadPrivateNote(data, actor, n),
     );
     if (!pages.length || role === "teacher")
       return toast("Publish from your own student wiki.");
@@ -555,13 +600,35 @@ export default function Wiki() {
       animation: snapshotPages[0].animation,
       pageCount: pages.length,
     };
-    setData((prev) => ({
-      ...prev,
-      market: [snapshot, ...(prev.market || [])],
-    }));
+    setData((prev) =>
+      !pages.every((page) =>
+        canReadPrivateNote(
+          prev,
+          actor,
+          prev.notes.find((note) => note.id === page.id),
+        ),
+      )
+        ? prev
+        : {
+            ...prev,
+            market: [snapshot, ...(prev.market || [])],
+          },
+    );
     setPublishOpen(false);
     toast(`Published “${snapshot.title}” · version ${version}.`);
   };
+
+  if (role !== "student")
+    return (
+      <div className="vault-unavailable">
+        <ShieldCheck size={32} />
+        <h1>Personal wikis belong to students</h1>
+        <p>Browse published knowledge in your course’s wiki market.</p>
+        <button onClick={() => navigate("market")}>
+          Browse published wikis
+        </button>
+      </div>
+    );
 
   return (
     <>
@@ -1207,7 +1274,7 @@ export default function Wiki() {
                 value={newCourseId}
                 onChange={(event) => setNewCourseId(event.target.value)}
               >
-                {data.courses.map((item) => (
+                {availableCourses.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
                   </option>
@@ -1265,7 +1332,11 @@ export default function Wiki() {
               </span>
               <div className="wiki-publish-select">
                 {notes
-                  .filter((n) => n.courseId === noteCourseId && owns(n, user))
+                  .filter(
+                    (n) =>
+                      n.courseId === noteCourseId &&
+                      canReadPrivateNote(data, actor, n),
+                  )
                   .map((n) => (
                     <label
                       className={`wiki-select-row ${selectedIds.includes(n.id) ? "selected" : ""}`}

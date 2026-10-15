@@ -21,7 +21,7 @@ The application balances warm paper-like learning moments with a precise, functi
 
 ## Course-first layout
 
-- Global navigation contains Courses, My wiki, and Wiki market. Course selection happens through course cards.
+- Student navigation contains Courses, My wiki, Wiki market and Inbox. Course selection happens through course cards.
 - Entering a course replaces the large global sidebar with a focused, full-height workspace. A compact top bar provides a return to Courses and wiki destinations.
 - Left: a collapsible file tree with shared course materials, personal uploads, and LLM Wiki pages.
 - Middle: a ChatGPT-style conversation with a compact session selector and a fixed composer.
@@ -44,7 +44,16 @@ The application balances warm paper-like learning moments with a precise, functi
 - Opening a card enters a focused Obsidian-inspired dark workspace: compact tool ribbon, course/folder explorer, note tabs and Markdown reader/editor, and a connections inspector. The global sidebar gives way to this workspace, with an explicit return to My wiki.
 - Outgoing links, backlinks and graph edges are derived from Markdown links, including aliases, headings and `.md` paths. Code examples do not create edges. Missing targets are labelled; unlinked notes remain visible in the graph.
 - Local graph shows the active note and its neighbours; Graph view expands all personal notes and supports a course filter, zoom, pan, keyboard selection and a note-list alternative. Editing a link updates all three representations after saving.
-- Teacher review opens one student's vault read-only. Publishing stays within the active note's course even while the personal explorer spans courses. On narrow screens, Files, Note/Graph and Links expose the same panels.
+- Private vaults are student-only; teachers browse published snapshots in their course market. Publishing stays within the active note's course even while the personal explorer spans courses. On narrow screens, Files, Note/Graph and Links expose the same panels.
+
+## Teaching workspace and private Inbox
+
+- Teacher navigation is Courses and Inbox. Teaching course cards open Overview; a course tab bar separates Overview, Materials, Students and Wiki market. Student navigation adds Inbox to Courses, My wiki and Wiki market.
+- Overview uses roster, recent session activity and pending message counts. It avoids inferred mastery or risk scores. Student records include inactive enrolled learners and link into a focused, read-only session review that preserves the prior list context.
+- Teachers can view course sessions, personal uploads and published Wiki snapshots. Private Wiki titles, counts, notes, links and graphs stay out of the teacher shell, search and deep links. Market curation never borrows a student identity.
+- Inbox threads are private to a course teacher and the initiating student. Teacher replies are separate from AI sessions. A unified list provides course/status/search filters; the reading panel shows human participants, messages and a reply box. On phones, list and detail become two explicit levels.
+- Unread dots supplement text/status badges; opening a thread marks it read. A student follow-up reopens a resolved conversation. No out-of-app delivery is implied by this browser-local demo.
+- Archiving a public document removes it from new learning context without deleting original files or breaking old citations. Teacher uploads, renames and archive actions are attributed to the teacher identity.
 
 ## Accessibility and adaptation
 
