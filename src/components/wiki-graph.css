@@ -1,0 +1,365 @@
+.vault-graph {
+  --vg-bg: #1e1e23;
+  --vg-border: #34333d;
+  --vg-accent: #b4a0f8;
+  --vg-text: #dedce7;
+  --vg-muted: #a09cab;
+  background: var(--vg-bg);
+  color: var(--vg-text);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  font-family: "DM Sans", sans-serif;
+}
+.vault-graph-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 31px 32px 14px;
+  flex: 0 0 auto;
+}
+.vault-graph-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.vault-graph-heading-icon {
+  display: flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #443c59;
+  border-radius: 11px;
+  color: var(--vg-accent);
+  background: #292530;
+}
+.vault-graph .vault-graph-heading h2 {
+  font-family: inherit;
+  font-size: 19px;
+  line-height: 1.4;
+  color: #eeebf3;
+  font-weight: 600;
+  margin: 0 0 3px;
+  letter-spacing: -0.3px;
+}
+.vault-graph-heading p {
+  font-size: 12px;
+  color: var(--vg-muted);
+  margin: 0;
+}
+.vault-graph-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--vg-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.vault-graph-legend i {
+  height: 7px;
+  width: 7px;
+  border-radius: 100%;
+  background: var(--vg-accent);
+}
+.vault-graph-legend i:nth-of-type(2) {
+  margin-left: 10px;
+  background: #928ba4;
+}
+.vault-graph-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 270px;
+  overflow: hidden;
+}
+.vault-graph-canvas > svg {
+  width: 100%;
+  height: 100%;
+  min-height: 270px;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+.vault-graph-canvas > svg:active {
+  cursor: grabbing;
+}
+.vault-graph-dots {
+  color: #49424e;
+  opacity: 0.6;
+}
+.vault-graph-edge {
+  fill: none;
+  stroke: #655d75;
+  color: #655d75;
+  stroke-width: 1.1px;
+  opacity: 0.48;
+}
+.vault-graph-edge.is-related {
+  stroke: #a391d4;
+  color: #a391d4;
+  stroke-width: 1.5px;
+  opacity: 0.75;
+}
+.vault-graph-node {
+  cursor: pointer;
+  outline: none;
+}
+.vault-graph-hit {
+  fill: transparent;
+}
+.vault-graph-dot {
+  fill: #8d879b;
+  stroke: var(--vg-bg);
+  stroke-width: 2px;
+  transition: fill 0.16s ease;
+}
+.vault-graph-halo {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 1px;
+}
+.vault-graph-node.is-related .vault-graph-dot {
+  fill: #b3a1db;
+}
+.vault-graph-node.is-active .vault-graph-dot {
+  fill: #c6adff;
+}
+.vault-graph-node.is-active .vault-graph-halo {
+  fill: #a78bfa13;
+  stroke: #a78bfa55;
+}
+.vault-graph-node:focus-visible .vault-graph-halo,
+.vault-graph-node:hover .vault-graph-halo {
+  stroke: #d0bbff;
+  fill: #a78bfa18;
+}
+.vault-graph-node text {
+  font-family: "DM Sans", sans-serif;
+  font-size: 12.5px;
+  fill: #aca6b8;
+  paint-order: stroke;
+  stroke: var(--vg-bg);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.vault-graph-node.is-active text {
+  fill: #e1d3ff;
+  font-weight: 600;
+}
+.vault-graph-node:hover text,
+.vault-graph-node:focus-visible text {
+  fill: #f1ebff;
+}
+.vault-graph-hint {
+  position: absolute;
+  left: 28px;
+  bottom: 22px;
+  color: #928b9e;
+  font-size: 11px;
+  pointer-events: none;
+}
+.vault-graph-controls {
+  position: absolute;
+  right: 22px;
+  bottom: 16px;
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  padding: 4px;
+  border: 1px solid #3a3543;
+  border-radius: 9px;
+  background: #25232bea;
+}
+.vault-graph .vault-graph-controls button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #b9b2c5;
+  border: 0;
+  border-radius: 5px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+.vault-graph .vault-graph-controls button:hover:not(:disabled) {
+  background: #3b334d;
+  color: #e1d2ff;
+}
+.vault-graph .vault-graph-controls button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.vault-graph-controls output {
+  font-size: 10px;
+  min-width: 37px;
+  text-align: center;
+  color: #b4aabd;
+}
+.vault-graph button:focus-visible {
+  outline: 2px solid #c2a9ff;
+  outline-offset: 2px;
+}
+.vault-graph-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 25px;
+  pointer-events: none;
+}
+.vault-graph-empty > svg {
+  color: #a58ace;
+}
+.vault-graph-empty strong {
+  color: #e3daec;
+  font-size: 15px;
+}
+.vault-graph-empty span {
+  color: #aca4b8;
+  font-size: 12px;
+}
+.vault-graph-list {
+  flex: 0 0 auto;
+  border-top: 1px solid #333039;
+  max-height: 35%;
+  overflow-y: auto;
+}
+.vault-graph .vault-graph-list-toggle {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #b7afc4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 24px;
+  font-size: 11px;
+  text-align: left;
+}
+.vault-graph-list-toggle > svg:last-child {
+  margin-left: auto;
+  transition: transform 0.15s;
+}
+.vault-graph-list-toggle > svg.is-open {
+  transform: rotate(180deg);
+}
+.vault-graph-note-list {
+  padding: 0 15px 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px 14px;
+}
+.vault-graph .vault-graph-note-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  border-radius: 5px;
+  padding: 9px;
+  color: #c6becf;
+  font-size: 11px;
+  min-width: 0;
+}
+.vault-graph-note-list button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vault-graph-note-list button small {
+  font-size: 10px;
+  white-space: nowrap;
+  color: #9c91aa;
+}
+.vault-graph .vault-graph-note-list button.is-active,
+.vault-graph .vault-graph-note-list button:hover {
+  background: #312a3e;
+  color: #d9c9fa;
+}
+.vault-graph.is-compact {
+  min-height: 220px;
+  height: 250px;
+  border-radius: 8px;
+  border: 1px solid #34303d;
+}
+.vault-graph.is-compact .vault-graph-canvas,
+.vault-graph.is-compact .vault-graph-canvas > svg {
+  min-height: 160px;
+}
+.vault-graph.is-compact .vault-graph-controls {
+  bottom: 8px;
+  right: 8px;
+  padding: 2px;
+}
+.vault-graph.is-compact .vault-graph-controls button {
+  width: 24px;
+  height: 26px;
+}
+.vault-graph.is-compact .vault-graph-list-toggle {
+  padding: 9px 11px;
+  font-size: 10px;
+}
+.vault-graph.is-compact .vault-graph-note-list {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 0 6px 6px;
+}
+.vault-graph.is-compact .vault-graph-node text {
+  font-size: 10.5px;
+  stroke-width: 2.5px;
+}
+.vault-graph.is-compact .vault-graph-edge {
+  stroke-width: 0.8px;
+}
+.vault-graph.is-compact .vault-graph-node .vault-graph-dot {
+  stroke-width: 1px;
+}
+.vault-graph.is-compact .vault-graph-list {
+  max-height: 45%;
+}
+@media (max-width: 700px) {
+  .vault-graph-heading {
+    padding: 20px 18px 8px;
+  }
+  .vault-graph-legend {
+    display: none;
+  }
+  .vault-graph-hint {
+    left: 16px;
+    bottom: 65px;
+  }
+  .vault-graph-controls {
+    right: 14px;
+  }
+  .vault-graph .vault-graph-controls button {
+    width: 36px;
+    height: 36px;
+  }
+  .vault-graph-note-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .vault-graph.is-compact .vault-graph-controls button {
+    width: 28px;
+    height: 28px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vault-graph * {
+    transition: none !important;
+  }
+}
+@media (max-width: 480px) {
+  .vault-graph-hint {
+    display: none;
+  }
+}

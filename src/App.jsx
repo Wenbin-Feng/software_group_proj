@@ -84,6 +84,15 @@ export default function App() {
     data.courses.find((item) => item.id === route.courseId) || data.courses[0];
   const view = route.view;
   const inCourse = view === "course";
+  const inWiki = view === "wiki" && Boolean(activeNoteId);
+  const focusedWorkspace = inCourse || inWiki;
+  const wikiNote = data.notes.find(
+    (note) =>
+      note.id === activeNoteId &&
+      (role === "teacher" ||
+        note.studentId === user.id ||
+        note.studentId === user.studentId),
+  );
   const courseExists = data.courses.some((item) => item.id === route.courseId);
   const toast = useCallback((message) => setToastMessage(message), []);
 
@@ -202,7 +211,10 @@ export default function App() {
     navItems.find((item) => item.id === view)?.name ||
     (view === "teacher" ? "Student activity" : course.name);
   const noteCount = data.notes.filter(
-    (note) => note.courseId === course.id && note.studentId === user.id,
+    (note) =>
+      role === "teacher" ||
+      note.studentId === user.id ||
+      note.studentId === user.studentId,
   ).length;
   const profile = (
     <button
@@ -235,7 +247,7 @@ export default function App() {
       >
         Skip to content
       </a>
-      {!inCourse && (
+      {!focusedWorkspace && (
         <>
           {mobileOpen && (
             <button
@@ -288,12 +300,29 @@ export default function App() {
           </aside>
         </>
       )}
-      <div className={`app-main ${inCourse ? "course-main" : ""}`}>
+      <div
+        className={`app-main ${inCourse ? "course-main" : ""} ${inWiki ? "vault-main" : ""}`}
+      >
         <header
-          className={`topbar ${inCourse ? "course-topbar" : ""} ${view === "wiki" || view === "market" ? "has-course-filter" : ""}`}
+          className={`topbar ${inCourse ? "course-topbar" : ""} ${inWiki ? "vault-topbar" : ""} ${view === "market" ? "has-course-filter" : ""}`}
         >
           <div className="breadcrumb">
-            {inCourse ? (
+            {inWiki ? (
+              <>
+                <button
+                  className="course-back"
+                  onClick={() => navigate("wiki")}
+                >
+                  <ArrowLeft size={17} />
+                  <span>My wiki</span>
+                </button>
+                <span className="course-topbar-separator" />
+                <Network size={16} className="course-topbar-code" />
+                <strong className="course-topbar-title">
+                  {wikiNote ? wikiNote.title : "Wiki note unavailable"}
+                </strong>
+              </>
+            ) : inCourse ? (
               <>
                 <button
                   className="course-back"
@@ -337,7 +366,7 @@ export default function App() {
             )}
           </div>
           <div className="topbar-actions">
-            {courseExists && (view === "wiki" || view === "market") && (
+            {courseExists && view === "market" && (
               <label className="global-course-filter">
                 <BookOpen size={15} />
                 <select
@@ -357,9 +386,7 @@ export default function App() {
             )}
             {inCourse && (
               <div className="course-global-links">
-                <button
-                  onClick={() => navigate("wiki", { courseId: course.id })}
-                >
+                <button onClick={() => navigate("wiki")}>
                   <Network size={16} />
                   <span>My wiki</span>
                 </button>
@@ -400,10 +427,10 @@ export default function App() {
         <main
           id="main-content"
           tabIndex={-1}
-          className={`page-container page-${view}`}
-          key={`${view}-${course.id}-${user.id}-${role}`}
+          className={`page-container page-${view} ${inWiki ? "page-wiki-vault" : ""}`}
+          key={`${view}-${view === "wiki" ? "all" : course.id}-${user.id}-${role}`}
         >
-          {view !== "courses" && !courseExists ? (
+          {view !== "courses" && view !== "wiki" && !courseExists ? (
             <div className="empty-state course-not-found">
               <BookOpen size={32} />
               <h1>Course not found</h1>
@@ -425,7 +452,7 @@ export default function App() {
             </>
           )}
         </main>
-        {!inCourse && (
+        {!focusedWorkspace && (
           <footer className="app-footer">
             <span>Folio · A clearer way to learn.</span>
             <span>
@@ -682,7 +709,7 @@ function MaterialPreview({ preview, setPreview, onClose }) {
 }
 
 function SearchDialog({ onClose }) {
-  const { data, user, role, courseId, navigate, openMaterial } = useApp();
+  const { data, user, role, view, courseId, navigate, openMaterial } = useApp();
   const [query, setQuery] = useState("");
   const results = useMemo(() => {
     const matches = (text) => text.toLowerCase().includes(query.toLowerCase());
@@ -703,13 +730,15 @@ function SearchDialog({ onClose }) {
       ...data.notes
         .filter(
           (item) =>
-            item.courseId === courseId &&
-            (role === "teacher" || item.studentId === user.id) &&
+            (view === "wiki" || item.courseId === courseId) &&
+            (role === "teacher" ||
+              item.studentId === user.id ||
+              item.studentId === user.studentId) &&
             matches(item.title),
         )
         .map((item) => ({
           title: item.title,
-          subtitle: "Wiki page",
+          subtitle: `Wiki page · ${data.courses.find((course) => course.id === item.courseId)?.code || "Personal"}`,
           icon: Network,
           action: () => navigate("wiki", { noteId: item.id }),
         })),
@@ -727,11 +756,15 @@ function SearchDialog({ onClose }) {
           action: () => openMaterial(item.id),
         })),
     ].slice(0, 9);
-  }, [query, data, courseId, role, user.id]);
+  }, [query, data, courseId, role, user.id, user.studentId, view]);
   return (
     <Modal
       title="Find your next thought"
-      subtitle="Search this course’s sessions, materials, and wiki pages."
+      subtitle={
+        view === "wiki"
+          ? "Find wiki notes across your courses, plus this course’s sessions and materials."
+          : "Search this course’s sessions, materials, and wiki pages."
+      }
       onClose={onClose}
     >
       <div className="command-search">

@@ -1,14 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowDownToLine,
+  ArrowLeft,
   BookOpen,
+  Check,
   ChevronDown,
   ChevronRight,
-  Check,
   FileText,
+  Folder,
   FolderOpen,
   GitBranch,
   Link2,
-  MoreHorizontal,
+  List,
+  Maximize2,
+  Network,
+  PanelLeft,
+  PanelRight,
   Pencil,
   Play,
   Plus,
@@ -24,7 +31,16 @@ import {
 import { useApp } from "../context";
 import { Modal } from "./ui";
 import LearningAnimation from "./Animation";
+import WikiLibrary from "./WikiLibrary";
+import WikiGraph from "./WikiGraph";
+import {
+  incomingLinks,
+  outgoingLinks,
+  parseWikiLinks,
+  resolveWikiLink,
+} from "../lib/wikiLinks";
 import "./wiki.css";
+import "./wiki-vault.css";
 
 const owns = (note, user) =>
   note.studentId === user.id || note.studentId === user.studentId;
@@ -34,29 +50,20 @@ export const friendlyDate = (value) => {
     ? value || "today"
     : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 };
-const avatarStyle = (color) => ({
-  background: color?.length === 7 ? `${color}18` : "#eef0f6",
-  color: color || "#64728a",
-});
-const textKey = (value) =>
-  String(value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fff]/g, "");
-
-export function WikiMarkdown({ content = "", notes = [], onLink }) {
+export function WikiMarkdown({ content = "", notes = [], onLink, sourceNote }) {
   const inline = (text, key) =>
     text.split(/(\[\[.*?\]\]|\*\*.*?\*\*|`[^`]+`)/g).map((part, i) => {
       if (part.startsWith("[[") && part.endsWith("]]")) {
-        const [target, label] = part.slice(2, -2).split("|");
-        const found = notes.find(
-          (n) => textKey(n.title) === textKey(target) || n.id === target,
-        );
+        const link = parseWikiLinks(part)[0];
+        if (!link) return part;
+        const { target, label, heading } = link;
+        const found = resolveWikiLink(notes, target, sourceNote);
         return (
           <button
             className="wiki-inline-link"
             type="button"
             key={`${key}-${i}`}
-            onClick={() => onLink?.(found, target)}
+            onClick={() => onLink?.(found, target, heading)}
           >
             <Link2 size={12} />
             {label || found?.title || target}
@@ -81,7 +88,11 @@ export function WikiMarkdown({ content = "", notes = [], onLink }) {
         if (inCode) return <pre key={i}>{line || " "}</pre>;
         if (!line.trim()) return <div className="wiki-paragraph-gap" key={i} />;
         if (line.startsWith("### "))
-          return <h3 key={i}>{inline(line.slice(4), i)}</h3>;
+          return (
+            <h3 id={`section-${i}`} key={i}>
+              {inline(line.slice(4), i)}
+            </h3>
+          );
         if (line.startsWith("## "))
           return (
             <h2 id={`section-${i}`} key={i}>
@@ -89,7 +100,11 @@ export function WikiMarkdown({ content = "", notes = [], onLink }) {
             </h2>
           );
         if (line.startsWith("# "))
-          return <h2 key={i}>{inline(line.slice(2), i)}</h2>;
+          return (
+            <h2 id={`section-${i}`} key={i}>
+              {inline(line.slice(2), i)}
+            </h2>
+          );
         if (/^[-*] /.test(line))
           return (
             <div className="wiki-list-line" key={i}>
@@ -217,206 +232,240 @@ function ConceptAnimation() {
   );
 }
 
-function KnowledgeGraph({ notes, activeId, onSelect }) {
-  const shown = notes.slice(0, 6);
-  const coords = [
-    [116, 78],
-    [52, 31],
-    [190, 34],
-    [38, 127],
-    [187, 127],
-    [118, 151],
-  ];
-  return (
-    <div className="wiki-graph">
-      <svg
-        viewBox="0 0 232 177"
-        role="img"
-        aria-label="Knowledge graph showing links between your notes"
-      >
-        {shown.slice(1).map((n, i) => (
-          <line
-            key={n.id}
-            x1={coords[0][0]}
-            y1={coords[0][1]}
-            x2={coords[i + 1][0]}
-            y2={coords[i + 1][1]}
-            stroke="#dce2ed"
-            strokeWidth="1.3"
-          />
-        ))}
-        {shown.map((note, i) => (
-          <g
-            key={note.id}
-            onClick={() => onSelect(note.id)}
-            className="wiki-graph-node"
-            role="button"
-            tabIndex="0"
-            aria-label={`Open ${note.title}`}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onSelect(note.id);
-              }
-            }}
-          >
-            <circle
-              cx={coords[i][0]}
-              cy={coords[i][1]}
-              r={note.id === activeId ? 9 : 5}
-              fill={note.id === activeId ? "#3156d3" : "#b1bdd8"}
-            />
-            <text
-              x={coords[i][0]}
-              y={coords[i][1] + 19}
-              textAnchor="middle"
-              fill={note.id === activeId ? "#3156d3" : "#6d7890"}
-              fontSize="8.6"
-            >
-              {note.title.length > 22
-                ? note.title.slice(0, 20) + "…"
-                : note.title}
-            </text>
-          </g>
-        ))}
-      </svg>
-      <span>
-        <i /> Connected ideas grow stronger.
-      </span>
-    </div>
-  );
-}
-
 export default function Wiki() {
   const {
     data,
     setData,
-    courseId,
-    course,
+    courseId: contextCourseId,
     user,
     role,
     activeNoteId,
-    setActiveNoteId,
     navigate,
     toast,
     openMaterial,
   } = useApp();
+  const allowedNotes = useMemo(
+    () => data.notes.filter((note) => role === "teacher" || owns(note, user)),
+    [data.notes, role, user.id, user.studentId],
+  );
+  const active = allowedNotes.find((note) => note.id === activeNoteId);
+  const notes = useMemo(
+    () =>
+      role === "teacher" && active
+        ? allowedNotes.filter((note) => note.studentId === active.studentId)
+        : allowedNotes,
+    [allowedNotes, role, active?.studentId],
+  );
+  const noteCourseId = active?.courseId || contextCourseId;
+  const noteCourse = data.courses.find((item) => item.id === noteCourseId);
+  const owner =
+    data.students.find(
+      (item) =>
+        item.id === active?.studentId || item.studentId === active?.studentId,
+    ) || user;
+  const canEdit = role !== "teacher" && (!active || owns(active, user));
   const [search, setSearch] = useState("");
+  const [pendingHeading, setPendingHeading] = useState("");
+  const [collapsed, setCollapsed] = useState({});
+  const [tabIds, setTabIds] = useState(activeNoteId ? [activeNoteId] : []);
+  const [graphOpen, setGraphOpen] = useState(false);
+  const [graphActive, setGraphActive] = useState(false);
+  const [graphCourse, setGraphCourse] = useState("all");
+  const [mobilePanel, setMobilePanel] = useState("note");
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState({ title: "", content: "" });
+  const [drafts, setDrafts] = useState({});
   const [newOpen, setNewOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("My notes");
+  const [newCourseId, setNewCourseId] = useState(contextCourseId);
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishTitle, setPublishTitle] = useState("");
   const [publishDescription, setPublishDescription] = useState("");
   const [publishCategory, setPublishCategory] = useState("Core concepts");
   const [selectedIds, setSelectedIds] = useState([]);
-  const [collapsed, setCollapsed] = useState({});
-  const notes = useMemo(
-    () =>
-      (data.notes || []).filter(
-        (n) => n.courseId === courseId && (role === "teacher" || owns(n, user)),
-      ),
-    [data.notes, courseId, user.id, user.studentId, role],
-  );
-  const active = notes.find((n) => n.id === activeNoteId) || notes[0];
-  const filtered = notes.filter((n) =>
-    n.title.toLowerCase().includes(search.toLowerCase()),
-  );
+  const articleRef = useRef(null);
+  const tabsRef = useRef(null);
+  const draft = drafts[active?.id] || {
+    title: active?.title || "",
+    content: active?.content || "",
+  };
+  const setDraft = (value) =>
+    setDrafts((previous) => ({
+      ...previous,
+      [active.id]:
+        typeof value === "function"
+          ? value(
+              previous[active.id] || {
+                title: active.title,
+                content: active.content,
+              },
+            )
+          : value,
+    }));
   const categories = [
-    ...new Set(filtered.map((n) => n.category || "My notes")),
+    ...new Set(notes.map((note) => note.category || "My notes")),
   ];
-  const owner =
-    (data.students || []).find(
-      (s) => s.id === active?.studentId || s.studentId === active?.studentId,
-    ) || user;
-  const backlinks = notes.filter(
-    (n) =>
-      n.id !== active?.id &&
-      ((n.links || []).includes(active?.id) ||
-        n.content?.includes(`[[${active?.title}]]`)),
-  );
-  const headings = (active?.content || "")
+  const outgoing = active ? outgoingLinks(active, notes) : [];
+  const backlinks = active ? incomingLinks(active, notes) : [];
+  const localIds = new Set([
+    active?.id,
+    ...outgoing.map((link) => link.note?.id),
+    ...backlinks.map((link) => link.note.id),
+  ]);
+  const localNotes = notes.filter((note) => localIds.has(note.id));
+  const renderedContent = (active?.content || "").replace(/^# [^\n]+\n*/, "");
+  const headings = renderedContent
     .split("\n")
     .map((line, i) => ({ line, i }))
-    .filter((x) => x.line.startsWith("## "));
-  const canEdit = role !== "teacher" && (!active || owns(active, user));
-  const published = (data.market || []).find(
-    (m) => m.noteId === active?.id && m.courseId === courseId,
+    .filter((item) => /^#{1,3} /.test(item.line));
+  const openTabs = tabIds
+    .map((id) => notes.find((note) => note.id === id))
+    .filter(Boolean);
+  const filtered = notes.filter((note) =>
+    `${note.title} ${note.category} ${(note.tags || []).join(" ")}`
+      .toLowerCase()
+      .includes(search.toLowerCase()),
   );
+  const published = data.market.find(
+    (item) =>
+      item.courseId === noteCourseId &&
+      (item.noteIds || [item.noteId]).includes(active?.id),
+  );
+
+  useEffect(() => {
+    if (active) {
+      setTabIds((ids) => (ids.includes(active.id) ? ids : [...ids, active.id]));
+      setGraphActive(false);
+      setMobilePanel("note");
+    }
+  }, [active?.id]);
+  useEffect(() => {
+    articleRef.current?.scrollTo({ top: 0 });
+  }, [active?.id, graphActive]);
   const selectNote = (id) => {
     setEditing(false);
-    setActiveNoteId(id);
+    setGraphActive(false);
     navigate("wiki", { noteId: id });
+    setMobilePanel("note");
   };
-  const followLink = (note, target) =>
-    note
-      ? selectNote(note.id)
-      : toast(
-          `“${target}” isn't in this wiki yet. Create a note to connect it.`,
-        );
+  const followLink = (note, target, heading) => {
+    if (note) {
+      setPendingHeading(heading || "");
+      selectNote(note.id);
+    } else
+      toast(`“${target}” does not have a note yet. Create it with New note.`);
+  };
   useEffect(() => {
+    if (!pendingHeading || editing) return;
+    const frame = requestAnimationFrame(() => {
+      const heading = [
+        ...(articleRef.current?.querySelectorAll("h2,h3") || []),
+      ].find(
+        (item) =>
+          item.textContent.toLowerCase() === pendingHeading.toLowerCase(),
+      );
+      heading?.scrollIntoView({ block: "start" });
+      setPendingHeading("");
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [active?.id, pendingHeading, editing]);
+  const openGraph = () => {
+    setGraphOpen(true);
+    setGraphActive(true);
     setEditing(false);
-  }, [courseId, user.id, role]);
-  const save = () => {
-    if (!canEdit)
-      return toast("Student wiki pages are read-only in teacher view.");
+    setMobilePanel("note");
+  };
+  function closeTab(id) {
+    const index = openTabs.findIndex((note) => note.id === id);
+    const remaining = openTabs.filter((note) => note.id !== id);
+    setTabIds((ids) => ids.filter((item) => item !== id));
+    if (id === active?.id && !graphActive) {
+      if (remaining.length)
+        selectNote(remaining[Math.min(index, remaining.length - 1)].id);
+      else if (graphOpen) setGraphActive(true);
+      else navigate("wiki");
+    }
+  }
+  function tabKeys(event) {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const tabs = [...tabsRef.current.querySelectorAll('[role="tab"]')];
+    const index = tabs.indexOf(document.activeElement);
+    const next =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? tabs.length - 1
+          : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) %
+            tabs.length;
+    tabs[next]?.focus();
+    tabs[next]?.click();
+  }
+  function save() {
+    if (!canEdit || !active) return;
     if (!draft.title.trim()) return toast("Give your note a title first.");
-    const links = [
-      ...new Set(
-        [...draft.content.matchAll(/\[\[([^|\]]+)/g)]
-          .map(
-            (match) =>
-              notes.find(
-                (n) =>
-                  n.id === match[1] || textKey(n.title) === textKey(match[1]),
-              )?.id,
-          )
-          .filter(Boolean),
-      ),
-    ];
-    setData((prev) => ({
-      ...prev,
-      notes: prev.notes.map((n) =>
-        n.id === active.id
-          ? {
-              ...n,
-              ...draft,
-              links,
-              title: draft.title.trim(),
-              updatedAt: "Just now",
-            }
-          : n,
+    const updated = {
+      ...active,
+      title: draft.title.trim(),
+      content: draft.content,
+      updatedAt: new Date().toISOString(),
+    };
+    const candidates = notes.map((note) =>
+      note.id === active.id ? updated : note,
+    );
+    updated.links = outgoingLinks(updated, candidates)
+      .map((link) => link.note?.id)
+      .filter(Boolean);
+    setData((previous) => ({
+      ...previous,
+      notes: previous.notes.map((note) =>
+        note.id === active.id ? updated : note,
       ),
     }));
+    setDrafts((previous) => {
+      const next = { ...previous };
+      delete next[active.id];
+      return next;
+    });
     setEditing(false);
-    toast("Your wiki is up to date.");
-  };
-  const addNote = (e) => {
-    e.preventDefault();
-    if (!newTitle.trim()) return;
-    const id = `note-${Date.now()}`;
+    toast("Wiki note saved. Links and graph updated.");
+  }
+  function startNew() {
+    setNewCourseId(noteCourseId);
+    setNewOpen(true);
+  }
+  function addNote(event) {
+    event.preventDefault();
+    if (!newTitle.trim() || role === "teacher") return;
     const note = {
-      id,
-      courseId,
+      id: `note-${crypto.randomUUID()}`,
+      courseId: newCourseId,
       studentId: user.id,
       title: newTitle.trim(),
       category: newCategory.trim() || "My notes",
-      content:
-        "## The idea\nStart with what you understand.\n\n## Connections\nConnect this idea to another note using [[double brackets]].",
+      content: `# ${newTitle.trim()}\n\n`,
       tags: [],
       links: [],
-      updatedAt: "Just now",
+      updatedAt: new Date().toISOString(),
     };
-    setData((prev) => ({ ...prev, notes: [...prev.notes, note] }));
+    setData((previous) => ({ ...previous, notes: [...previous.notes, note] }));
     setNewOpen(false);
     setNewTitle("");
-    setActiveNoteId(id);
-    setDraft({ title: note.title, content: note.content });
+    navigate("wiki", { noteId: note.id, courseId: note.courseId });
     setEditing(true);
-    toast("A fresh page for a new idea.");
-  };
+    setGraphActive(false);
+    toast("New wiki note created.");
+  }
+  function downloadNote() {
+    const url = URL.createObjectURL(
+      new Blob([active.content], { type: "text/markdown;charset=utf-8" }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${active.title}.md`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   const beginPublish = () => {
     if (!canEdit) return toast("Only the author can publish this wiki.");
     setSelectedIds(active ? [active.id] : []);
@@ -430,7 +479,10 @@ export default function Wiki() {
     if (!selectedIds.length)
       return toast("Select at least one page to publish.");
     const pages = notes.filter(
-      (n) => selectedIds.includes(n.id) && owns(n, user),
+      (n) =>
+        n.courseId === noteCourseId &&
+        selectedIds.includes(n.id) &&
+        owns(n, user),
     );
     if (!pages.length || role === "teacher")
       return toast("Publish from your own student wiki.");
@@ -447,7 +499,7 @@ export default function Wiki() {
         (data.materials || []).find(
           (m) =>
             m.id === n.source.materialId &&
-            m.courseId === courseId &&
+            m.courseId === noteCourseId &&
             !m.ownerId,
         );
       return {
@@ -456,7 +508,9 @@ export default function Wiki() {
         category: n.category,
         content: n.content,
         tags: [...(n.tags || [])],
-        links: (n.links || []).filter((id) => pageIds.has(id)),
+        links: outgoingLinks(n, notes)
+          .map((link) => link.note?.id)
+          .filter((id) => pageIds.has(id)),
         animation: ["race", "request"].includes(n.animation)
           ? n.animation
           : /race condition/i.test(n.title)
@@ -479,7 +533,7 @@ export default function Wiki() {
       noteId: pages[0].id,
       noteIds: pages.map((n) => n.id),
       pages: snapshotPages,
-      courseId,
+      courseId: noteCourseId,
       title: publishTitle.trim(),
       description: publishDescription.trim(),
       author: user.name,
@@ -508,383 +562,627 @@ export default function Wiki() {
     setPublishOpen(false);
     toast(`Published “${snapshot.title}” · version ${version}.`);
   };
+
   return (
-    <div className="wiki-page">
-      <div className="wiki-page-heading">
-        <div>
-          <div className="eyebrow">YOUR SECOND BRAIN</div>
-          <h1>
-            My learning wiki<span className="wiki-title-dot">.</span>
-          </h1>
-          <p>A little more connected. A little more understood.</p>
+    <>
+      {!activeNoteId ? (
+        <WikiLibrary onCreate={role !== "teacher" ? startNew : undefined} />
+      ) : !active ? (
+        <div className="vault-unavailable">
+          <BookOpen size={32} />
+          <h1>Wiki note unavailable</h1>
+          <p>This note is outside your personal knowledge library.</p>
+          <button onClick={() => navigate("wiki")}>Back to My wiki</button>
         </div>
-        <button className="btn btn-primary" onClick={() => setNewOpen(true)}>
-          <Plus size={16} /> New note
-        </button>
-      </div>
-      <div className="wiki-workspace">
-        <aside className="wiki-tree-panel">
-          <div className="wiki-tree-heading">
-            <span>
-              <BookOpen size={16} /> Knowledge library
-            </span>
-            <span className="wiki-count">{notes.length}</span>
-          </div>
-          <label className="wiki-search">
-            <Search size={15} />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Find a note…"
-              aria-label="Find a wiki note"
-            />
-            <kbd>⌘ K</kbd>
-          </label>
-          <div className="wiki-course-label">
-            {course?.code || "THIS COURSE"} <span>PRIVATE WIKI</span>
-          </div>
-          <div className="wiki-folders">
-            {categories.map((category) => (
-              <div className="wiki-folder" key={category}>
-                <button
-                  className="wiki-folder-title"
-                  onClick={() =>
-                    setCollapsed((c) => ({ ...c, [category]: !c[category] }))
-                  }
-                >
-                  {collapsed[category] ? (
-                    <ChevronRight size={13} />
-                  ) : (
-                    <ChevronDown size={13} />
-                  )}
-                  <FolderOpen size={15} />
-                  <span>{category}</span>
-                </button>
-                {!collapsed[category] && (
-                  <div className="wiki-folder-items">
-                    {filtered
-                      .filter((n) => (n.category || "My notes") === category)
-                      .map((n) => (
-                        <button
-                          key={n.id}
-                          className={`wiki-note-item ${n.id === active?.id ? "active" : ""}`}
-                          onClick={() => selectNote(n.id)}
-                        >
-                          <FileText size={14} />
-                          <span>{n.title}</span>
-                          {n.hasAnimation && (
-                            <span className="wiki-note-spark">
-                              <Sparkles size={11} />
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </div>
+      ) : (
+        <div className="obsidian-vault" data-panel={mobilePanel}>
+          <div className="vault-mobile-nav" aria-label="Wiki panels">
+            {[
+              { id: "files", label: "Files", icon: Folder },
+              {
+                id: "note",
+                label: graphActive ? "Graph" : "Note",
+                icon: FileText,
+              },
+              { id: "links", label: "Links", icon: Link2 },
+            ].map((item) => (
+              <button
+                key={item.id}
+                aria-pressed={mobilePanel === item.id}
+                onClick={() => setMobilePanel(item.id)}
+              >
+                <item.icon size={16} />
+                {item.label}
+              </button>
             ))}
           </div>
-          {!filtered.length && (
-            <p className="wiki-small-empty">
-              No notes found. Try a different phrase.
-            </p>
-          )}
-          <button className="wiki-new-note" onClick={() => setNewOpen(true)}>
-            <Plus size={15} /> Add a page
-          </button>
-          <div className="wiki-library-footer">
-            <GitBranch size={16} />
-            <div>
-              <strong>Built like your mind.</strong>
-              <span>Markdown pages. Connected ideas.</span>
+          <aside className="vault-ribbon" aria-label="Wiki tools">
+            <button
+              aria-label="Find wiki files"
+              onClick={() => {
+                setMobilePanel("files");
+                document.getElementById("vault-file-search")?.focus();
+              }}
+            >
+              <Search size={19} />
+            </button>
+            <button
+              className={graphActive ? "active" : ""}
+              aria-label="Open knowledge graph"
+              onClick={openGraph}
+            >
+              <Network size={20} />
+            </button>
+            {canEdit && (
+              <button aria-label="Create wiki note" onClick={startNew}>
+                <Plus size={20} />
+              </button>
+            )}
+            <div className="vault-ribbon-bottom">
+              <BookOpen size={20} />
             </div>
-          </div>
-        </aside>
-        {active ? (
-          <>
-            <article className="wiki-document">
-              <div className="wiki-document-bar">
-                <span>
-                  {active.category}
-                  <ChevronRight size={12} />
-                  <span>{editing ? "Editing note" : "Knowledge note"}</span>
-                </span>
-                <div>
-                  {editing ? (
-                    <>
-                      <button
-                        className="btn btn-ghost"
-                        onClick={() => setEditing(false)}
-                      >
-                        Cancel
-                      </button>
-                      <button className="btn btn-primary" onClick={save}>
-                        <Check size={14} /> Save changes
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        className="icon-btn"
-                        aria-label="Edit note"
-                        disabled={!canEdit}
-                        title={
-                          canEdit ? "Edit note" : "Student wiki is read-only"
-                        }
-                        onClick={() => {
-                          setDraft({
-                            title: active.title,
-                            content: active.content,
-                          });
-                          setEditing(true);
-                        }}
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        className="btn btn-outline wiki-publish-btn"
-                        disabled={!canEdit}
-                        onClick={beginPublish}
-                      >
-                        <Upload size={14} /> Publish
-                      </button>
-                    </>
-                  )}
-                </div>
+          </aside>
+          <aside className="vault-files" aria-label="Wiki file explorer">
+            <div className="vault-panel-heading">
+              <span>FILES</span>
+              <div>
+                <button aria-label="Open knowledge graph" onClick={openGraph}>
+                  <Network size={16} />
+                </button>
+                {canEdit && (
+                  <button aria-label="New wiki note" onClick={startNew}>
+                    <Plus size={17} />
+                  </button>
+                )}
               </div>
-              <div className="wiki-article-body">
-                {editing ? (
-                  <div className="wiki-editor">
-                    <label>
-                      Note title
-                      <input
-                        value={draft.title}
-                        onChange={(e) =>
-                          setDraft((d) => ({ ...d, title: e.target.value }))
+            </div>
+            <label className="vault-search">
+              <Search size={14} />
+              <input
+                id="vault-file-search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Find a note…"
+                aria-label="Find a wiki note"
+              />
+            </label>
+            <div className="vault-file-scroll">
+              {data.courses
+                .filter((item) =>
+                  notes.some((note) => note.courseId === item.id),
+                )
+                .map((item) => {
+                  const courseNotes = filtered.filter(
+                    (note) => note.courseId === item.id,
+                  );
+                  return (
+                    <div className="vault-course-folder" key={item.id}>
+                      <button
+                        className="vault-folder"
+                        aria-expanded={!collapsed[item.id]}
+                        onClick={() =>
+                          setCollapsed((state) => ({
+                            ...state,
+                            [item.id]: !state[item.id],
+                          }))
                         }
-                      />
-                    </label>
-                    <label>
-                      Markdown content
-                      <textarea
-                        aria-label="Markdown content"
-                        value={draft.content}
-                        onChange={(e) =>
-                          setDraft((d) => ({ ...d, content: e.target.value }))
-                        }
-                      />
-                    </label>
-                    <p>
-                      <Link2 size={13} /> Use [[Note title]] to connect ideas
-                      across your wiki.
-                    </p>
-                  </div>
+                      >
+                        {collapsed[item.id] ? (
+                          <ChevronRight size={13} />
+                        ) : (
+                          <ChevronDown size={13} />
+                        )}
+                        <FolderOpen size={15} />
+                        <span>{item.name}</span>
+                        <small>
+                          {
+                            notes.filter((note) => note.courseId === item.id)
+                              .length
+                          }
+                        </small>
+                      </button>
+                      {!collapsed[item.id] &&
+                        [
+                          ...new Set(
+                            courseNotes.map(
+                              (note) => note.category || "My notes",
+                            ),
+                          ),
+                        ].map((category) => (
+                          <div className="vault-category" key={category}>
+                            <div className="vault-category-label">
+                              <ChevronDown size={12} />
+                              {category}
+                            </div>
+                            {courseNotes
+                              .filter(
+                                (note) =>
+                                  (note.category || "My notes") === category,
+                              )
+                              .map((note) => (
+                                <button
+                                  className={`vault-file ${note.id === active.id && !graphActive ? "active" : ""}`}
+                                  key={note.id}
+                                  aria-current={
+                                    note.id === active.id && !graphActive
+                                      ? "page"
+                                      : undefined
+                                  }
+                                  onClick={() => selectNote(note.id)}
+                                  title={note.title}
+                                >
+                                  <FileText size={14} />
+                                  <span>{note.title}</span>
+                                  {drafts[note.id] && (
+                                    <i title="Unsaved draft" />
+                                  )}
+                                </button>
+                              ))}
+                          </div>
+                        ))}
+                    </div>
+                  );
+                })}
+              {!filtered.length && (
+                <p className="vault-empty">No matching notes.</p>
+              )}
+            </div>
+            <div className="vault-owner">
+              <span className="vault-owner-icon">{owner.initials}</span>
+              <div>
+                <strong>{owner.name.split(" ")[0]}’s vault</strong>
+                <small>
+                  {notes.length} notes ·{" "}
+                  {new Set(notes.map((note) => note.courseId)).size} courses
+                  {role === "teacher" ? " · read only" : ""}
+                </small>
+              </div>
+            </div>
+          </aside>
+          <section className="vault-center" aria-label="Wiki editor workspace">
+            <div
+              className="vault-tabs"
+              role="tablist"
+              aria-label="Open wiki tabs"
+              ref={tabsRef}
+              onKeyDown={tabKeys}
+            >
+              {openTabs.map((note) => (
+                <div
+                  className={`vault-tab-wrap ${note.id === active.id && !graphActive ? "active" : ""}`}
+                  key={note.id}
+                >
+                  <button
+                    role="tab"
+                    aria-selected={note.id === active.id && !graphActive}
+                    tabIndex={note.id === active.id && !graphActive ? 0 : -1}
+                    aria-controls="vault-active-panel"
+                    onClick={() => selectNote(note.id)}
+                  >
+                    <FileText size={14} />
+                    <span>{note.title}</span>
+                    {drafts[note.id] && <i />}
+                  </button>
+                  <button
+                    className="vault-tab-close"
+                    aria-label={`Close ${note.title}`}
+                    onClick={() => closeTab(note.id)}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ))}
+              {graphOpen && (
+                <div
+                  className={`vault-tab-wrap ${graphActive ? "active" : ""}`}
+                >
+                  <button
+                    role="tab"
+                    aria-selected={graphActive}
+                    tabIndex={graphActive ? 0 : -1}
+                    aria-controls="vault-active-panel"
+                    onClick={openGraph}
+                  >
+                    <Network size={14} />
+                    <span>Graph view</span>
+                  </button>
+                  <button
+                    className="vault-tab-close"
+                    aria-label="Close graph view"
+                    onClick={() => {
+                      setGraphOpen(false);
+                      setGraphActive(false);
+                      if (!openTabs.length) navigate("wiki");
+                      else if (!openTabs.some((note) => note.id === active.id))
+                        selectNote(openTabs[0].id);
+                    }}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="vault-editor-toolbar">
+              <div className="vault-note-path">
+                {graphActive ? (
+                  <>
+                    <Network size={14} />
+                    <span>Knowledge graph</span>
+                  </>
                 ) : (
                   <>
-                    <div className="wiki-document-badge">
-                      <span />{" "}
-                      {published
-                        ? "PUBLISHED TO COURSE"
-                        : role === "teacher"
-                          ? "STUDENT KNOWLEDGE · TEACHER VIEW"
-                          : "YOUR PRIVATE KNOWLEDGE"}
-                    </div>
-                    <h2 className="wiki-document-title">{active.title}</h2>
-                    <div className="wiki-document-meta">
-                      <span
-                        className="wiki-mini-avatar"
-                        style={avatarStyle(owner.color)}
-                      >
-                        {owner.initials || "WF"}
-                      </span>
-                      <span>{owner.name?.split(" ")[0] || "You"}</span>
-                      <span className="wiki-meta-dot">·</span>
-                      <span>Updated {friendlyDate(active.updatedAt)}</span>
-                      <span className="wiki-meta-dot">·</span>
-                      <span>
-                        {Math.max(
-                          1,
-                          Math.ceil(
-                            (active.content || "").split(" ").length / 200,
-                          ),
-                        )}{" "}
-                        min read
-                      </span>
-                    </div>
-                    <div className="wiki-note-tags">
-                      {(active.tags || []).map((tag) => (
-                        <span key={tag}>#{tag}</span>
-                      ))}
-                      <span className="wiki-ai-tag">
-                        <Sparkles size={11} /> AI nurtured, human owned
-                      </span>
-                    </div>
-                    <WikiMarkdown
-                      content={(active.content || "").replace(
-                        /^# [^\n]+\n*/,
-                        "",
-                      )}
-                      notes={notes}
-                      onLink={followLink}
-                    />
-                    {active.hasAnimation &&
-                      (["race", "request"].includes(active.animation) ||
-                      /race condition/i.test(active.title) ? (
-                        <div className="wiki-shared-animation">
-                          <LearningAnimation
-                            key={`${active.id}-${active.animation || "race"}`}
-                            type={active.animation || "race"}
-                          />
-                        </div>
-                      ) : (
-                        <ConceptAnimation />
-                      ))}
-                    <div className="wiki-note-end">
-                      <span /> End of note <span />
-                    </div>
-                    <div className="wiki-ai-callout">
-                      <div className="wiki-ai-callout-icon">
-                        <Sparkles size={18} />
-                      </div>
-                      <div>
-                        <strong>Keep the curiosity going.</strong>
-                        <p>
-                          Take this idea into a learning session and explore it
-                          together.
-                        </p>
-                      </div>
-                      <button
-                        aria-label="Ask AI about this note"
-                        onClick={() => navigate("studio")}
-                      >
-                        <ChevronRight size={19} />
-                      </button>
-                    </div>
+                    <span>{noteCourse?.code}</span>
+                    <ChevronRight size={12} />
+                    <span>{active.category}</span>
+                    <ChevronRight size={12} />
+                    <span>{active.title}</span>
                   </>
                 )}
               </div>
-            </article>
-            <aside className="wiki-context-panel">
-              <div className="wiki-context-section">
-                <div className="wiki-context-title">
-                  <GitBranch size={14} /> KNOWLEDGE GRAPH
-                </div>
-                <KnowledgeGraph
-                  notes={[active, ...notes.filter((n) => n.id !== active.id)]}
-                  activeId={active.id}
-                  onSelect={selectNote}
-                />
-              </div>
-              <div className="wiki-context-section">
-                <div className="wiki-context-title">
-                  <FileText size={14} /> ON THIS PAGE
-                </div>
-                {headings.length ? (
-                  headings.map((h) => (
-                    <button
-                      className="wiki-toc-link"
-                      onClick={() =>
-                        document
-                          .getElementById(`section-${h.i}`)
-                          ?.scrollIntoView({
-                            behavior: "smooth",
-                            block: "start",
-                          })
-                      }
-                      key={h.i}
-                    >
-                      {h.line.slice(3)}
-                    </button>
-                  ))
-                ) : (
-                  <span className="wiki-context-muted">
-                    Your ideas live here.
-                  </span>
-                )}
-              </div>
-              <div className="wiki-context-section">
-                <div className="wiki-context-title">
-                  <Link2 size={14} /> BACKLINKS <span>{backlinks.length}</span>
-                </div>
-                {backlinks.length ? (
-                  backlinks.map((n) => (
-                    <button
-                      className="wiki-backlink"
-                      onClick={() => selectNote(n.id)}
-                      key={n.id}
-                    >
-                      <FileText size={13} />
-                      <span>{n.title}</span>
-                      <ChevronRight size={12} />
-                    </button>
-                  ))
-                ) : (
-                  <p className="wiki-context-muted">
-                    Notes that link here will appear here.
-                  </p>
-                )}
-              </div>
-              <div className="wiki-context-section">
-                <div className="wiki-context-title">
-                  <BookOpen size={14} /> SOURCES
-                </div>
-                {active.source ? (
-                  <button
-                    className="wiki-source"
-                    onClick={() =>
-                      openMaterial?.(
-                        active.source.materialId,
-                        active.source.page,
-                      )
-                    }
+              <div className="vault-editor-actions">
+                {graphActive ? (
+                  <select
+                    aria-label="Filter graph by course"
+                    value={graphCourse}
+                    onChange={(event) => setGraphCourse(event.target.value)}
                   >
-                    <span className="wiki-source-pdf">PDF</span>
+                    <option value="all">All courses</option>
+                    {data.courses
+                      .filter((item) =>
+                        notes.some((note) => note.courseId === item.id),
+                      )
+                      .map((item) => (
+                        <option value={item.id} key={item.id}>
+                          {item.code}
+                        </option>
+                      ))}
+                  </select>
+                ) : (
+                  <>
+                    {editing ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            setEditing(false);
+                            setDrafts((previous) => {
+                              const next = { ...previous };
+                              delete next[active.id];
+                              return next;
+                            });
+                          }}
+                        >
+                          Discard
+                        </button>
+                        <button className="vault-save" onClick={save}>
+                          <Check size={14} />
+                          Save
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {canEdit && (
+                          <button
+                            aria-label="Edit note"
+                            onClick={() => setEditing(true)}
+                          >
+                            <Pencil size={15} />
+                            <span>Edit</span>
+                          </button>
+                        )}
+                        <button
+                          aria-label="Download Markdown"
+                          onClick={downloadNote}
+                        >
+                          <ArrowDownToLine size={15} />
+                        </button>
+                        {canEdit && (
+                          <button onClick={beginPublish}>
+                            <Upload size={14} />
+                            <span>Publish</span>
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+            <div
+              className="vault-active-panel"
+              id="vault-active-panel"
+              role="tabpanel"
+              tabIndex={0}
+            >
+              {graphActive ? (
+                <div className="vault-graph-page">
+                  <div className="vault-graph-title">
+                    <div>
+                      <h1>Connected thinking.</h1>
+                      <p>
+                        Every line is a link you wrote. Select a note to follow
+                        an idea.
+                      </p>
+                    </div>
+                    <span>{notes.length} notes</span>
+                  </div>
+                  <WikiGraph
+                    notes={
+                      graphCourse === "all"
+                        ? notes
+                        : notes.filter((note) => note.courseId === graphCourse)
+                    }
+                    activeId={active.id}
+                    onSelect={selectNote}
+                  />
+                </div>
+              ) : (
+                <div className="vault-reading-scroll" ref={articleRef}>
+                  {editing ? (
+                    <div className="vault-markdown-editor">
+                      <label>
+                        Note title
+                        <input
+                          aria-label="Note title"
+                          value={draft.title}
+                          onChange={(event) =>
+                            setDraft((value) => ({
+                              ...value,
+                              title: event.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                      <label>
+                        MARKDOWN
+                        <textarea
+                          aria-label="Markdown content"
+                          value={draft.content}
+                          onChange={(event) =>
+                            setDraft((value) => ({
+                              ...value,
+                              content: event.target.value,
+                            }))
+                          }
+                          spellCheck={false}
+                        />
+                      </label>
+                      <p>
+                        <Link2 size={13} />
+                        Use [[Note title]] or [[Note title|label]] to connect
+                        your ideas.
+                      </p>
+                    </div>
+                  ) : (
+                    <article className="vault-note-body">
+                      <div className="vault-note-context">
+                        <span>{noteCourse?.name}</span>
+                        <span>
+                          {published ? "Published snapshot" : "Personal wiki"}
+                          {role === "teacher" ? " · Read only" : ""}
+                        </span>
+                      </div>
+                      <h1>{active.title}</h1>
+                      <div className="vault-properties">
+                        <span>Updated</span>
+                        <time>{friendlyDate(active.updatedAt)}</time>
+                        <span>Tags</span>
+                        <div>
+                          {active.tags?.length ? (
+                            active.tags.map((tag) => (
+                              <button
+                                key={tag}
+                                onClick={() => {
+                                  setSearch(tag);
+                                  setMobilePanel("files");
+                                }}
+                              >
+                                #{tag}
+                              </button>
+                            ))
+                          ) : (
+                            <small>No tags</small>
+                          )}
+                        </div>
+                      </div>
+                      <WikiMarkdown
+                        content={renderedContent}
+                        notes={notes}
+                        sourceNote={active}
+                        onLink={followLink}
+                      />
+                      {active.hasAnimation && (
+                        <details className="vault-animation">
+                          <summary>
+                            <Play size={14} />
+                            Interactive explanation
+                            <ChevronDown size={14} />
+                          </summary>
+                          {["race", "request"].includes(active.animation) ||
+                          /race condition|web request/i.test(active.title) ? (
+                            <LearningAnimation
+                              type={
+                                active.animation ||
+                                (/web request/i.test(active.title)
+                                  ? "request"
+                                  : "race")
+                              }
+                            />
+                          ) : (
+                            <ConceptAnimation />
+                          )}
+                        </details>
+                      )}
+                      <div className="vault-inline-links">
+                        <div>
+                          <Link2 size={14} />
+                          {outgoing.filter((link) => link.note).length} outgoing
+                          links
+                        </div>
+                        <div>
+                          <GitBranch size={14} />
+                          {backlinks.length} backlinks
+                        </div>
+                      </div>
+                    </article>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="vault-status">
+              <span>
+                <span className="vault-status-dot" />
+                {role === "teacher"
+                  ? "Read-only teacher view"
+                  : drafts[active.id]
+                    ? "Unsaved draft"
+                    : "Saved in this browser"}
+              </span>
+              <span>
+                {
+                  (active.content || "").trim().split(/\s+/).filter(Boolean)
+                    .length
+                }{" "}
+                words · Markdown
+              </span>
+            </div>
+          </section>
+          <aside className="vault-inspector" aria-label="Wiki connections">
+            <div className="vault-panel-heading">
+              <span>CONNECTIONS</span>
+              <button aria-label="Expand knowledge graph" onClick={openGraph}>
+                <Maximize2 size={15} />
+              </button>
+            </div>
+            <section className="vault-inspector-section vault-local-graph">
+              <h2>
+                <Network size={14} />
+                Local graph
+                <button onClick={openGraph} aria-label="Open full graph">
+                  <Maximize2 size={13} />
+                </button>
+              </h2>
+              <WikiGraph
+                notes={localNotes}
+                activeId={active.id}
+                onSelect={selectNote}
+                compact
+              />
+            </section>
+            <section className="vault-inspector-section">
+              <h2>
+                <Link2 size={14} />
+                Outgoing links<span>{outgoing.length}</span>
+              </h2>
+              {outgoing.length ? (
+                outgoing.map((link, index) => (
+                  <button
+                    key={`${link.target}-${index}`}
+                    className={`vault-connection ${!link.note ? "unresolved" : ""}`}
+                    onClick={() => followLink(link.note, link.target)}
+                  >
+                    <FileText size={14} />
                     <span>
-                      <strong>
-                        {(data.materials || []).find(
-                          (m) => m.id === active.source.materialId,
-                        )?.name || "Course lecture slides"}
-                      </strong>
+                      {link.note?.title || link.label || link.target}
                       <small>
-                        Page {active.source.page || 1} · Course material
+                        {link.note
+                          ? data.courses.find(
+                              (item) => item.id === link.note.courseId,
+                            )?.code
+                          : "Note not created"}
                       </small>
                     </span>
                     <ChevronRight size={12} />
                   </button>
-                ) : (
-                  <div className="wiki-source-text">
-                    <Sparkles size={14} /> Built from your learning sessions
-                  </div>
-                )}
-              </div>
-              <div className="wiki-publish-prompt">
-                <span className="wiki-publish-symbol">
-                  <Send size={19} />
-                </span>
-                <h4>Good ideas travel.</h4>
-                <p>
-                  Someone in your course might need your way of understanding.
+                ))
+              ) : (
+                <p className="vault-empty">
+                  No outgoing links yet. Add [[Note title]] in the editor.
                 </p>
-                <button onClick={beginPublish}>
-                  Share this note <ChevronRight size={13} />
+              )}
+            </section>
+            <section className="vault-inspector-section">
+              <h2>
+                <GitBranch size={14} />
+                Backlinks<span>{backlinks.length}</span>
+              </h2>
+              {backlinks.length ? (
+                backlinks.map(({ note, excerpt }) => (
+                  <button
+                    key={note.id}
+                    className="vault-connection vault-backlink"
+                    onClick={() => selectNote(note.id)}
+                  >
+                    <FileText size={14} />
+                    <span>
+                      {note.title}
+                      {excerpt && <small>{excerpt}</small>}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className="vault-empty">
+                  Notes that link here will appear here.
+                </p>
+              )}
+            </section>
+            <section className="vault-inspector-section">
+              <h2>
+                <List size={14} />
+                Outline
+              </h2>
+              {headings.length ? (
+                headings.map((item) => (
+                  <button
+                    key={item.i}
+                    className="vault-outline"
+                    onClick={() =>
+                      articleRef.current
+                        ?.querySelector(`#section-${item.i}`)
+                        ?.scrollIntoView({
+                          behavior: window.matchMedia(
+                            "(prefers-reduced-motion: reduce)",
+                          ).matches
+                            ? "auto"
+                            : "smooth",
+                          block: "start",
+                        })
+                    }
+                  >
+                    {item.line.replace(/^#+ /, "")}
+                  </button>
+                ))
+              ) : (
+                <p className="vault-empty">
+                  Add headings to outline this note.
+                </p>
+              )}
+            </section>
+            {active.source && (
+              <section className="vault-inspector-section">
+                <h2>
+                  <BookOpen size={14} />
+                  Source
+                </h2>
+                <button
+                  className="vault-connection"
+                  onClick={() =>
+                    openMaterial(active.source.materialId, active.source.page)
+                  }
+                >
+                  <FileText size={15} />
+                  <span>
+                    {active.source.name}
+                    <small>
+                      Page {active.source.page || 1} · {noteCourse?.code}
+                    </small>
+                  </span>
+                  <ChevronRight size={12} />
                 </button>
-              </div>
-            </aside>
-          </>
-        ) : (
-          <div className="wiki-blank-state">
-            <BookOpen size={35} />
-            <h2>Your next idea starts here.</h2>
-            <p>Collect your understanding in connected Markdown notes.</p>
-            <button
-              className="btn btn-primary"
-              onClick={() => setNewOpen(true)}
-            >
-              <Plus size={15} /> Create your first note
-            </button>
-          </div>
-        )}
-      </div>
+              </section>
+            )}
+          </aside>
+        </div>
+      )}
       {newOpen && (
         <Modal
           title="Make room for an idea."
@@ -901,6 +1199,20 @@ export default function Wiki() {
                 onChange={(e) => setNewTitle(e.target.value)}
                 placeholder="What are you thinking about?"
               />
+            </label>
+            <label>
+              Course
+              <select
+                aria-label="New note course"
+                value={newCourseId}
+                onChange={(event) => setNewCourseId(event.target.value)}
+              >
+                {data.courses.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
             </label>
             <label>
               Folder
@@ -953,7 +1265,7 @@ export default function Wiki() {
               </span>
               <div className="wiki-publish-select">
                 {notes
-                  .filter((n) => owns(n, user))
+                  .filter((n) => n.courseId === noteCourseId && owns(n, user))
                   .map((n) => (
                     <label
                       className={`wiki-select-row ${selectedIds.includes(n.id) ? "selected" : ""}`}
@@ -1036,6 +1348,6 @@ export default function Wiki() {
           </form>
         </Modal>
       )}
-    </div>
+    </>
   );
 }

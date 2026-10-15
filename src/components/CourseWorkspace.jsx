@@ -20,6 +20,7 @@ import {
 import { useApp } from "../context";
 import { ACCEPTED_FILES, formatBytes, readMaterialFile } from "../lib/files";
 import { saveOriginal } from "../lib/originals";
+import { outgoingLinks } from "../lib/wikiLinks";
 import { Modal } from "./ui";
 import Studio from "./Studio";
 import WorkspacePreview, { validMaterialPage } from "./WorkspacePreview";
@@ -343,25 +344,12 @@ export default function CourseWorkspace() {
 
   function saveNote(id, content) {
     if (isTeacher || !notes.some((note) => note.id === id)) return;
-    const normalize = (value) =>
-      String(value || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9\u4e00-\u9fff]/g, "");
-    const targets = [...content.matchAll(/\[\[([^\]]+)\]\]/g)].map((match) =>
-      match[1].split("|")[0].trim(),
-    );
+    const edited = { ...notes.find((note) => note.id === id), content };
     const links = [
       ...new Set(
-        targets
-          .map(
-            (target) =>
-              notes.find(
-                (note) =>
-                  note.id === target ||
-                  normalize(note.title) === normalize(target),
-              )?.id,
-          )
-          .filter((targetId) => targetId && targetId !== id),
+        outgoingLinks(edited, notes)
+          .map((link) => link.note?.id)
+          .filter(Boolean),
       ),
     ];
     setData((previous) => ({

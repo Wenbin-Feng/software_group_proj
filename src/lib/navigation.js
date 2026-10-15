@@ -12,13 +12,16 @@ export function parseRoute(hash, data, fallbackCourseId = "se") {
   const parts = path.split("/").filter(Boolean);
   const sessionId = params.get("session");
   const noteId = params.get("note");
+  const noteCourseId = data.notes.find((item) => item.id === noteId)?.courseId;
   const inferred =
     data.sessions.find((item) => item.id === sessionId)?.courseId ||
-    data.notes.find((item) => item.id === noteId)?.courseId;
+    noteCourseId;
   const courseId =
-    (parts[0] === "courses" && parts[1]
-      ? decodeCourse(parts[1])
-      : params.get("course")) ||
+    (parts[0] === "wiki" && noteCourseId
+      ? noteCourseId
+      : parts[0] === "courses" && parts[1]
+        ? decodeCourse(parts[1])
+        : params.get("course")) ||
     inferred ||
     fallbackCourseId;
   let view = parts[0] || "courses";
@@ -47,6 +50,7 @@ export function buildRoute(next, params, data, currentCourseId) {
     data.notes.find((item) => item.id === params.noteId)?.courseId ||
     currentCourseId;
   if (next === "overview" || next === "courses") return "#/courses";
+  if (next === "wiki" && !params.noteId) return "#/wiki";
   const query = new URLSearchParams();
   if (params.sessionId) query.set("session", params.sessionId);
   if (params.noteId) query.set("note", params.noteId);

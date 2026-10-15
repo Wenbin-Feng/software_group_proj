@@ -28,8 +28,8 @@ The production preview normally runs at <http://127.0.0.1:4173>. The built `dist
 2. **Course workspace:** a full-height three-column learning environment. The left file tree contains `course_material/`, `personal_material/`, and `LLM_wiki/`; the middle is your conversation; the right is a tabbed reader for documents, wiki pages, and HTML animations.
 3. **Documents and animations:** clicking a file opens or reuses its tab. Cited sources jump to the relevant page. Animations open in additional tabs, leaving your documents available. Tabs can be closed, switched with the keyboard, and retain their individual page state.
 4. **Uploads:** the file-tree plus button accepts PDF, Markdown and text files up to 10 MB. Student uploads go to personal materials; instructor uploads go to shared course materials. Original PDFs and extracted text can be read and downloaded from the right panel.
-5. **My wiki:** edit connected Markdown pages in the reader or use the full wiki view to explore backlinks, publish a page or a topic collection, and manage notes.
-6. **Wiki market:** browse versioned publications, save them, and import independently editable copies with remapped internal links. My wiki and Wiki market have an explicit course selector.
+5. **My wiki:** browse your personal notes from all courses in a three-column card library. Each card opens one note in an Obsidian-inspired workspace with a course/folder tree, note tabs, Markdown editing, outline, outgoing links and backlinks. A local graph and an expandable full graph use actual `[[wiki links]]`; select nodes to open notes, zoom, pan or use the keyboard-accessible note list. Course workspaces keep `LLM_wiki/` limited to the current course.
+6. **Wiki market:** browse versioned course publications, save them, and import independently editable copies with remapped internal links. Publications can contain one note or several pages from the same course. The market has a course selector; the personal library defaults to all courses with an optional filter.
 7. **Instructor view:** switch role from the top bar, select a course, then use **Students** to review activity. Open a student session in the same workspace, with that student's files and wiki in read-only mode.
 
 ### Suggested five-minute demo
@@ -38,7 +38,8 @@ The production preview normally runs at <http://127.0.0.1:4173>. The built `dist
 - Open a course document and a personal file; switch their right-side tabs.
 - Select **Visualize** under the existing explanation. The animation opens in its own tab while the document stays open.
 - Compare inventory with and without a lock. Ask a follow-up, save its explanation to Wiki, and find the new page in `LLM_wiki/`.
-- Open a Wiki page, follow its internal links in additional reader tabs, or use **My wiki** to publish a topic collection.
+- Open **My wiki** to see notes from both courses. Choose a card, follow its links, inspect backlinks and open the full graph from the left ribbon.
+- Edit a note with `[[Note title|label]]`, save, and watch the graph and connections update. Publish a page or a connected collection to its course market.
 - Switch to another student to explore the course market, then to the instructor to review student sessions.
 
 ## Prototype boundaries
@@ -71,13 +72,16 @@ src/
     Studio.jsx            Embedded learning conversation demo
     Animation.jsx         Interactive concurrency and browser explanations
     Teacher.jsx           Course activity and read-only session review
-    Wiki.jsx              Markdown notes, links, graph and publishing
+    WikiLibrary.jsx       All-course personal note cards and filters
+    Wiki.jsx              Obsidian-inspired note workspace and publishing
+    WikiGraph.jsx         Interactive local/full graph from actual links
     Market.jsx            Published collections and independent imports
     ui.jsx                Shared accessible dialog and avatar
   lib/
     files.js              File validation and text extraction
     originals.js          IndexedDB original-file storage
     navigation.js         Course-aware routing and legacy link handling
+    wikiLinks.js          Wiki link parsing, resolution, forward/backlinks
 ```
 
 ## Validation
@@ -91,5 +95,6 @@ The first prototype was built and exercised on 15 October 2026:
 - Session-to-wiki save, versioned two-page publication, bookmark, cross-student import and remapped internal links were exercised.
 - Course-aware routing and legacy session links were checked; the revised course grid and workspace are validated at phone, tablet and desktop widths.
 - File and animation tabs, source page navigation, uploads, wiki links and instructor read-only access were exercised in the revised workspace.
+- All-course wiki cards, course-scoped classroom notes, cross-course aliases/backlinks, live graph updates, graph keyboard navigation/zoom, note creation/editing, scoped publishing, private-note filtering and phone panel switching were exercised in the revised wiki.
 
 Visual and interaction decisions are documented in [DESIGN.md](DESIGN.md). Screenshots live in `docs/screenshots/`.

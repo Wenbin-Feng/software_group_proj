@@ -38,6 +38,14 @@ The application balances warm paper-like learning moments with a precise, functi
 - Importing a topic collection creates new page IDs and remaps its internal links, preserving author attribution.
 - Demo behavior is disclosed without interrupting the learning flow.
 
+## Personal wiki library and vault
+
+- Classroom `LLM_wiki/` contains only that student's notes in the current course. Global My wiki collects their notes across every course, one note per card in three desktop columns (two on tablets, one on phones).
+- Opening a card enters a focused Obsidian-inspired dark workspace: compact tool ribbon, course/folder explorer, note tabs and Markdown reader/editor, and a connections inspector. The global sidebar gives way to this workspace, with an explicit return to My wiki.
+- Outgoing links, backlinks and graph edges are derived from Markdown links, including aliases, headings and `.md` paths. Code examples do not create edges. Missing targets are labelled; unlinked notes remain visible in the graph.
+- Local graph shows the active note and its neighbours; Graph view expands all personal notes and supports a course filter, zoom, pan, keyboard selection and a note-list alternative. Editing a link updates all three representations after saving.
+- Teacher review opens one student's vault read-only. Publishing stays within the active note's course even while the personal explorer spans courses. On narrow screens, Files, Note/Graph and Links expose the same panels.
+
 ## Accessibility and adaptation
 
 Use semantic buttons and form labels, visible focus, keyboard-accessible SVG graph nodes, labelled icon controls, Escape and Tab support for dialogs, and reduced-motion overrides. On small screens the global sidebar becomes an explicit menu, while the course workspace provides Files, Chat, and Preview panel controls. Sources and private/teacher visibility are communicated with text as well as icons and color.

@@ -327,6 +327,7 @@ function NoteDocument({
             <WikiMarkdown
               content={(note.content || "").replace(/^# [^\n]+\n*/, "")}
               notes={notes}
+              sourceNote={note}
               onLink={onOpenNote}
             />
             {(note.source || (note.hasAnimation && animation)) && (
