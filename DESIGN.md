@@ -4,7 +4,7 @@
 
 A calm university knowledge workspace: an editorial reading experience with clear application navigation. The work is guided by the installed `ui-ux-pro-max` skill and its Swiss Modernism guidance for knowledge workspaces. Its initial playful education match was rejected because it targeted a younger audience.
 
-The application balances warm paper-like learning moments with a precise, functional interface. The overview uses an original SVG paper-and-ideas illustration; graphs, publication covers and interactive scenes are code-native visuals.
+The application balances warm paper-like learning moments with a precise, functional interface. Course cards use original SVG subject artwork; graphs, publication covers and interactive scenes are code-native visuals.
 
 ## Tokens
 
@@ -19,6 +19,15 @@ The application balances warm paper-like learning moments with a precise, functi
 | Editorial type | Instrument Serif, locally bundled |
 | Shape | Fine borders, 8–14 px corners, restrained shadows |
 
+## Course-first layout
+
+- Global navigation contains Courses, My wiki, and Wiki market. Course selection happens through course cards.
+- Entering a course replaces the large global sidebar with a focused, full-height workspace. A compact top bar provides a return to Courses and wiki destinations.
+- Left: a collapsible file tree with shared course materials, personal uploads, and LLM Wiki pages.
+- Middle: a ChatGPT-style conversation with a compact session selector and a fixed composer.
+- Right: documents, wiki pages, and HTML explanations open as independent tabs. New animations leave existing course materials open.
+- On tablets, the file tree becomes a drawer; on phones, Files, Chat, and Preview switch between the same three panels.
+
 ## Interaction decisions
 
 - Course is the outer context; material selection narrows learning context further.
@@ -31,4 +40,4 @@ The application balances warm paper-like learning moments with a precise, functi
 
 ## Accessibility and adaptation
 
-Use semantic buttons and form labels, visible focus, keyboard-accessible SVG graph nodes, labelled icon controls, Escape and Tab support for dialogs, and reduced-motion overrides. On small screens the persistent sidebar becomes an explicit menu, and multi-column workspaces stack. Sources and private/teacher visibility are communicated with text as well as icons and color.
+Use semantic buttons and form labels, visible focus, keyboard-accessible SVG graph nodes, labelled icon controls, Escape and Tab support for dialogs, and reduced-motion overrides. On small screens the global sidebar becomes an explicit menu, while the course workspace provides Files, Chat, and Preview panel controls. Sources and private/teacher visibility are communicated with text as well as icons and color.

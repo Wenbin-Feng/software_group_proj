@@ -24,22 +24,22 @@ The production preview normally runs at <http://127.0.0.1:4173>. The built `dist
 
 ## Explore the prototype
 
-1. **Overview:** enter a course, resume a session, open shared materials, or explore the course community.
-2. **Learning studio:** ask about selected course and personal materials, follow document/page references, and save an explanation to your wiki.
-3. **Interactive explanations:** step through concurrent requests competing for one item; compare results with and without a lock. The second course includes a browser request-cycle animation. Playback, pause, step, restart, and stage selection work.
-4. **Course materials:** upload PDF, Markdown or text files up to 10 MB. Text is extracted locally; uploaded originals can be previewed and downloaded. Student uploads belong to that student; teacher uploads join the shared course library.
-5. **My wiki:** create and edit Markdown knowledge pages, follow `[[internal links]]`, explore backlinks and a small knowledge graph, and revisit saved animations.
-6. **Wiki market:** select a page or topic collection, publish a versioned snapshot, browse/search/filter publications, save or appreciate them, and import an editable copy. Multi-page collections keep their internal links after import.
-7. **Instructor view:** use the profile switcher at the bottom left, or the view control at the top, to choose Richard Lui. Explore course activity, filter students, review all course sessions in read-only mode, and open student files. Switch to another student to inspect their separate workspace.
+1. **Courses:** browse your courses as cards, search by name/code/instructor, then open a course.
+2. **Course workspace:** a full-height three-column learning environment. The left file tree contains `course_material/`, `personal_material/`, and `LLM_wiki/`; the middle is your conversation; the right is a tabbed reader for documents, wiki pages, and HTML animations.
+3. **Documents and animations:** clicking a file opens or reuses its tab. Cited sources jump to the relevant page. Animations open in additional tabs, leaving your documents available. Tabs can be closed, switched with the keyboard, and retain their individual page state.
+4. **Uploads:** the file-tree plus button accepts PDF, Markdown and text files up to 10 MB. Student uploads go to personal materials; instructor uploads go to shared course materials. Original PDFs and extracted text can be read and downloaded from the right panel.
+5. **My wiki:** edit connected Markdown pages in the reader or use the full wiki view to explore backlinks, publish a page or a topic collection, and manage notes.
+6. **Wiki market:** browse versioned publications, save them, and import independently editable copies with remapped internal links. My wiki and Wiki market have an explicit course selector.
+7. **Instructor view:** switch role from the top bar, select a course, then use **Students** to review activity. Open a student session in the same workspace, with that student's files and wiki in read-only mode.
 
 ### Suggested five-minute demo
 
-- Open **Learning studio** and the “Why does the last item sell twice?” session.
-- Step through the animation without a lock, then enable **Protect with a lock** and compare the outcome.
-- Ask “How does a database lock prevent a race condition?”, open a cited source, and select **Save to Wiki**.
-- Open **My wiki**, edit a page, follow a connected concept, and publish two linked pages as a topic collection.
-- Switch to another student, find the collection in **Wiki market**, and import it. Its pages are independent copies with working internal links.
-- Switch to the instructor to review student sessions and attachments.
+- Open **Courses**, choose **Software Engineering**, and inspect the three file folders.
+- Open a course document and a personal file; switch their right-side tabs.
+- Select **Visualize** under the existing explanation. The animation opens in its own tab while the document stays open.
+- Compare inventory with and without a lock. Ask a follow-up, save its explanation to Wiki, and find the new page in `LLM_wiki/`.
+- Open a Wiki page, follow its internal links in additional reader tabs, or use **My wiki** to publish a topic collection.
+- Switch to another student to explore the course market, then to the instructor to review student sessions.
 
 ## Prototype boundaries
 
@@ -61,13 +61,15 @@ The production preview normally runs at <http://127.0.0.1:4173>. The built `dist
 
 ```text
 src/
-  App.jsx                 Workspace shell, overview, role/course switcher and search
+  App.jsx                 Course-first shell, role switcher, routing and search
   context.jsx             Shared application state
   data.js                 Original example courses and learning content
   components/
-    Studio.jsx            Source-grounded learning conversation demo
+    Courses.jsx           Course card grid, search and filters
+    CourseWorkspace.jsx   File tree, conversation and preview tabs
+    WorkspacePreview.jsx  PDF, Markdown, wiki and animation readers
+    Studio.jsx            Embedded learning conversation demo
     Animation.jsx         Interactive concurrency and browser explanations
-    Materials.jsx         Shared and personal files, upload workflow
     Teacher.jsx           Course activity and read-only session review
     Wiki.jsx              Markdown notes, links, graph and publishing
     Market.jsx            Published collections and independent imports
@@ -75,6 +77,7 @@ src/
   lib/
     files.js              File validation and text extraction
     originals.js          IndexedDB original-file storage
+    navigation.js         Course-aware routing and legacy link handling
 ```
 
 ## Validation
@@ -86,6 +89,7 @@ The first prototype was built and exercised on 15 October 2026:
 - Student workspace isolation, instructor read-only access and student file visibility were exercised through the UI.
 - Animation results differed correctly: two accepted orders without a lock, one accepted order with a lock.
 - Session-to-wiki save, versioned two-page publication, bookmark, cross-student import and remapped internal links were exercised.
-- Overview, studio, materials, wiki and market were checked at 375, 768, 1024 and 1440 CSS pixels with no horizontal overflow or runtime errors during the checks.
+- Course-aware routing and legacy session links were checked; the revised course grid and workspace are validated at phone, tablet and desktop widths.
+- File and animation tabs, source page navigation, uploads, wiki links and instructor read-only access were exercised in the revised workspace.
 
 Visual and interaction decisions are documented in [DESIGN.md](DESIGN.md). Screenshots live in `docs/screenshots/`.

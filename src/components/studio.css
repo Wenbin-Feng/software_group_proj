@@ -1822,3 +1822,387 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* The course workspace owns the surrounding panels and preview tabs. */
+.studio-embedded {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  background: #fff;
+  --studio-ink: #202b3d;
+  --studio-muted: #737f91;
+  --studio-line: #e9edf2;
+}
+.studio-embedded .studio-session-bar {
+  flex-shrink: 0;
+  min-height: 62px;
+  height: 62px;
+  gap: 10px;
+  border: 0;
+  border-bottom: 1px solid var(--studio-line);
+  border-radius: 0;
+  padding: 0 20px;
+  margin: 0;
+}
+.studio-embedded .studio-session-switch-wrap {
+  flex: 1;
+}
+.studio-embedded .studio-session-switch {
+  gap: 9px;
+  max-width: 100%;
+  min-height: 38px;
+}
+.studio-embedded .studio-session-icon {
+  width: 29px;
+  height: 29px;
+  border: 0;
+  background: transparent;
+  color: #8a96a8;
+}
+.studio-embedded .studio-session-switch > span:nth-child(2) {
+  min-width: 0;
+}
+.studio-embedded .studio-session-switch strong {
+  max-width: 250px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.15px;
+}
+.studio-embedded .studio-session-switch > svg {
+  margin-left: 0;
+  width: 13px;
+}
+.studio-embedded .studio-session-options {
+  gap: 6px;
+  flex-shrink: 0;
+}
+.studio-embedded .studio-session-options .icon-btn {
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  color: #63718a;
+  border-radius: 8px;
+}
+.studio-embedded .studio-session-options .icon-btn:hover {
+  background: #f2f5fa;
+  color: #3156d3;
+}
+.studio-embedded .studio-private {
+  display: none;
+}
+.studio-embedded .studio-readonly {
+  font-size: 11px;
+  white-space: nowrap;
+  color: #8c7753;
+}
+.studio-embedded .studio-session-options select {
+  padding: 7px;
+  min-height: 33px;
+  font-size: 12px;
+  max-width: 125px;
+}
+.studio-embedded .studio-sources-toggle {
+  height: 33px;
+  padding: 0 9px;
+  font-size: 12px;
+  color: #6c7890;
+  border-color: #e9edf3;
+  border-radius: 7px;
+  gap: 6px;
+}
+.studio-embedded .studio-session-popover,
+.studio-embedded .studio-source-popover {
+  top: 42px;
+  max-width: calc(100vw - 40px);
+  max-height: min(480px, 60vh);
+  overflow-y: auto;
+}
+.studio-embedded .studio-session-popover {
+  width: 345px;
+}
+.studio-embedded .studio-popover-title {
+  font-size: 11px;
+}
+.studio-embedded .studio-session-popover > button,
+.studio-embedded .studio-source-popover label {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.studio-embedded .studio-session-popover small,
+.studio-embedded .studio-source-popover label small {
+  font-size: 11px;
+}
+.studio-embedded .studio-source-popover > p,
+.studio-embedded .studio-source-manage {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.studio-embedded .studio-workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  gap: 0;
+}
+.studio-embedded .studio-chat-panel {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  overflow: hidden;
+}
+.studio-embedded .studio-chat-feed {
+  flex: 1;
+  min-height: 0;
+  padding: 20px 28px 24px;
+  overflow-y: auto;
+}
+.studio-embedded .studio-message {
+  max-width: 690px;
+  gap: 11px;
+  margin: 22px auto 28px;
+}
+.studio-embedded .studio-message-avatar {
+  width: 29px;
+  height: 29px;
+  border-radius: 9px;
+  background: #f3f5fc;
+  border-color: #e8edf8;
+  color: #4965bd;
+  margin-top: 0;
+}
+.studio-embedded .studio-message-author {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #3b475c;
+  margin: 4px 0 10px;
+}
+.studio-embedded .studio-message-author span {
+  display: none;
+}
+.studio-embedded .studio-message-content,
+.studio-embedded .studio-message.from-user .studio-message-content {
+  font-size: 14px;
+  line-height: 1.85;
+  color: #4b586d;
+  overflow-wrap: anywhere;
+}
+.studio-embedded .studio-message-content p {
+  margin-bottom: 15px;
+}
+.studio-embedded .studio-message.from-user {
+  margin: 18px auto 28px;
+  gap: 11px;
+}
+.studio-embedded .studio-message.from-user .studio-message-body {
+  max-width: 83%;
+  padding: 12px 16px;
+  background: #f3f5f8;
+  border-radius: 16px 4px 16px 16px;
+}
+.studio-embedded .studio-message.from-user .studio-message-content {
+  line-height: 1.7;
+  color: #37445b;
+}
+.studio-embedded .studio-user-avatar {
+  width: 29px;
+  height: 29px;
+  font-size: 10px;
+  background: #f5e9db;
+  color: #987659;
+}
+.studio-embedded .studio-message-sources {
+  gap: 6px;
+  margin-top: 15px;
+}
+.studio-embedded .studio-message-sources > button {
+  padding: 6px 8px;
+  min-height: 30px;
+  font-size: 11px;
+  color: #657b9d;
+  border-color: #e4eaf3;
+  background: #fbfcfe;
+}
+.studio-embedded .studio-message-sources > button span {
+  max-width: 145px;
+}
+.studio-embedded .studio-message-sources b {
+  font-size: 10px;
+}
+.studio-embedded .studio-message-actions {
+  gap: 17px;
+  margin-top: 10px;
+}
+.studio-embedded .studio-message-actions > button {
+  min-height: 32px;
+  font-size: 11px;
+  color: #7a879b;
+}
+.studio-embedded .studio-message-actions > button:hover {
+  color: #3156d3;
+}
+.studio-embedded .studio-composer-area {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 770px;
+  margin: 0 auto;
+  padding: 10px 27px 15px;
+  background: #fff;
+}
+.studio-embedded .studio-composer {
+  border-color: #e0e5ed;
+  border-radius: 15px;
+  padding: 14px 15px 10px;
+  background: #fff;
+  box-shadow: 0 3px 14px #1c2b4c05;
+}
+.studio-embedded .studio-composer textarea {
+  display: block;
+  min-height: 45px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #3d4b62;
+}
+.studio-embedded .studio-composer textarea::placeholder {
+  color: #9ba4b2;
+}
+.studio-embedded .studio-composer-bottom > button:first-child {
+  min-height: 32px;
+  font-size: 12px;
+  color: #778397;
+}
+.studio-embedded .studio-composer-bottom > span {
+  font-size: 10px;
+  color: #a2aab6;
+}
+.studio-embedded .studio-send {
+  width: 33px;
+  height: 33px;
+  min-width: 33px;
+  border-radius: 10px;
+}
+.studio-embedded .studio-composer-note {
+  min-height: 15px;
+  margin-top: 11px;
+  gap: 5px;
+  color: #99a2af;
+  font-size: 10px;
+  flex-wrap: wrap;
+}
+.studio-embedded .studio-welcome {
+  max-width: 540px;
+  padding: 52px 8px 20px;
+  margin: auto;
+}
+.studio-embedded .studio-welcome-mark {
+  transform: none;
+  border-radius: 15px;
+  width: 49px;
+  height: 49px;
+  margin-bottom: 23px;
+}
+.studio-embedded .studio-welcome h2 {
+  font-size: 25px;
+  line-height: 1.3;
+  color: #2b3851;
+  letter-spacing: -0.7px;
+}
+.studio-embedded .studio-welcome > p {
+  max-width: 350px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #8a95a7;
+}
+.studio-embedded .studio-starters {
+  gap: 9px;
+  margin: 30px auto 0;
+  max-width: 400px;
+}
+.studio-embedded .studio-starters button {
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 13px 30px 13px 14px;
+  border-radius: 10px;
+  color: #61718b;
+}
+.studio-embedded .studio-starters button > span {
+  font-size: 11px;
+  color: #9aa4b3;
+  margin-bottom: 3px;
+}
+.studio-embedded .studio-view-only {
+  flex-shrink: 0;
+  padding: 19px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8b95a6;
+}
+@media (max-width: 1250px) {
+  .studio-embedded .studio-session-bar {
+    padding-inline: 13px;
+    gap: 6px;
+  }
+  .studio-embedded .studio-session-switch {
+    gap: 5px;
+  }
+  .studio-embedded .studio-session-switch strong {
+    max-width: 190px;
+    font-size: 13px;
+  }
+  .studio-embedded .studio-chat-feed {
+    padding-inline: 20px;
+  }
+  .studio-embedded .studio-composer-area {
+    padding-inline: 19px;
+  }
+  .studio-embedded .studio-readonly {
+    font-size: 0;
+  }
+}
+@media (max-width: 600px) {
+  .studio-embedded .studio-session-switch strong {
+    max-width: 150px;
+  }
+  .studio-embedded .studio-session-icon {
+    display: none;
+  }
+  .studio-embedded .studio-session-options select {
+    max-width: 98px;
+  }
+  .studio-embedded .studio-chat-feed {
+    padding-inline: 15px;
+  }
+  .studio-embedded .studio-message-content,
+  .studio-embedded .studio-message.from-user .studio-message-content {
+    font-size: 14px;
+  }
+  .studio-embedded .studio-message-avatar,
+  .studio-embedded .studio-user-avatar {
+    width: 25px;
+    height: 25px;
+  }
+  .studio-embedded .studio-message {
+    gap: 8px;
+  }
+  .studio-embedded .studio-composer-area {
+    padding: 8px 14px 11px;
+  }
+  .studio-embedded .studio-composer-bottom > span {
+    display: none;
+  }
+  .studio-embedded .studio-composer-note {
+    font-size: 9px;
+  }
+  .studio-embedded .studio-welcome {
+    padding-top: 32px;
+  }
+  .studio-embedded .studio-welcome h2 {
+    font-size: 22px;
+  }
+}

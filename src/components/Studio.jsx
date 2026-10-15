@@ -153,7 +153,11 @@ function demoResponse(question, evidence) {
   };
 }
 
-export default function Studio() {
+export default function Studio({
+  embedded = false,
+  onOpenAnimation,
+  onManageMaterials,
+}) {
   const {
     data,
     setData,
@@ -178,7 +182,8 @@ export default function Studio() {
       !isTeacher ||
       s.studentId === teacherStudentId,
   );
-  const session = sessions.find((s) => s.id === activeSessionId) || sessions[0];
+  const requestedSession = allSessions.find((s) => s.id === activeSessionId);
+  const session = requestedSession || sessions[0];
   const sessionStudent =
     (data.students || []).find((s) => s.id === session?.studentId) || user;
   const allowedMaterials = (data.materials || []).filter(
@@ -193,6 +198,7 @@ export default function Studio() {
   const [savedMessageIds, setSavedMessageIds] = useState([]);
   const [showExplainer, setShowExplainer] = useState(true);
   const [selectedVisual, setSelectedVisual] = useState(null);
+  const [pendingAnimation, setPendingAnimation] = useState(null);
   const feedRef = useRef(null);
   const inputRef = useRef(null);
   const selected = allowedMaterials.filter(
@@ -217,6 +223,20 @@ export default function Studio() {
       setActiveSessionId(session.id);
   }, [session?.id]);
   useEffect(() => {
+    if (
+      isTeacher &&
+      requestedSession &&
+      teacherStudentId !== "all" &&
+      requestedSession.studentId !== teacherStudentId
+    )
+      setTeacherStudentId(requestedSession.studentId);
+  }, [
+    isTeacher,
+    requestedSession?.id,
+    requestedSession?.studentId,
+    teacherStudentId,
+  ]);
+  useEffect(() => {
     setSelectedIds(null);
     setSourcePicker(false);
     setInput("");
@@ -225,6 +245,22 @@ export default function Studio() {
     const feed = feedRef.current;
     if (feed) feed.scrollTop = feed.scrollHeight;
   }, [messages.length]);
+  useEffect(() => {
+    if (!pendingAnimation || !onOpenAnimation) return;
+    const savedSession = data.sessions.find(
+      (item) => item.id === pendingAnimation.sessionId,
+    );
+    if (
+      !savedSession?.messages.some(
+        (message) => message.id === pendingAnimation.messageId,
+      )
+    )
+      return;
+    // The workspace validates the session before opening a tab. Wait until its
+    // render can see the new session and saved answer, including the first ask.
+    onOpenAnimation(pendingAnimation);
+    setPendingAnimation(null);
+  }, [pendingAnimation, data.sessions, onOpenAnimation]);
   useEffect(() => {
     const dismiss = (event) => {
       if (event.key === "Escape") {
@@ -249,6 +285,7 @@ export default function Studio() {
     };
     setData((d) => ({ ...d, sessions: [next, ...d.sessions] }));
     setActiveSessionId(next.id);
+    navigate("studio", { sessionId: next.id, courseId });
     setSessionPicker(false);
     setInput("");
     toast("A fresh space to explore.");
@@ -310,17 +347,24 @@ export default function Studio() {
     setActiveSessionId(targetId);
     setInput("");
     setSelectedVisual(null);
-    if (result.animation) setShowExplainer(true);
+    if (result.animation) {
+      if (onOpenAnimation)
+        setPendingAnimation({
+          type: result.animation,
+          messageId: answer.id,
+          sessionId: targetId,
+          title:
+            result.animation === "race"
+              ? "Race conditions & row locks"
+              : "From URL to rendered page",
+        });
+      if (!embedded) setShowExplainer(true);
+    }
   }
 
   function saveNote(message = lastAnswer) {
     if (!message || isTeacher) return;
-    if (
-      savedMessageIds.includes(message.id) ||
-      data.notes.some(
-        (n) => n.studentId === user.id && n.sourceMessageId === message.id,
-      )
-    ) {
+    if (isMessageSaved(message.id)) {
       toast("This explanation is already in your Wiki.");
       return;
     }
@@ -367,40 +411,157 @@ export default function Studio() {
     toast("Explanation saved to your personal Wiki.");
   }
 
+  function isMessageSaved(messageId) {
+    return (
+      savedMessageIds.includes(messageId) ||
+      data.notes.some(
+        (n) => n.studentId === user.id && n.sourceMessageId === messageId,
+      )
+    );
+  }
+
   function selectSession(id) {
     setActiveSessionId(id);
     navigate("studio", { sessionId: id });
     setSessionPicker(false);
   }
+  function filterTeacherSessions(studentId) {
+    setTeacherStudentId(studentId);
+    const matches = (item) =>
+      studentId === "all" || item.studentId === studentId;
+    const next =
+      allSessions.find(
+        (item) => item.id === activeSessionId && matches(item),
+      ) || allSessions.find(matches);
+    navigate("studio", { courseId, sessionId: next?.id });
+  }
   function visualize(message) {
     const type = messageAnimation(message);
     if (!type) return;
-    setSelectedVisual({ sessionId: session?.id, messageId: message.id, type });
-    setShowExplainer(true);
+    if (onOpenAnimation)
+      onOpenAnimation({
+        type,
+        sessionId: session?.id,
+        messageId: message.id,
+        title:
+          type === "race"
+            ? "Race conditions & row locks"
+            : "From URL to rendered page",
+      });
+    if (!embedded) {
+      setSelectedVisual({
+        sessionId: session?.id,
+        messageId: message.id,
+        type,
+      });
+      setShowExplainer(true);
+    }
   }
   const starterEvidence =
     allowedMaterials.find((m) => m.id === "m-transactions") ||
     allowedMaterials[0];
 
-  return (
-    <div className="studio-page">
-      <div className="studio-page-heading">
-        <div>
-          <div className="eyebrow">YOUR THINKING SPACE</div>
-          <h1>
-            Learning Studio<span className="studio-heading-dot">.</span>
-          </h1>
-          <p>Ask a little deeper. See it a little clearer.</p>
-        </div>
-        <div className="studio-heading-actions">
-          <span className="studio-demo-label">
-            <span /> Demo responses
-          </span>
-          <button className="btn btn-outline" onClick={() => navigate("wiki")}>
-            <BookOpen size={16} /> My Wiki <ArrowUpRight size={14} />
-          </button>
-        </div>
+  function renderSources() {
+    return (
+      <div className="studio-material-control">
+        <button
+          className="studio-sources-toggle"
+          onClick={() => setSourcePicker((p) => !p)}
+          aria-expanded={sourcePicker}
+        >
+          <Library size={14} />
+          {selected.length} {selected.length === 1 ? "source" : "sources"}
+          <ChevronDown size={12} />
+        </button>
+        {sourcePicker && (
+          <div className="studio-source-popover">
+            <div className="studio-popover-title">
+              Choose your sources
+              <button
+                className="icon-btn"
+                aria-label="Close sources"
+                onClick={() => setSourcePicker(false)}
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <p>
+              Public course files + {isTeacher ? "this student’s" : "your"}{" "}
+              personal files.
+            </p>
+            {allowedMaterials.length ? (
+              allowedMaterials.map((m) => (
+                <label key={m.id}>
+                  <input
+                    type="checkbox"
+                    checked={selected.some((s) => s.id === m.id)}
+                    onChange={() =>
+                      setSelectedIds((ids) => {
+                        const current =
+                          ids === null
+                            ? allowedMaterials.map((a) => a.id)
+                            : ids;
+                        return current.includes(m.id)
+                          ? current.filter((id) => id !== m.id)
+                          : [...current, m.id];
+                      })
+                    }
+                  />
+                  <FileText size={16} />
+                  <span>
+                    {m.name}
+                    <small>
+                      {m.ownerId ? "Personal file" : "Course material"}
+                    </small>
+                  </span>
+                </label>
+              ))
+            ) : (
+              <div className="studio-source-empty">
+                Upload course materials to add a source.
+              </div>
+            )}
+            <button
+              className="studio-source-manage"
+              onClick={() => {
+                setSourcePicker(false);
+                if (onManageMaterials) onManageMaterials();
+                else navigate("materials");
+              }}
+            >
+              Manage materials
+              <ArrowUpRight size={13} />
+            </button>
+          </div>
+        )}
       </div>
+    );
+  }
+
+  return (
+    <div className={`studio-page ${embedded ? "studio-embedded" : ""}`}>
+      {!embedded && (
+        <div className="studio-page-heading">
+          <div>
+            <div className="eyebrow">YOUR THINKING SPACE</div>
+            <h1>
+              Learning Studio<span className="studio-heading-dot">.</span>
+            </h1>
+            <p>Ask a little deeper. See it a little clearer.</p>
+          </div>
+          <div className="studio-heading-actions">
+            <span className="studio-demo-label">
+              <span /> Demo responses
+            </span>
+            <button
+              className="btn btn-outline"
+              onClick={() => navigate("wiki")}
+            >
+              <BookOpen size={16} /> My Wiki <ArrowUpRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
       <div className="studio-session-bar">
         <div className="studio-session-switch-wrap">
           <button
@@ -412,12 +573,14 @@ export default function Studio() {
               <MessageSquare size={16} />
             </span>
             <span>
-              <small>
-                {isTeacher
-                  ? `${sessionStudent.name}’s session`
-                  : "CURRENT SESSION"}
-              </small>
-              <strong>{session?.title || "A new place to begin"}</strong>
+              {!embedded && (
+                <small>
+                  {isTeacher
+                    ? `${sessionStudent.name}’s session`
+                    : "CURRENT SESSION"}
+                </small>
+              )}
+              <strong>{session?.title || "New learning session"}</strong>
             </span>
             <ChevronDown size={15} />
           </button>
@@ -460,6 +623,7 @@ export default function Studio() {
           )}
         </div>
         <div className="studio-session-options">
+          {embedded && renderSources()}
           {isTeacher ? (
             <>
               <span className="studio-readonly">
@@ -468,7 +632,7 @@ export default function Studio() {
               <select
                 aria-label="Filter sessions by student"
                 value={teacherStudentId}
-                onChange={(e) => setTeacherStudentId(e.target.value)}
+                onChange={(e) => filterTeacherSessions(e.target.value)}
               >
                 <option value="all">All students</option>
                 {(data.students || []).map((s) => (
@@ -493,18 +657,20 @@ export default function Studio() {
               </button>
             </>
           )}
-          <button
-            className={`icon-btn ${showExplainer ? "studio-toggle-active" : ""}`}
-            title="Toggle visual explainer"
-            aria-label="Toggle visual explainer"
-            aria-pressed={showExplainer}
-            onClick={() => setShowExplainer((x) => !x)}
-          >
-            <PanelRight size={17} />
-          </button>
+          {!embedded && (
+            <button
+              className={`icon-btn ${showExplainer ? "studio-toggle-active" : ""}`}
+              title="Toggle visual explainer"
+              aria-label="Toggle visual explainer"
+              aria-pressed={showExplainer}
+              onClick={() => setShowExplainer((x) => !x)}
+            >
+              <PanelRight size={17} />
+            </button>
+          )}
         </div>
       </div>
-      {isTeacher && (
+      {isTeacher && !embedded && (
         <div className="studio-teacher-notice">
           <LockKeyhole size={14} />
           <span>
@@ -514,108 +680,50 @@ export default function Studio() {
         </div>
       )}
       <div
-        className={`studio-workspace ${!showExplainer ? "explainer-hidden" : ""}`}
+        className={`studio-workspace ${embedded || !showExplainer ? "explainer-hidden" : ""}`}
       >
         <section
           className="studio-chat-panel"
           aria-label="Course assistant conversation"
         >
-          <div className="studio-chat-top">
-            <div className="studio-assistant-title">
-              <span className="studio-ai-symbol">
-                <Sparkles size={17} />
-              </span>
-              <div>
-                <strong>Course companion</strong>
-                <span>Grounded in your selected materials</span>
-              </div>
-            </div>
-            <div className="studio-material-control">
-              <button
-                className="studio-sources-toggle"
-                onClick={() => setSourcePicker((p) => !p)}
-                aria-expanded={sourcePicker}
-              >
-                <Library size={14} />
-                {selected.length} {selected.length === 1 ? "source" : "sources"}
-                <ChevronDown size={12} />
-              </button>
-              {sourcePicker && (
-                <div className="studio-source-popover">
-                  <div className="studio-popover-title">
-                    Choose your sources
-                    <button
-                      className="icon-btn"
-                      aria-label="Close sources"
-                      onClick={() => setSourcePicker(false)}
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                  <p>
-                    Public course files +{" "}
-                    {isTeacher ? "this student’s" : "your"} personal files.
-                  </p>
-                  {allowedMaterials.length ? (
-                    allowedMaterials.map((m) => (
-                      <label key={m.id}>
-                        <input
-                          type="checkbox"
-                          checked={selected.some((s) => s.id === m.id)}
-                          onChange={() =>
-                            setSelectedIds((ids) => {
-                              const current =
-                                ids === null
-                                  ? allowedMaterials.map((a) => a.id)
-                                  : ids;
-                              return current.includes(m.id)
-                                ? current.filter((id) => id !== m.id)
-                                : [...current, m.id];
-                            })
-                          }
-                        />
-                        <FileText size={16} />
-                        <span>
-                          {m.name}
-                          <small>
-                            {m.ownerId ? "Personal file" : "Course material"}
-                          </small>
-                        </span>
-                      </label>
-                    ))
-                  ) : (
-                    <div className="studio-source-empty">
-                      Upload course materials to add a source.
-                    </div>
-                  )}
-                  <button
-                    className="studio-source-manage"
-                    onClick={() => navigate("materials")}
-                  >
-                    Manage materials
-                    <ArrowUpRight size={13} />
-                  </button>
+          {!embedded && (
+            <div className="studio-chat-top">
+              <div className="studio-assistant-title">
+                <span className="studio-ai-symbol">
+                  <Sparkles size={17} />
+                </span>
+                <div>
+                  <strong>Course companion</strong>
+                  <span>Grounded in your selected materials</span>
                 </div>
-              )}
+              </div>
+              {renderSources()}
             </div>
-          </div>
+          )}
           <div className="studio-chat-feed" ref={feedRef}>
-            <div className="studio-chat-date">
-              <span />
-              {messages.length
-                ? "A LITTLE CURIOSITY GOES A LONG WAY"
-                : "START WITH A QUESTION"}
-              <span />
-            </div>
+            {!embedded && (
+              <div className="studio-chat-date">
+                <span />
+                {messages.length
+                  ? "A LITTLE CURIOSITY GOES A LONG WAY"
+                  : "START WITH A QUESTION"}
+                <span />
+              </div>
+            )}
             {!messages.length && (
               <div className="studio-welcome">
                 <span className="studio-welcome-mark">
                   <Sparkles size={25} />
                 </span>
-                <h2>What’s on your mind?</h2>
+                <h2>
+                  {embedded
+                    ? "What would you like to understand?"
+                    : "What’s on your mind?"}
+                </h2>
                 <p>
-                  Your course materials are here. Let’s turn a tricky concept
-                  into something that clicks.
+                  {embedded
+                    ? "Ask about your course files, explore an idea, or create a visual explanation."
+                    : "Your course materials are here. Let’s turn a tricky concept into something that clicks."}
                 </p>
                 <div className="studio-starters">
                   {suggestedQuestions.map((s, i) => (
@@ -683,12 +791,12 @@ export default function Studio() {
                       )}
                       {!isTeacher && (
                         <button onClick={() => saveNote(message)}>
-                          {savedMessageIds.includes(message.id) ? (
+                          {isMessageSaved(message.id) ? (
                             <Check size={13} />
                           ) : (
                             <BookOpen size={13} />
                           )}{" "}
-                          {savedMessageIds.includes(message.id)
+                          {isMessageSaved(message.id)
                             ? "Saved to Wiki"
                             : "Save to Wiki"}
                         </button>
@@ -721,7 +829,11 @@ export default function Studio() {
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask anything about your course…"
+                  placeholder={
+                    embedded
+                      ? "Ask about this course…"
+                      : "Ask anything about your course…"
+                  }
                   rows={2}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -750,8 +862,8 @@ export default function Studio() {
                 </div>
               </form>
               <div className="studio-composer-note">
-                <LockKeyhole size={10} /> Visible to you and your course teacher{" "}
-                <span>·</span> Verify explanations with cited sources.
+                <LockKeyhole size={11} /> Your teacher can view this session
+                <span>·</span> Demo responses
               </div>
             </div>
           ) : (
@@ -761,7 +873,7 @@ export default function Studio() {
             </div>
           )}
         </section>
-        {showExplainer && (
+        {!embedded && showExplainer && (
           <aside className="studio-insight-panel">
             <div className="studio-insight-heading">
               <span>
