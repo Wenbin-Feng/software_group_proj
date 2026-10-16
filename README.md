@@ -1,0 +1,344 @@
+# Adaptive Study Assistant Platform
+
+> 一个由生成式 AI 驱动的自适应学习平台，把 AI Tutor 从"被动问答"升级为能根据学生学习状态动态规划学习路径的 Agent。
+
+[![Course](https://img.shields.io/badge/Course-COMP5241%20(Software%20Engineering)-blue)](#)
+[![License](https://img.shields.io/badge/License-MIT-green)](#license)
+[![Status](https://img.shields.io/badge/Status-In%20Development-yellow)](#)
+
+---
+
+## 📖 目录
+
+- [项目简介](#项目简介)
+- [核心特性](#核心特性)
+- [目标用户与角色](#目标用户与角色)
+- [系统架构](#系统架构)
+- [自适应规划工作流](#自适应规划工作流)
+- [学习活动类型](#学习活动类型)
+- [技术栈](#技术栈)
+- [项目结构](#项目结构)
+- [快速开始](#快速开始)
+- [配置说明](#配置说明)
+- [使用指南](#使用指南)
+- [开发路线图](#开发路线图)
+- [评估方案](#评估方案)
+- [AI Fluency (4D 框架)](#ai-fluency-4d-框架)
+- [交付物](#交付物)
+- [许可证](#许可证)
+
+---
+
+## 项目简介
+
+随着 LLM 的发展，AI Tutor 已能提供课程问答、知识解释和习题讲解。然而传统 LLM-based tutoring systems 通常采用"学生提问—模型回答"的被动交互方式，主要解决学生**当前**的问题，而不是持续分析学习状态并决定**后续**的学习策略。
+
+**Adaptive Study Assistant Platform** 面向**软件工程与开发**相关课程，维护学生在不同知识点上的学习状态，并根据答题结果、错误记录和掌握程度，动态选择下一步学习活动（知识讲解、针对性练习、难度提升、知识复习等）。学生完成活动后，系统根据新反馈更新状态并重新规划，形成 **Plan – Act – Observe – Update – Re-plan** 闭环。
+
+平台同时服务三类角色：
+
+- **Students**：获得个性化学习路径、多样化学习活动、自生成学习主题
+- **Instructors**：定制现有 mini-course、用 AI 生成新 mini-course、导入学生、追踪参与度与班级知识状态
+- **Admins**：管理课程与用户、查看平台整体运行状况
+
+---
+
+## 核心特性
+
+- **🎯 自适应规划引擎**：以 `Student Knowledge Model` 为决策依据，动态决定"下一步该做什么"，而非仅仅回答当前问题。
+- **🧠 学生知识模型**：记录各知识点掌握程度、历史答题与错误模式，驱动个性化规划。
+- **📚 RAG 知识库**：基于课程材料（Lecture Slides、Tutorial Materials、代码示例）构建向量库，支持知识解释与题目生成。
+- **🎮 多形式学习活动**：AI 讲解、针对性练习、交互式仿真、角色扮演、Bug Hunter 小游戏、在线编程等。
+- **👩‍🏫 教师工作台**：定制/AI 生成 mini-course、批量导入学生、参与度与班级知识热力图追踪。
+- **🛠 自生成学习路径**：学生输入想学主题，AI 生成 mini-course 与学习路径，支持跨领域。
+
+---
+
+## 目标用户与角色
+
+| 角色 | 目标用户 | 核心能力 |
+|------|----------|----------|
+| **Student** | 需要自主学习软件工程知识的大学生（含非 CS 背景） | 个性化路径、多样化活动、自生成主题 |
+| **Instructor** | 授课教师 | 课程定制、AI 生成课程、学生导入、参与度追踪 |
+| **Admin** | 平台管理员 | 课程与用户管理、整体运行监控 |
+
+平台本身也是 **AI Fluency** 的实践场：学生通过使用平台训练 *Delegation / Description / Discernment / Diligence* 四项能力。
+
+---
+
+## 系统架构
+
+平台由五大核心组件构成：
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Frontend (Next.js)                      │
+│         Student UI  │  Instructor Dashboard  │  Admin        │
+└───────────┬───────────────────────┬─────────────────────────┘
+            │                       │
+            ▼                       ▼
+┌──────────────────────┐   ┌──────────────────────────────────┐
+│  Adaptive Planning   │   │      Instructor & Admin Layer     │
+│  Agent (LangGraph)   │   │  课程定制 / AI 生成 / 追踪 / 管理   │
+└──────────┬───────────┘   └──────────────────────────────────┘
+           │
+   ┌───────┼───────────────────────────────┐
+   ▼       ▼                               ▼
+┌──────────────┐  ┌─────────────────┐  ┌──────────────────────┐
+│ Student      │  │  RAG Knowledge  │  │ Multi-format         │
+│ Knowledge    │  │  Base (ChromaDB)│  │ Learning Activities  │
+│ Model        │  │                 │  │                      │
+│ (SQLite)     │  │  LLM (GPT/Claude)│  │ slides / exercise /  │
+└──────────────┘  └─────────────────┘  │ sim / roleplay / game│
+                                       └──────────────────────┘
+```
+
+1. **RAG Knowledge Base** — 基于课程材料构建向量知识库，支持知识解释与题目生成。
+2. **Student Knowledge Model** — 记录学生在各知识点上的掌握程度、历史答题、错误模式。
+3. **Adaptive Planning Agent** — 基于学生状态选择下一项学习活动（核心引擎）。
+4. **Multi-format Learning Activities** — 多种交互形式的学习活动。
+5. **Instructor & Admin Layer** — 课程定制、AI 生成 mini-course、学生导入、参与度追踪、班级知识热力图。
+
+---
+
+## 自适应规划工作流
+
+**学生学习循环**
+
+```
+Student State → Adaptive Planning → Learning Activity
+→ Student Response → Evaluation → State Update → Re-planning
+```
+
+Adaptive Planner 依据学生状态在不同活动类型间切换：
+
+| 学生状态 | 选择的活动 |
+|----------|-----------|
+| 掌握不足 | 概念讲解（AI-narrated slides / 交互式讲解） |
+| 有一定基础但仍有错误 | 针对性练习 |
+| 掌握较高 | 难度提升 / 挑战任务 |
+| 反复出现相同错误 | 复习相关知识点 |
+
+**教师工作循环**
+
+```
+Instructor Input (topic / requirements / materials)
+→ AI-assisted Course Generation
+→ Instructor Refinement (manual or AI)
+→ Publish to Students
+→ Track Engagement & Knowledge State
+→ Adjust Teaching Focus
+```
+
+---
+
+## 学习活动类型
+
+为达到 "interactive, engaging and fun" 的目标，平台提供以下活动形式（已实现 / 规划中）：
+
+| 活动形式 | 说明 | 训练能力 |
+|----------|------|----------|
+| **AI-narrated slides / 交互式讲解** | 可暂停、可提问的 AI 讲解 | 知识理解 |
+| **针对性练习** | 根据学生状态动态生成的题目 | 知识应用 |
+| **Interactive simulation** | 如"编排一个简单 AI agent workflow"的可视化沙盒 | 系统设计、Agent 编排 |
+| **Role play / mock interview** | AI 扮演客户/同事/PM，练需求沟通、code review 对话 | 软技能、产品思维 |
+| **Mini-game: Bug Hunter** | 限时找出 AI 生成代码中的问题（语法/逻辑/架构/AI 幻觉） | Discernment（批判性评估 AI 输出） |
+| **Online coding** | 浏览器内编写并运行代码，AI 实时反馈 | 编程实践 |
+
+---
+
+## 技术栈
+
+| 组件 | 技术选型 |
+|------|----------|
+| Agent workflow | LangGraph |
+| LLM | GPT-4 / Claude / 开源模型（按成本与效果选择） |
+| 向量检索 | ChromaDB |
+| 学生状态存储 | SQLite |
+| 前端 | React / Next.js |
+| 部署 | Vercel（前端）+ 云服务（后端） |
+
+---
+
+## 项目结构
+
+```
+polyu-se-hongzhi/
+├── README.md
+├── frontend/                 # Next.js 前端（Student / Instructor / Admin）
+│   ├── app/
+│   ├── components/
+│   └── public/
+├── backend/                  # LangGraph Agent + API 服务
+│   ├── agent/                # Adaptive Planning Agent
+│   ├── rag/                  # RAG Knowledge Base (ChromaDB)
+│   ├── models/               # Student Knowledge Model (SQLite)
+│   └── activities/           # 多形式学习活动逻辑
+├── data/                     # 课程材料（Lecture Slides / Tutorial Materials）
+├── scripts/                  # PDF 处理、知识库构建、数据导入
+└── docs/                     # 设计文档、用户手册、报告
+```
+
+> 注：目录为规划结构，将随开发阶段逐步落地。
+
+---
+
+## 快速开始
+
+### 先决条件
+
+- Node.js ≥ 18
+- Python ≥ 3.10
+- 一个 LLM API Key（OpenAI / Anthropic）
+
+### 1. 克隆仓库
+
+```bash
+git clone <repo-url>
+cd polyu-se-hongzhi
+```
+
+### 2. 后端（Agent + RAG + 状态存储）
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+# 构建 RAG 知识库（基于 data/ 下的课程材料）
+python scripts/build_knowledge_base.py
+
+# 启动 API 服务
+uvicorn app.main:app --reload --port 8000
+```
+
+### 3. 前端
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+前端默认运行于 `http://localhost:3000`，后端 API 默认 `http://localhost:8000`。
+
+---
+
+## 配置说明
+
+在 `backend/` 下创建 `.env`：
+
+```env
+# LLM 配置（二选一或按策略切换）
+OPENAI_API_KEY=your_openai_key
+ANTHROPIC_API_KEY=your_anthropic_key
+
+# 向量库与数据库
+CHROMA_PERSIST_DIR=./chroma_db
+SQLITE_DB_PATH=./student_state.db
+
+# 前端调用地址
+BACKEND_API_URL=http://localhost:8000
+```
+
+---
+
+## 使用指南
+
+### 学生
+
+1. 完成 **Pre-test** 以获得初始知识状态。
+2. 平台自动规划第一项学习活动（讲解 / 练习 / 仿真 / 游戏）。
+3. 完成活动并提交反馈，系统更新状态并 **Re-plan**。
+4. 可输入自定义主题，让 AI 生成专属 mini-course 与学习路径。
+
+### 教师
+
+1. 在 Instructor Dashboard 中**定制现有 mini-course** 或 **AI 生成新 mini-course**。
+2. 批量**导入学生**，发布课程。
+3. 通过参与度与**班级知识热力图**追踪学习状况，调整教学重点。
+
+### 管理员
+
+1. 管理课程与用户账号。
+2. 查看平台整体运行状况与资源使用。
+
+---
+
+## 开发路线图
+
+| 阶段 | 内容 |
+|------|------|
+| 阶段 1 | 课程资料收集、PDF 处理、RAG knowledge base；实现基础 LLM Tutor 与 RAG Tutor |
+| 阶段 2 | Student Knowledge Model；学生学习状态与答题历史记录 |
+| 阶段 3 | LangGraph 实现 Adaptive Planning Agent 与 Plan–Act–Observe–Update–Re-plan workflow |
+| 阶段 4 | 多形式学习活动开发（simulation / role play / mini-game / online coding） |
+| 阶段 5 | Instructor Dashboard、课程定制、AI 生成 mini-course、参与度追踪 |
+| 阶段 6 | 整合为可交互平台，部署到公开平台，完成用户测试与结果分析 |
+
+---
+
+## 评估方案
+
+**实验流程（功能验证）**
+
+```
+Pre-test → Learning Session → Post-test
+```
+
+学生完成 Pre-test 获得初始状态，使用不同 Tutor 方法学习，最后通过 Post-test 衡量效果。
+
+**Baselines**
+
+- **LLM-only Tutor** — 直接 LLM 回答，无课程检索、无自适应规划
+- **RAG Tutor** — 使用课程资料检索增强，但不根据学生状态调整策略
+- **Fixed-strategy Tutor** — 固定学习流程，不根据表现改变策略
+- **Adaptive Study Assistant Agent（本方案）**
+
+**评估指标**
+
+| 指标 | 说明 |
+|------|------|
+| **Learning Gain** | Pre-test 到 Post-test 的提升 |
+| **Final Mastery** | 学习结束后的知识掌握程度 |
+| **Learning Efficiency** | 达到目标掌握程度所需的学习活动数量 |
+| **Engagement** | 学生参与度（活动完成率、停留时间、回访率） |
+| **Instructor Usability** | 教师定制课程与追踪学生的易用性 |
+| **Response Time & Cost** | 自适应规划的额外计算开销 |
+
+---
+
+## AI Fluency (4D 框架)
+
+| 维度 | 在项目中的体现 |
+|------|----------------|
+| **Delegation** | 决定哪些交给 AI（题目生成、答案评估、讲解生成），哪些必须人做（定义学习目标、审核内容质量、最终决策） |
+| **Description** | 设计高质量 prompt 生成学习内容与活动；平台也教学生如何清晰描述问题 |
+| **Discernment** | 核心活动（如 Bug Hunter）训练学生批判性评估 AI 输出；团队也需评估 AI 生成的代码与内容 |
+| **Diligence** | 验证 AI 生成内容正确性、记录 AI 使用、对最终内容负责；平台记录学生学习过程供教师审查 |
+
+**团队工作流中的实践**
+
+- 使用 coding agent 辅助开发，但每个 PR 需人工 review
+- 记录哪些代码由 AI 生成、哪些手写
+- 对 AI 生成的学习内容进行人工审核
+- 在报告中分享使用 coding agent 的经验与教训
+
+---
+
+## 交付物
+
+- 部署到公开平台（Vercel 等）的可交互平台
+- 5–8 分钟系统概览视频
+- Presentation slides
+- Final report（项目概述、系统设计、功能、开发过程、AI 使用、反思）
+- User manual（Admin / Instructor / Student）
+- 各功能 demo 视频
+- GitHub Repository（代码、文档、issue、project board）
+
+---
+
+## 许可证
+
+本项目基于 [MIT License](LICENSE) 开源。
