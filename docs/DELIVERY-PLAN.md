@@ -25,4 +25,5 @@ The approved product scope remains in [the design](superpowers/specs/2026-10-15-
 ## Verified progress
 
 - Source integration, PDF pages and recovery, fresh production smoke checks, 10 domain tests, formatting, build and 35-image documentation checks passed.
-- The next local step is to commit the application and then configure the separate feature branch.
+- The application was committed locally on `dev/WangJiahe`. Text files use LF consistently on Windows and Linux so that a branch checkout does not invalidate formatting checks.
+- The separate feature-branch workflow is the next integration step; no remote operation is authorized in this delivery.
