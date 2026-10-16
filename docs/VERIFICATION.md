@@ -4,7 +4,7 @@ Date: 2026-10-16, Asia/Shanghai.
 
 ## Current local integration result
 
-The complete application was integrated into the fresh clone on the independent `dev/WangJiahe` history. The source backup remains in the original prototype folder. No branch has been pushed, no deployment has occurred, and no GitHub-hosted Actions run has been executed.
+The complete application was integrated into the fresh clone on the independent `dev/WangJiahe` history. The source backup remains in the original prototype folder. This record documents the local verification performed before publication. Hosted CI results are recorded separately in [GitHub Actions](https://github.com/Wenbin-Feng/software_group_proj/actions); no deployment is configured.
 
 The local runtime is Node **24.19.0** and pnpm **11.25.0**. Locked installation, formatting, domain tests, TypeScript/Vite production build, and screenshot checks passed. The suite has **10 tests**, and the gallery has **35 PNG screenshots**. PDF.js is pinned to **6.4.299**, with a local worker asset in the production build. PDF and other vendor code are placed in separate chunks; the final build has no chunk-size warning.
 
@@ -64,6 +64,6 @@ Sign-in, AI and account roles remain frontend demonstrations. There is no backen
 
 ## Branch and CI boundary
 
-The application is saved locally on `dev/WangJiahe`, descended from its own empty root commit. It does not inherit or merge `main` or `dev/wenbin`; the assignment PDF and main rule files are not copied into this branch.
+The application is maintained on `dev/WangJiahe`, descended from its own empty root commit. It does not inherit or merge `main` or `dev/wenbin`; the assignment PDF and main rule files are not copied into this branch.
 
-CI configuration is kept on the separate `feature/wangjiahe-prototype-ci` branch. Local command results above do not constitute a GitHub-hosted Linux/Node 22 run. That execution remains pending a later authorized push. CI is limited to checking, building, and archiving artifacts, with no deployment.
+CI configuration is kept on the separate `feature/wangjiahe-prototype-ci` branch. Local command results above do not constitute a GitHub-hosted Linux/Node 22 run. See the feature-branch Actions run for the hosted execution result. CI is limited to checking, building, and archiving artifacts, with no deployment.

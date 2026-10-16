@@ -2,7 +2,7 @@
 
 Date: 2026-10-16, Asia/Shanghai.
 
-## Scope
+## Initial local-only scope
 
 Integrate the existing approved Luma frontend into the fresh clone after its screenshot-only commit. Preserve the orphan history of `dev/WangJiahe`, complete the PDF preview, verify the runnable application, and commit locally. Then create `feature/wangjiahe-prototype-ci` from that application commit and add a checks/build/archive workflow. Do not push, deploy, merge, or change `main`.
 
@@ -26,4 +26,8 @@ The approved product scope remains in [the design](superpowers/specs/2026-10-15-
 
 - Source integration, PDF pages and recovery, fresh production smoke checks, 10 domain tests, formatting, build and 35-image documentation checks passed.
 - The application was committed locally on `dev/WangJiahe`. Text files use LF consistently on Windows and Linux so that a branch checkout does not invalidate formatting checks.
-- The separate feature-branch workflow is the next integration step; no remote operation is authorized in this delivery.
+- The separate `feature/wangjiahe-prototype-ci` branch now contains the workflow and its usage guide. Its equivalent local checks passed before the CI commit.
+
+## Publication stage
+
+After accepting the repository collaboration invitation, the user requested publication in the format required by `main` and illustrated by `dev/wenbin`: complete prototype source, a personal README, startup instructions, actual screenshots and verification records. Publish only `dev/WangJiahe` and `feature/wangjiahe-prototype-ci`; keep `main` and other member branches unchanged. Hosted CI results are tracked in GitHub Actions rather than inferred from local checks.

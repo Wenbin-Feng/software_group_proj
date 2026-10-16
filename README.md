@@ -4,24 +4,26 @@
 
 An English-language, frontend-only learning platform prototype. The demo connects classroom materials, a prepared AI study partner, interactive explanations, a personal Wiki, and community note sharing.
 
-## 本机启动
+Designed for students and instructors, Luma brings scattered class files, explanations and personal notes into one learning workspace. Students can turn a question about a shared course document into a connected note and pass useful ideas to classmates; instructors can organize resources and class members.
 
-在 VS Code 中打开本文件夹，打开 PowerShell 终端，运行：
+## Run locally
+
+Use Node.js **22.13 or later** and pnpm **11.25.0**:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Open **http://127.0.0.1:5173/** and keep the terminal running. Press `Ctrl+C` to stop. No environment variables, API keys, Google credentials or other secrets are required.
+
+On the prepared Windows computer, you can also run the optional PowerShell launcher after installing dependencies:
 
 ```powershell
 .\start-demo.ps1
 ```
 
-浏览器访问 **http://127.0.0.1:5173/**。保持服务终端运行；停止时按 `Ctrl+C`。本机已安装依赖，启动脚本可以使用 Codex 自带的 Node.js。
-
-首次在其他电脑运行，需要 Node.js 22.13 或更高版本和 pnpm 11.25.0：
-
-```sh
-pnpm install
-pnpm dev
-```
-
-If PowerShell does not allow local script execution, use a terminal with Node.js available and run `node node_modules/vite/bin/vite.js --host 127.0.0.1`. No system policy changes are necessary.
+The launcher uses an available Node.js installation, with the existing Codex desktop runtime as a local fallback. Other computers can use the standard pnpm commands above.
 
 ## Demo identities
 
@@ -65,7 +67,7 @@ src/
   pages/                     Classes, reader, Wiki, Market and management
   styles/                    Feature styles and responsive overrides
 docs/                        Design, plan, walkthrough and verification record
-images/          Screenshots of the running app
+images/                      Screenshots of the running app
 ```
 
 Use small domain helpers for state transformations. Keep new feature behavior in its page/component and place its styles in the matching stylesheet. Frontend role controls illustrate intended behavior; they are not security enforcement.
@@ -87,7 +89,7 @@ Browser verification was performed through the connected browser against the act
 
 This prototype has its own orphan history on `dev/WangJiahe`. It does not inherit or merge `main` or Wenbin’s prototype. The reference branch was used to compare documentation and screenshot coverage; Luma retains its own implementation and scope.
 
-The application is committed locally on `dev/WangJiahe`. CI configuration is maintained separately on `feature/wangjiahe-prototype-ci`: it checks formatting, tests, build and screenshot links, then archives the static build and screenshots. No branch has been pushed, and no GitHub-hosted CI run or deployment has been completed. The workflow and its usage guide are present on the feature branch.
+The application belongs to [`dev/WangJiahe`](https://github.com/Wenbin-Feng/software_group_proj/tree/dev/WangJiahe). CI configuration is maintained separately on [`feature/wangjiahe-prototype-ci`](https://github.com/Wenbin-Feng/software_group_proj/tree/feature/wangjiahe-prototype-ci): it checks formatting, tests, build and screenshot links, then archives the static build and screenshots for 14 days. The workflow and its [usage guide](https://github.com/Wenbin-Feng/software_group_proj/blob/feature/wangjiahe-prototype-ci/docs/CI.md) are present on the feature branch. [GitHub Actions](https://github.com/Wenbin-Feng/software_group_proj/actions) records hosted execution results; no deployment is configured.
 
 ## Development record and contribution
 
