@@ -66,4 +66,4 @@ Sign-in, AI and account roles remain frontend demonstrations. There is no backen
 
 The application is maintained on `dev/WangJiahe`, descended from its own empty root commit. It does not inherit or merge `main` or `dev/wenbin`; the assignment PDF and main rule files are not copied into this branch.
 
-CI configuration is kept on the separate `feature/wangjiahe-prototype-ci` branch. Local command results above do not constitute a GitHub-hosted Linux/Node 22 run. See the feature-branch Actions run for the hosted execution result. CI is limited to checking, building, and archiving artifacts, with no deployment.
+The initial feature-branch workflow passed on GitHub in [run 38885667323](https://github.com/Wenbin-Feng/software_group_proj/actions/runs/38885667323), including both artifact uploads. The user subsequently chose to remove the extra feature branch, so its CI history and workflow were moved into `dev/WangJiahe`. The trigger now matches only `dev/WangJiahe`; check its latest Actions run for the migrated workflow's hosted result. CI remains limited to checking, building, and archiving artifacts, with no deployment.

@@ -1,33 +1,25 @@
-# Local source and CI integration
+# Prototype delivery and branch layout
 
 Date: 2026-10-16, Asia/Shanghai.
 
-## Initial local-only scope
+## Current arrangement
 
-Integrate the existing approved Luma frontend into the fresh clone after its screenshot-only commit. Preserve the orphan history of `dev/WangJiahe`, complete the PDF preview, verify the runnable application, and commit locally. Then create `feature/wangjiahe-prototype-ci` from that application commit and add a checks/build/archive workflow. Do not push, deploy, merge, or change `main`.
+Keep the application, README, 35 screenshots, verification records and CI workflow together on `dev/WangJiahe`. The user requested removal of the extra feature branch after the initial publication. CI now responds only to pushes to `dev/WangJiahe`, checking, building and archiving artifacts without deployment. Keep `main` and every other member's branch unchanged.
 
-The approved product scope remains in [the design](superpowers/specs/2026-10-15-learning-platform-design.md). Sign-in and AI remain explicitly simulated; this integration does not add a backend or new product features.
+The approved product scope remains in [the design](superpowers/specs/2026-10-15-learning-platform-design.md). Sign-in and AI remain explicitly simulated; the branch simplification does not add a backend or change application behavior.
 
-## Steps and completion evidence
+## Recorded milestones
 
-1. Copy the source, dependency lockfile, startup script, and application documentation. Keep `images/` as the single screenshot directory and preserve the existing offline gallery.
-2. Reproduce and resolve the interrupted PDF installation and TypeScript issue. Verify real PDF pages, navigation, and session-file recovery in the connected browser.
-3. Run locked dependency installation, formatting, domain tests, TypeScript/Vite build, and README image checks. Review the final source before its local application commit.
-4. Create the feature branch, add a feature-push-only workflow and CI documentation, validate YAML and the equivalent local commands, and commit. GitHub-hosted Actions cannot be claimed as executed before a later push.
+1. Cloned the original repository into a new local directory and created the orphan `dev/WangJiahe` root. Preserved the original prototype folder as a source backup.
+2. Committed the screenshot package, then integrated the complete frontend, dependency lockfile, startup script and application documentation. Kept `images/` as the single screenshot directory.
+3. Completed PDF.js installation and rendering, verified pages and session recovery, and expanded the gallery to 35 actual screenshots. Passed locked installation, formatting, 10 domain tests, production build and image-documentation checks.
+4. Initially configured CI on `feature/wangjiahe-prototype-ci` and published both branches following the repository's prototype format. Hosted run 38885667323 passed all checks and both artifact uploads.
+5. Following the user's preference for one branch, preserved all feature commits by fast-forwarding `dev/WangJiahe`. Updated the workflow trigger and documentation. Remove the old feature reference after the migrated workflow passes remotely.
 
-## Integration decisions
+## Preservation and verification
 
-- Use the user's explicitly requested fresh clone rather than creating a second worktree. The original prototype folder remains available as the source backup.
-- Preserve the current 34 screenshots and add a real PDF capture only after its canvas content is visually verified. Do not copy the assignment PDF or `main` rule files into the prototype.
-- Keep the application source on `dev/WangJiahe`; keep the workflow and CI-specific documentation on the separate feature branch.
-- Keep local Node 24 and the pinned CI Node 22 runtime distinct in the verification record. Compatibility metadata is not a substitute for a hosted CI execution.
-
-## Verified progress
-
-- Source integration, PDF pages and recovery, fresh production smoke checks, 10 domain tests, formatting, build and 35-image documentation checks passed.
-- The application was committed locally on `dev/WangJiahe`. Text files use LF consistently on Windows and Linux so that a branch checkout does not invalidate formatting checks.
-- The separate `feature/wangjiahe-prototype-ci` branch now contains the workflow and its usage guide. Its equivalent local checks passed before the CI commit.
-
-## Publication stage
-
-After accepting the repository collaboration invitation, the user requested publication in the format required by `main` and illustrated by `dev/wenbin`: complete prototype source, a personal README, startup instructions, actual screenshots and verification records. Publish only `dev/WangJiahe` and `feature/wangjiahe-prototype-ci`; keep `main` and other member branches unchanged. Hosted CI results are tracked in GitHub Actions rather than inferred from local checks.
+- No prototype code, assignment PDF or rules were inherited from `main` or another member's prototype.
+- Deleting the old feature branch does not discard its commits: they remain ancestors of `dev/WangJiahe`.
+- Text files use LF consistently on Windows and Linux so that a checkout does not invalidate formatting checks.
+- The application is verified locally with Node 24.19.0 and pnpm 11.25.0; hosted CI uses Node 22.23.3. GitHub Actions records actual hosted results.
+- The main and Wenbin branch references are checked before and after branch cleanup. There is no deployment or merge into `main`.

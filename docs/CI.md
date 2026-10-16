@@ -1,8 +1,8 @@
 # Prototype checks, build and artifacts
 
-The workflow is stored at `.github/workflows/prototype-ci.yml` on `feature/wangjiahe-prototype-ci`, created from WangJiahe's independent `dev/WangJiahe` prototype branch. The `dev/WangJiahe` branch contains the application and screenshots; the feature branch adds this workflow and its documentation.
+The workflow is stored at `.github/workflows/prototype-ci.yml` on `dev/WangJiahe`, alongside the complete application, screenshots and this guide. The user chose to keep one prototype branch; the original feature-branch CI work is preserved in this branch's history.
 
-The workflow runs only after a push to a branch matching `feature/**`. Pushes to `main` or `dev/**`, pull requests and manual requests do not trigger it. A newer push to the same feature branch cancels that branch's previous run. No merge into `main` is required.
+The workflow runs only after a push to `dev/WangJiahe`. Pushes to `main` or other members' branches, pull requests and manual requests do not trigger it. A newer push to `dev/WangJiahe` cancels that branch's previous run. No merge into `main` is required.
 
 Each run executes these gates in order:
 
@@ -25,9 +25,9 @@ The job requests read-only repository contents access, disables checkout credent
 
 ## Local validation and remote status
 
-The workflow runs after this feature branch is pushed. [GitHub Actions](https://github.com/Wenbin-Feng/software_group_proj/actions) records the hosted run and its artifact uploads. Local checks are evidence for the project commands, not a claim that the hosted workflow passed.
+The workflow runs after `dev/WangJiahe` is pushed. [GitHub Actions](https://github.com/Wenbin-Feng/software_group_proj/actions) records the hosted run and its artifact uploads. Local checks are evidence for the project commands, not a claim that the hosted workflow passed.
 
-On 16 October 2026, locked installation, formatting, all 10 domain tests, the TypeScript/Vite build and all 35 screenshot checks passed locally with Node 24.19.0 and pnpm 11.25.0. The workflow YAML was parsed, and its feature-only trigger, read-only permission, fixed action references, command sequence and archive paths were checked. Local ZIPs mirror the two artifact layouts in `output/`; they are not GitHub-hosted artifact downloads.
+On 16 October 2026, locked installation, formatting, all 10 domain tests, the TypeScript/Vite build and all 35 screenshot checks passed locally with Node 24.19.0 and pnpm 11.25.0. The workflow YAML was parsed, and its branch trigger, read-only permission, fixed action references, command sequence and archive paths were checked. Local ZIPs mirror the two artifact layouts in `output/`; they are not GitHub-hosted artifact downloads.
 
 From the repository root, run the same project gates with:
 
@@ -39,7 +39,7 @@ pnpm build
 pnpm run docs:check
 ```
 
-Use Node 22.23.3 and pnpm 11.25.0 to match CI exactly. Local verification used the bundled Node 24 runtime; see `docs/VERIFICATION.md` for the actual commands and outcomes. Check the feature-branch Actions run for hosted execution and archive availability.
+Use Node 22.23.3 and pnpm 11.25.0 to match CI exactly. Local verification used the bundled Node 24 runtime; see `docs/VERIFICATION.md` for the actual commands and outcomes. Check the `dev/WangJiahe` Actions run for hosted execution and archive availability.
 
 ## Version evidence
 

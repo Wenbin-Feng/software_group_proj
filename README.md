@@ -89,7 +89,7 @@ Browser verification was performed through the connected browser against the act
 
 This prototype has its own orphan history on `dev/WangJiahe`. It does not inherit or merge `main` or Wenbin’s prototype. The reference branch was used to compare documentation and screenshot coverage; Luma retains its own implementation and scope.
 
-The application belongs to [`dev/WangJiahe`](https://github.com/Wenbin-Feng/software_group_proj/tree/dev/WangJiahe). CI configuration is maintained separately on [`feature/wangjiahe-prototype-ci`](https://github.com/Wenbin-Feng/software_group_proj/tree/feature/wangjiahe-prototype-ci): it checks formatting, tests, build and screenshot links, then archives the static build and screenshots for 14 days. The workflow and its [usage guide](https://github.com/Wenbin-Feng/software_group_proj/blob/feature/wangjiahe-prototype-ci/docs/CI.md) are present on the feature branch. [GitHub Actions](https://github.com/Wenbin-Feng/software_group_proj/actions) records hosted execution results; no deployment is configured.
+The application, screenshots and [CI workflow](.github/workflows/prototype-ci.yml) live together on [`dev/WangJiahe`](https://github.com/Wenbin-Feng/software_group_proj/tree/dev/WangJiahe). A push to this branch checks formatting, tests, build and screenshot links, then archives the static build and screenshots for 14 days. See the [CI usage guide](docs/CI.md) and [GitHub Actions](https://github.com/Wenbin-Feng/software_group_proj/actions) for hosted execution results. No extra feature branch is needed and no deployment is configured.
 
 ## Development record and contribution
 
