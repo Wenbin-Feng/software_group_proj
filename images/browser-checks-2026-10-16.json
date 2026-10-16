@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-16",
+  "timezone": "Asia/Shanghai",
+  "node": "24.19.0",
+  "pnpm": "11.25.0",
+  "domainTests": {
+    "passed": 10,
+    "failed": 0
+  },
+  "pngScreenshots": 35,
+  "automated": [
+    "locked install",
+    "format check",
+    "TypeScript and Vite production build",
+    "README/catalog/gallery image checks"
+  ],
+  "developmentBrowser": [
+    "actual PDF pages 1 and 2",
+    "first-page boundary",
+    "reload and reselection recovery"
+  ],
+  "productionBrowser": [
+    "fresh demo sign-in",
+    "class document and prepared AI answer",
+    "animation step and reset",
+    "save explanation and reload Wiki",
+    "7 graph nodes and 15 links",
+    "390px graph viewport without overflow",
+    "6 Market cards",
+    "instructor PDF upload and built worker rendering",
+    "administrator role controls"
+  ],
+  "hostedCIExecuted": false,
+  "pushed": false
+}

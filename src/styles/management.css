@@ -1,0 +1,134 @@
+/* Management is deliberately small and uses the same classroom entities. */
+.management-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 33px;
+}
+.management-stats .card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.management-stats strong {
+  font-size: 26px;
+  font-weight: 500;
+}
+.management-stats .card > span:last-child {
+  color: #747e66;
+  font-size: 13px;
+}
+.management-stats .stat-icon {
+  width: 43px;
+  height: 43px;
+}
+.instructor-course-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.instructor-course {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 24px;
+}
+.instructor-course-symbol {
+  width: 56px;
+  height: 59px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.instructor-course > div {
+  flex: 1;
+}
+.instructor-course h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+.instructor-course p {
+  font-size: 12px;
+  color: #738067;
+  margin-top: 11px;
+}
+.instructor-course p > span {
+  padding: 0 10px;
+  color: #777d6f;
+}
+.management-footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px;
+  margin-top: 27px;
+  border: 1px solid #e4ecd9;
+  background: #f1f6e9;
+  border-radius: 8px;
+  color: #70815e;
+}
+.management-footnote p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #728067;
+}
+.management-footnote strong {
+  font-weight: 600;
+  color: #6d825a;
+}
+.people-card .section-heading {
+  margin-bottom: 22px;
+}
+.people-table-head {
+  display: grid;
+  grid-template-columns: 1fr 160px 145px;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  color: #727e66;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+}
+.people-row {
+  display: grid;
+  grid-template-columns: 1fr 160px 145px;
+  padding: 19px 0;
+  border-bottom: 1px solid #edf1e5;
+  align-items: center;
+}
+.people-row > div {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.people-row strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+}
+.people-row small {
+  display: block;
+  color: #75806a;
+  font-size: 12px;
+  margin-top: 5px;
+}
+.people-row select {
+  padding: 8px;
+  width: 125px;
+  border: 1px solid #dfe8d4;
+  border-radius: 5px;
+  font-size: 12px;
+  color: #6e7f5e;
+  background: #fafcf6;
+}
+.people-row select:disabled {
+  opacity: 0.65;
+}
+.account-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #727f64;
+}

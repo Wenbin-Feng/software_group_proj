@@ -1,0 +1,20 @@
+[
+  "Student sign-in and class material navigation passed",
+  "Prepared answer cites the selected material",
+  "Animation step and playback controls operate",
+  "AI answer saved to Wiki",
+  "Edited note survives reload",
+  "Wiki note publishes to community",
+  "Publication stays unchanged after private draft edit (checked inside loaded publication dialog)",
+  "Invalid join code shows an error without joining",
+  "Valid class code adds second student membership",
+  "Second student copies independent note with Alex Morgan attribution",
+  "Missing wiki target creates a note; renaming updates links within its owner scope",
+  "Knowledge graph derives its nodes and links from user notes",
+  "Instructor uploads a PDF; preview uses a local blob URL; after reload the UI requests reselection",
+  "Reselecting the original file restores binary preview",
+  "Duplicate and whitespace-only note rename errors remain inside the dialog without crashing the app",
+  "390px mobile Wiki, Market, reader, and classes have no horizontal page overflow",
+  "Admin can change another demo role and the current admin role remains protected",
+  "Community bookmark and bookmarked-only list work"
+]

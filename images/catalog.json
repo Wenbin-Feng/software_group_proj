@@ -1,0 +1,212 @@
+[
+  {
+    "file": "01-sign-in.png",
+    "title": "Demo Google sign-in",
+    "group": "Identity and workspace",
+    "description": "Choose an explicitly simulated Google identity for a student, instructor, or administrator."
+  },
+  {
+    "file": "02-my-classes.png",
+    "title": "Student learning workspace",
+    "group": "Identity and workspace",
+    "description": "Browse courses, materials, personal notes, and community ideas from one home."
+  },
+  {
+    "file": "03-classroom-materials.png",
+    "title": "Shared classroom materials",
+    "group": "Classroom and files",
+    "description": "Browse instructor-provided guides and workshop activities."
+  },
+  {
+    "file": "04-ai-material-qa.png",
+    "title": "Document-aware study conversation",
+    "group": "AI explanations",
+    "description": "Read a class document alongside a prepared explanation tied to the material."
+  },
+  {
+    "file": "05-interactive-animation.png",
+    "title": "Waterfall and Agile animation",
+    "group": "AI explanations",
+    "description": "A real stepped animation with playback and reset controls."
+  },
+  {
+    "file": "06-personal-wiki.png",
+    "title": "Personal note and connections",
+    "group": "Personal Wiki",
+    "description": "Preview Markdown, follow internal links, and inspect backlinks."
+  },
+  {
+    "file": "07-wiki-editor.png",
+    "title": "Markdown editing",
+    "group": "Personal Wiki",
+    "description": "Edit a personal note with automatic browser-local persistence."
+  },
+  {
+    "file": "08-knowledge-graph.png",
+    "title": "Actual Wiki relationship graph",
+    "group": "Personal Wiki",
+    "description": "Nodes and lines are derived from the user’s stored note links."
+  },
+  {
+    "file": "09-wiki-market.png",
+    "title": "Community note discovery",
+    "group": "Wiki Market",
+    "description": "Browse free notes and filter them by topic."
+  },
+  {
+    "file": "10-community-note.png",
+    "title": "Publication preview and attribution",
+    "group": "Wiki Market",
+    "description": "Read a snapshot, bookmark it, or copy it to a private Wiki."
+  },
+  {
+    "file": "11-instructor-management.png",
+    "title": "Instructor class overview",
+    "group": "Management",
+    "description": "Open each teaching space to manage its materials and members."
+  },
+  {
+    "file": "12-people-and-roles.png",
+    "title": "Administrator account roles",
+    "group": "Management",
+    "description": "Inspect local demo identities and change another account’s role."
+  },
+  {
+    "file": "13-mobile-market.png",
+    "title": "Market on a phone",
+    "group": "Responsive layouts",
+    "description": "The community grid becomes a single-column reading flow."
+  },
+  {
+    "file": "14-demo-identities.png",
+    "title": "Switching perspectives",
+    "group": "Identity and workspace",
+    "description": "Move between the four demo identities while keeping their personal Wikis separate."
+  },
+  {
+    "file": "15-join-class.png",
+    "title": "Join by invitation code",
+    "group": "Identity and workspace",
+    "description": "Enter the instructor’s class code in a focused join dialog."
+  },
+  {
+    "file": "16-join-validation.png",
+    "title": "Invalid class-code feedback",
+    "group": "Identity and workspace",
+    "description": "An invalid code shows an actionable error without creating a membership."
+  },
+  {
+    "file": "17-workspace-search.png",
+    "title": "Search across the workspace",
+    "group": "Identity and workspace",
+    "description": "Find accessible classes, personal notes, and community entries."
+  },
+  {
+    "file": "18-classroom-members.png",
+    "title": "Student view of the class roster",
+    "group": "Classroom and files",
+    "description": "See the instructor and students who belong to the class."
+  },
+  {
+    "file": "19-classroom-about.png",
+    "title": "Course topics and context",
+    "group": "Classroom and files",
+    "description": "Explain the learning goals, topics, and illustrative class schedule."
+  },
+  {
+    "file": "20-wiki-ai-suggestion.png",
+    "title": "Review a prepared Wiki suggestion",
+    "group": "Personal Wiki",
+    "description": "AI suggestions are explicitly labeled and only applied after the learner chooses."
+  },
+  {
+    "file": "21-new-wiki-note.png",
+    "title": "Create a personal note",
+    "group": "Personal Wiki",
+    "description": "Name a new idea before writing and connecting it."
+  },
+  {
+    "file": "22-wiki-title-validation.png",
+    "title": "Duplicate-title validation",
+    "group": "Personal Wiki",
+    "description": "A duplicate title produces an inline error while preserving the note and dialog."
+  },
+  {
+    "file": "23-bookmarked-notes.png",
+    "title": "Saved community ideas",
+    "group": "Wiki Market",
+    "description": "Revisit the notes bookmarked by the current learner."
+  },
+  {
+    "file": "24-my-publications.png",
+    "title": "Published personal snapshots",
+    "group": "Wiki Market",
+    "description": "List the current user’s publications separately from private drafts."
+  },
+  {
+    "file": "25-instructor-materials.png",
+    "title": "Instructor materials workspace",
+    "group": "Classroom and files",
+    "description": "Teachers get upload and removal controls alongside the shared file list."
+  },
+  {
+    "file": "26-upload-material-dialog.png",
+    "title": "Upload and categorize a file",
+    "group": "Classroom and files",
+    "description": "Choose a category and a local file, with supported preview behavior explained."
+  },
+  {
+    "file": "27-instructor-roster.png",
+    "title": "Instructor roster management",
+    "group": "Classroom and files",
+    "description": "Teachers can remove a demo student while preserving the student’s personal Wiki."
+  },
+  {
+    "file": "28-file-preview-reselection.png",
+    "title": "Session-file recovery",
+    "group": "Classroom and files",
+    "description": "Reloaded binary-file metadata leads to a clear reselection action rather than a broken preview."
+  },
+  {
+    "file": "29-uploaded-pdf-preview.png",
+    "title": "Canvas-rendered PDF preview",
+    "group": "Classroom and files",
+    "description": "Read the actual uploaded PDF locally, move between its five pages, and restore the preview by reselection after a reload."
+  },
+  {
+    "file": "30-mobile-classrooms.png",
+    "title": "Classrooms on a phone",
+    "group": "Responsive layouts",
+    "description": "Course cards and home content adapt to a narrow screen."
+  },
+  {
+    "file": "31-mobile-material-ai.png",
+    "title": "Reading and AI on a phone",
+    "group": "Responsive layouts",
+    "description": "Document and conversation panels stack while their controls remain available."
+  },
+  {
+    "file": "32-mobile-personal-wiki.png",
+    "title": "Personal Wiki on a phone",
+    "group": "Responsive layouts",
+    "description": "Notes, Markdown content, and link panels remain accessible at a phone width."
+  },
+  {
+    "file": "33-mobile-knowledge-graph.png",
+    "title": "Knowledge graph on a phone",
+    "group": "Responsive layouts",
+    "description": "The graph has a note-list alternative for small-screen navigation."
+  },
+  {
+    "file": "34-mobile-instructor-materials.png",
+    "title": "Instructor files on a phone",
+    "group": "Responsive layouts",
+    "description": "The instructor material table and upload controls adapt to narrow screens."
+  },
+  {
+    "file": "35-ai-demo-boundary.png",
+    "title": "Honest AI scope fallback",
+    "group": "AI explanations",
+    "description": "An unsupported question receives a clear prepared-demo boundary instead of an invented answer."
+  }
+]

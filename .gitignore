@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.superpowers/
+test-results/
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+tmp/
+output/*.zip

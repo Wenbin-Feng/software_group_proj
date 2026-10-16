@@ -1,0 +1,228 @@
+/* Accessible dialogs, notices, and sign-in. */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #1c302b58;
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 28px;
+}
+.dialog {
+  width: 480px;
+  max-width: 100%;
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #e2e9dc;
+  border-radius: 12px;
+  box-shadow: 0 24px 80px #16382829;
+  padding: 26px;
+}
+.dialog-wide {
+  width: 950px;
+}
+.dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 18px;
+}
+.dialog-heading h2 {
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.4px;
+}
+.dialog-description {
+  color: #728066;
+  font-size: 14px;
+  line-height: 1.9;
+  margin-bottom: 20px;
+}
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+.form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font-size: 13px;
+  color: #6e825f;
+}
+.text-input {
+  width: 100%;
+  border: 1px solid #dfe8d5;
+  padding: 12px;
+  border-radius: 6px;
+  color: #58764b;
+  font-size: 14px;
+  background: #fdfefa;
+}
+.text-input::placeholder {
+  color: #77806d;
+}
+.code-input {
+  letter-spacing: 2px;
+  font-size: 18px;
+  text-transform: uppercase;
+}
+.form-error {
+  color: #b26053;
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 12px 0;
+}
+.empty-state {
+  padding: 48px 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 15px;
+  color: #737e67;
+}
+.empty-state h3 {
+  font-size: 19px;
+  color: #789362;
+  font-weight: 500;
+}
+.empty-state p {
+  font-size: 14px;
+  line-height: 1.8;
+  max-width: 430px;
+}
+.empty-state .button {
+  margin-top: 8px;
+}
+.toast {
+  position: fixed;
+  bottom: 25px;
+  left: calc(50% + 70px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 20px;
+  background: #294d3e;
+  border: 1px solid #496c50;
+  border-radius: 8px;
+  color: #797e75;
+  font-size: 13px;
+  box-shadow: 0 9px 30px #19332225;
+  z-index: 200;
+  max-width: calc(100% - 35px);
+  line-height: 1.6;
+}
+.toast svg {
+  color: #6f825b;
+}
+.identity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.identity-list > button {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  padding: 12px 9px;
+  gap: 11px;
+  border: 1px solid #e7eedd;
+  border-radius: 7px;
+}
+.identity-list > button:hover {
+  background: #f5f8ee;
+}
+.identity-list > button > span:nth-child(2) {
+  flex: 1;
+}
+.identity-list strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+}
+.identity-list small {
+  display: block;
+  font-size: 11px;
+  color: #747e6b;
+  margin-top: 5px;
+}
+.identity-list > button > svg {
+  color: #738166;
+}
+.dialog-search {
+  margin-bottom: 15px;
+  padding: 13px;
+}
+.dialog-search input {
+  font-size: 14px;
+}
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.search-results > button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 10px;
+  text-align: left;
+  border-radius: 5px;
+}
+.search-results > button:hover {
+  background: #f3f7eb;
+}
+.search-results small {
+  display: block;
+  font-size: 10px;
+  color: #767f6a;
+  margin-bottom: 5px;
+}
+.search-results strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+}
+.search-results > p {
+  font-size: 14px;
+  color: #758068;
+  padding: 20px;
+}
+.help-steps p {
+  padding: 13px 0;
+  border-top: 1px solid #edf2e4;
+  font-size: 14px;
+  line-height: 1.9;
+  color: #727d65;
+}
+.help-steps b {
+  color: #698458;
+  font-weight: 600;
+}
+.recovery-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+  gap: 25px;
+  text-align: center;
+}
+.recovery-page h1 {
+  font-size: 28px;
+  font-weight: 500;
+}
+.recovery-page p {
+  font-size: 14px;
+  color: #718063;
+}

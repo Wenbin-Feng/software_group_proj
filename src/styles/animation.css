@@ -1,0 +1,236 @@
+/* A stateful educational animation: every frame is tied to the current step. */
+.animation-intro p {
+  font-size: 13px;
+  color: #728065;
+  margin: 9px 0 21px;
+}
+.animation-stage {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.animation-model {
+  border: 1px solid #e4ebdb;
+  border-radius: 9px;
+  padding: 19px;
+  background: #fafcf6;
+}
+.model-heading {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+}
+.model-number {
+  background: #edf1e8;
+  padding: 8px;
+  border-radius: 6px;
+  color: #77806b;
+  font-size: 12px;
+}
+.model-heading h3 {
+  font-size: 18px;
+  font-weight: 500;
+  color: #6b8457;
+}
+.model-heading p {
+  color: #75806c;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.model-heading > .badge {
+  margin-left: auto;
+  font-size: 10px;
+}
+.waterfall-track {
+  padding: 26px 8px 13px;
+}
+.waterfall-phase {
+  width: 62%;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 13px;
+  border: 1px solid #e1e8d9;
+  border-radius: 6px;
+  font-size: 12px;
+  background: #f2f5ed;
+  color: #757c6c;
+  position: relative;
+  transition: 0.3s;
+}
+.waterfall-phase > span:first-child {
+  font-size: 11px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dce5d3;
+}
+.waterfall-phase.phase-active {
+  color: #688b50;
+  background: #e9f1df;
+  border-color: #b6cd9e;
+  box-shadow: 0 0 0 2px #e6eedb;
+}
+.waterfall-phase.phase-done {
+  background: #e5eee0;
+}
+.phase-connector {
+  position: absolute;
+  height: 17px;
+  width: 1px;
+  background: #d6e2c8;
+  right: 15px;
+  bottom: -17px;
+}
+.agile-cycle {
+  height: 268px;
+  position: relative;
+  margin: 12px 0 5px;
+}
+.agile-cycle-ring {
+  position: absolute;
+  width: 181px;
+  height: 181px;
+  border-radius: 50%;
+  border: 2px dashed #d1e1bf;
+  left: calc(50% - 90px);
+  top: 39px;
+}
+.cycle-center {
+  position: absolute;
+  width: 134px;
+  height: 130px;
+  top: 65px;
+  left: calc(50% - 67px);
+  border-radius: 50%;
+  background: #edf4e4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #6c8058;
+}
+.cycle-center strong {
+  color: #6c8455;
+  font-size: 14px;
+  font-weight: 500;
+}
+.cycle-center > span {
+  font-size: 9px;
+  color: #738263;
+}
+.cycle-node {
+  position: absolute;
+  padding: 9px 12px;
+  background: #f2f6eb;
+  border: 1px solid #dfe9d3;
+  border-radius: 6px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #747d6a;
+  transition: 0.3s;
+}
+.cycle-node > span {
+  display: inline-flex;
+  justify-content: center;
+  width: 12px;
+}
+.cycle-0 {
+  top: 15px;
+  left: calc(50% - 57px);
+}
+.cycle-1 {
+  top: 90px;
+  right: 0;
+}
+.cycle-2 {
+  bottom: 28px;
+  right: 20px;
+}
+.cycle-3 {
+  bottom: 28px;
+  left: 28px;
+}
+.cycle-4 {
+  top: 90px;
+  left: 0;
+}
+.cycle-node.node-active {
+  color: #698250;
+  background: #e5f0d7;
+  border-color: #b9d49b;
+  box-shadow: 0 0 0 3px #edf4e4;
+}
+.increment-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 6px;
+  color: #757e6a;
+}
+.increment {
+  font-size: 10px;
+  padding: 7px 9px;
+  background: #f0f5e8;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #757f6a;
+}
+.increment.done {
+  color: #698551;
+  background: #e5f1d7;
+}
+.animation-caption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  margin: 20px 0;
+  background: #f0f5e8;
+  border: 1px solid #e5ecd9;
+  border-radius: 7px;
+  color: #6e825a;
+}
+.animation-caption p {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #6b8158;
+}
+.animation-caption > span {
+  font-size: 11px;
+  color: #748166;
+  white-space: nowrap;
+}
+.animation-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+.animation-controls > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.animation-controls > span {
+  font-size: 10px;
+  color: #76806c;
+}
+.spinning {
+  animation: spin 4s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

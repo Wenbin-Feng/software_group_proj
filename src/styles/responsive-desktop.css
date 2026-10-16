@@ -1,0 +1,280 @@
+@media (min-width: 1600px) {
+  .page {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+  .reader-page {
+    padding-left: 42px;
+    padding-right: 42px;
+  }
+  .course-cover {
+    height: 150px;
+  }
+  .course-card h3 {
+    min-height: 24px;
+  }
+  .banner-art {
+    right: 60px;
+  }
+  .reader-layout {
+    grid-template-columns: minmax(0, 1fr) 380px;
+  }
+  .wiki-workspace {
+    grid-template-columns: 230px minmax(0, 1fr) 235px;
+  }
+}
+@media (max-width: 1200px) {
+  .sidebar {
+    width: 198px;
+  }
+  .main-shell {
+    margin-left: 198px;
+  }
+  .page {
+    padding: 27px 24px;
+  }
+  .topbar {
+    padding: 0 24px;
+  }
+  .topbar-right {
+    gap: 13px;
+  }
+  .demo-pill {
+    display: none;
+  }
+  .welcome-banner {
+    padding: 25px;
+  }
+  .banner-art {
+    right: -50px;
+    transform: scale(0.85);
+    opacity: 0.85;
+  }
+  .banner-text p {
+    max-width: 310px;
+  }
+  .workspace-stats > div {
+    gap: 7px;
+    padding: 0 12px;
+  }
+  .workspace-stats > div > span:last-child {
+    font-size: 11px;
+  }
+  .workspace-stats strong {
+    font-size: 18px;
+  }
+  .course-card-meta {
+    gap: 8px;
+  }
+  .course-card-meta > span {
+    font-size: 9px;
+  }
+  .course-term {
+    display: none !important;
+  }
+  .wiki-workspace {
+    grid-template-columns: 180px minmax(0, 1fr) 180px;
+  }
+  .note-connections {
+    padding: 20px 12px;
+  }
+  .note-title-row h2 {
+    font-size: 20px;
+  }
+  .note-header {
+    padding: 19px;
+  }
+  .note-mode-row {
+    padding-left: 19px;
+    padding-right: 19px;
+  }
+  .note-body {
+    padding: 19px;
+  }
+  .reader-layout {
+    grid-template-columns: minmax(0, 1fr) 310px;
+  }
+  .reader-page {
+    padding: 22px 20px;
+  }
+  .document-content {
+    padding: 26px;
+  }
+  .material-row,
+  .materials-table-head {
+    grid-template-columns: minmax(200px, 1fr) 90px 55px 126px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .ask-material > span {
+    display: none;
+  }
+  .material-actions {
+    gap: 9px;
+  }
+  .market-banner-art {
+    right: -40px;
+    transform: scale(0.85);
+  }
+  .market-grid {
+    gap: 13px;
+  }
+  .market-card-body {
+    padding: 14px 14px 0;
+  }
+  .market-title h3 {
+    font-size: 14px;
+  }
+  .market-card-body > p {
+    font-size: 11px;
+  }
+  .course-header h1 {
+    font-size: 22px;
+  }
+  .management-stats .card {
+    padding: 20px;
+    gap: 10px;
+  }
+  .management-stats .card > span:last-child {
+    font-size: 12px;
+  }
+}
+@media (max-width: 1000px) {
+  .banner-art {
+    opacity: 0.55;
+    right: -100px;
+  }
+  .welcome-banner .banner-text {
+    max-width: 70%;
+  }
+  .course-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .course-grid > .course-card:last-child {
+    grid-column: 1/-1;
+    display: grid;
+    grid-template-columns: 180px 1fr;
+  }
+  .course-grid > .course-card:last-child .course-cover {
+    height: 100%;
+  }
+  .course-grid > .course-card:last-child h3 {
+    min-height: 0;
+    max-width: none;
+  }
+  .home-bottom {
+    grid-template-columns: 1fr;
+  }
+  .community-prompt {
+    min-height: 145px;
+  }
+  .workspace-stats {
+    grid-template-columns: 1fr 1fr;
+    row-gap: 18px;
+  }
+  .workspace-stats > div:nth-child(2) {
+    border: 0;
+  }
+  .workspace-stats > div {
+    padding: 0 20px;
+  }
+  .reader-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .document-panel {
+    height: 650px;
+  }
+  .assistant-panel {
+    height: 650px;
+  }
+  .assistant-welcome {
+    padding: 25px 40px;
+  }
+  .reader-title h1 {
+    font-size: 22px;
+  }
+  .wiki-workspace {
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+  .note-connections {
+    grid-column: 1/-1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    border-top: 1px solid var(--border);
+    border-left: 0;
+    padding: 20px;
+  }
+  .connections-header {
+    grid-column: 1/-1;
+  }
+  .connections-intro {
+    display: none;
+  }
+  .connection-group {
+    margin: 0;
+  }
+  .publish-note-box {
+    margin: 0;
+  }
+  .publish-note-box > svg {
+    display: none;
+  }
+  .market-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .market-controls .search-field {
+    width: 200px;
+  }
+  .underlined-tabs {
+    gap: 15px;
+  }
+  .underlined-tabs > button {
+    font-size: 11px;
+  }
+  .market-banner-art {
+    opacity: 0.65;
+    right: -115px;
+  }
+  .market-banner > div:first-child {
+    position: relative;
+    z-index: 1;
+    max-width: 65%;
+  }
+  .market-banner h2 {
+    font-size: 24px;
+  }
+  .instructor-course {
+    flex-wrap: wrap;
+  }
+  .instructor-course > .button {
+    margin-left: 74px;
+  }
+  .instructor-course h3 {
+    font-size: 16px;
+  }
+  .management-stats {
+    gap: 10px;
+  }
+  .management-stats .card {
+    flex-wrap: wrap;
+  }
+  .management-stats .card > span:last-child {
+    width: 100%;
+  }
+  .people-row,
+  .people-table-head {
+    grid-template-columns: 1fr 125px;
+  }
+  .people-row > .account-status,
+  .people-table-head > span:last-child {
+    display: none;
+  }
+  .course-tabs > .text-link {
+    max-width: 135px;
+    font-size: 10px;
+  }
+  .course-tabs > [role='tablist'] {
+    gap: 14px;
+  }
+}

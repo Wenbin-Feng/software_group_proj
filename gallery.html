@@ -1,80 +1,953 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luma | 34 prototype screenshots</title><style>
-:root{font-family:Segoe UI,Arial,sans-serif;color:#203c34;background:#f5f7f2;line-height:1.6;scroll-behavior:smooth}
-*{box-sizing:border-box}body{margin:0}a{color:#215d4c}header,main,footer{max-width:1220px;margin:auto;padding:30px 28px}
-header{padding-top:48px}.eyebrow{font-size:13px;letter-spacing:.15em;text-transform:uppercase;font-weight:700;color:#4a685c}
-h1{font-size:clamp(32px,5vw,52px);line-height:1.12;letter-spacing:-.04em;margin:14px 0}header p{max-width:780px}.lead{font-size:18px;color:#52685e}
-.badges{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0}.badge{padding:5px 12px;border:1px solid #d7e0d2;border-radius:20px;background:white;font-size:13px}
-nav{display:flex;flex-wrap:wrap;gap:9px;border-top:1px solid #dbe2d7;padding-top:20px;margin-top:25px}nav a{background:#e9efe2;border-radius:7px;padding:8px 12px;text-decoration:none;font-size:13px;font-weight:600}nav span{margin-left:6px}
-a:focus-visible{outline:3px solid #215d4c;outline-offset:4px}section{margin-bottom:48px;scroll-margin-top:20px}.section-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:16px}.section-heading h2{font-size:25px;line-height:1.3;margin:0;letter-spacing:-.025em}.section-heading>span{color:#576b5f;font-size:13px;white-space:nowrap}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}.card{background:#fff;border:1px solid #dce3d8;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px #203c3405}.preview{display:flex;height:244px;align-items:center;justify-content:center;padding:12px;background:#e9eee6;border-bottom:1px solid #dce3d8}.preview img{max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 2px 8px #203c3412}.caption{padding:18px}.caption h3{font-size:17px;margin:5px 0 9px;line-height:1.35}.caption>p:not(.file){font-size:13px;color:#50655b;margin:0 0 15px}.file{font-size:10px;color:#5c6d63;overflow-wrap:anywhere;margin:0 0 7px}.file span{display:block}.open{font-size:12px;font-weight:700;text-underline-offset:3px}footer{border-top:1px solid #dbe2d7;color:#50655b;font-size:13px;margin-bottom:24px}footer a{margin-left:10px}
-@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:570px){header,main,footer{padding:24px 18px}.grid{grid-template-columns:1fr}.preview{height:260px}.section-heading h2{font-size:21px}nav{gap:6px}nav a{font-size:12px}}@media(prefers-reduced-motion:reduce){:root{scroll-behavior:auto}}
-</style></head><body>
-<header id="top"><div class="eyebrow">Luma / WANG Jiahe / Prototype evidence</div><h1>Your learning, connected.</h1><p class="lead">34 captures from the actual frontend: a learning workspace, classroom files, guided explanations, connected notes, and community sharing.</p><div class="badges"><span class="badge">34 original PNGs</span><span class="badge">7 feature groups</span><span class="badge">Desktop + phone</span><span class="badge">English interface</span></div><p>Click a preview to open its full resolution. Everything in this gallery works offline. Google sign-in and AI are labeled demo simulations. PDF rendering is still being verified and is excluded.</p><nav aria-label="Screenshot groups"><a href="#group-1">Identity and workspace <span>6</span></a><a href="#group-2">Classroom and files <span>7</span></a><a href="#group-3">AI explanations <span>3</span></a><a href="#group-4">Personal Wiki <span>6</span></a><a href="#group-5">Wiki Market <span>4</span></a><a href="#group-6">Management <span>2</span></a><a href="#group-7">Responsive layouts <span>6</span></a></nav></header><main><section id="group-1" aria-labelledby="heading-1"><div class="section-heading"><h2 id="heading-1">Identity and workspace</h2><span>6 captures</span></div><div class="grid"><article class="card">
-<a class="preview" href="images/01-sign-in.png" target="_blank" rel="noopener"><img src="images/01-sign-in.png" alt="Demo Google sign-in" loading="lazy"></a>
-<div class="caption"><p class="file">01-sign-in.png <span>1440 x 900</span></p><h3>Demo Google sign-in</h3><p>Choose an explicitly simulated Google identity for a student, instructor, or administrator.</p><a class="open" href="images/01-sign-in.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/02-my-classes.png" target="_blank" rel="noopener"><img src="images/02-my-classes.png" alt="Student learning workspace" loading="lazy"></a>
-<div class="caption"><p class="file">02-my-classes.png <span>1425 x 1192</span></p><h3>Student learning workspace</h3><p>Browse courses, materials, personal notes, and community ideas from one home.</p><a class="open" href="images/02-my-classes.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/14-demo-identities.png" target="_blank" rel="noopener"><img src="images/14-demo-identities.png" alt="Switching perspectives" loading="lazy"></a>
-<div class="caption"><p class="file">14-demo-identities.png <span>1440 x 1192</span></p><h3>Switching perspectives</h3><p>Move between the four demo identities while keeping their personal Wikis separate.</p><a class="open" href="images/14-demo-identities.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/15-join-class.png" target="_blank" rel="noopener"><img src="images/15-join-class.png" alt="Join by invitation code" loading="lazy"></a>
-<div class="caption"><p class="file">15-join-class.png <span>1440 x 1192</span></p><h3>Join by invitation code</h3><p>Enter the instructor’s class code in a focused join dialog.</p><a class="open" href="images/15-join-class.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/16-join-validation.png" target="_blank" rel="noopener"><img src="images/16-join-validation.png" alt="Invalid class-code feedback" loading="lazy"></a>
-<div class="caption"><p class="file">16-join-validation.png <span>1440 x 1192</span></p><h3>Invalid class-code feedback</h3><p>An invalid code shows an actionable error without creating a membership.</p><a class="open" href="images/16-join-validation.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/17-workspace-search.png" target="_blank" rel="noopener"><img src="images/17-workspace-search.png" alt="Search across the workspace" loading="lazy"></a>
-<div class="caption"><p class="file">17-workspace-search.png <span>1440 x 1192</span></p><h3>Search across the workspace</h3><p>Find accessible classes, personal notes, and community entries.</p><a class="open" href="images/17-workspace-search.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article></div></section><section id="group-2" aria-labelledby="heading-2"><div class="section-heading"><h2 id="heading-2">Classroom and files</h2><span>7 captures</span></div><div class="grid"><article class="card">
-<a class="preview" href="images/03-classroom-materials.png" target="_blank" rel="noopener"><img src="images/03-classroom-materials.png" alt="Shared classroom materials" loading="lazy"></a>
-<div class="caption"><p class="file">03-classroom-materials.png <span>1425 x 1135</span></p><h3>Shared classroom materials</h3><p>Browse instructor-provided guides and workshop activities.</p><a class="open" href="images/03-classroom-materials.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/18-classroom-members.png" target="_blank" rel="noopener"><img src="images/18-classroom-members.png" alt="Student view of the class roster" loading="lazy"></a>
-<div class="caption"><p class="file">18-classroom-members.png <span>1440 x 900</span></p><h3>Student view of the class roster</h3><p>See the instructor and students who belong to the class.</p><a class="open" href="images/18-classroom-members.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/19-classroom-about.png" target="_blank" rel="noopener"><img src="images/19-classroom-about.png" alt="Course topics and context" loading="lazy"></a>
-<div class="caption"><p class="file">19-classroom-about.png <span>1440 x 900</span></p><h3>Course topics and context</h3><p>Explain the learning goals, topics, and illustrative class schedule.</p><a class="open" href="images/19-classroom-about.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/25-instructor-materials.png" target="_blank" rel="noopener"><img src="images/25-instructor-materials.png" alt="Instructor materials workspace" loading="lazy"></a>
-<div class="caption"><p class="file">25-instructor-materials.png <span>1425 x 1135</span></p><h3>Instructor materials workspace</h3><p>Teachers get upload and removal controls alongside the shared file list.</p><a class="open" href="images/25-instructor-materials.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/26-upload-material-dialog.png" target="_blank" rel="noopener"><img src="images/26-upload-material-dialog.png" alt="Upload and categorize a file" loading="lazy"></a>
-<div class="caption"><p class="file">26-upload-material-dialog.png <span>1440 x 1135</span></p><h3>Upload and categorize a file</h3><p>Choose a category and a local file, with supported preview behavior explained.</p><a class="open" href="images/26-upload-material-dialog.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/27-instructor-roster.png" target="_blank" rel="noopener"><img src="images/27-instructor-roster.png" alt="Instructor roster management" loading="lazy"></a>
-<div class="caption"><p class="file">27-instructor-roster.png <span>1440 x 900</span></p><h3>Instructor roster management</h3><p>Teachers can remove a demo student while preserving the student’s personal Wiki.</p><a class="open" href="images/27-instructor-roster.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/28-file-preview-reselection.png" target="_blank" rel="noopener"><img src="images/28-file-preview-reselection.png" alt="Session-file recovery" loading="lazy"></a>
-<div class="caption"><p class="file">28-file-preview-reselection.png <span>1425 x 965</span></p><h3>Session-file recovery</h3><p>Reloaded binary-file metadata leads to a clear reselection action rather than a broken preview.</p><a class="open" href="images/28-file-preview-reselection.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article></div></section><section id="group-3" aria-labelledby="heading-3"><div class="section-heading"><h2 id="heading-3">AI explanations</h2><span>3 captures</span></div><div class="grid"><article class="card">
-<a class="preview" href="images/04-ai-material-qa.png" target="_blank" rel="noopener"><img src="images/04-ai-material-qa.png" alt="Document-aware study conversation" loading="lazy"></a>
-<div class="caption"><p class="file">04-ai-material-qa.png <span>1425 x 965</span></p><h3>Document-aware study conversation</h3><p>Read a class document alongside a prepared explanation tied to the material.</p><a class="open" href="images/04-ai-material-qa.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/05-interactive-animation.png" target="_blank" rel="noopener"><img src="images/05-interactive-animation.png" alt="Waterfall and Agile animation" loading="lazy"></a>
-<div class="caption"><p class="file">05-interactive-animation.png <span>1440 x 965</span></p><h3>Waterfall and Agile animation</h3><p>A real stepped animation with playback and reset controls.</p><a class="open" href="images/05-interactive-animation.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/35-ai-demo-boundary.png" target="_blank" rel="noopener"><img src="images/35-ai-demo-boundary.png" alt="Honest AI scope fallback" loading="lazy"></a>
-<div class="caption"><p class="file">35-ai-demo-boundary.png <span>1425 x 965</span></p><h3>Honest AI scope fallback</h3><p>An unsupported question receives a clear prepared-demo boundary instead of an invented answer.</p><a class="open" href="images/35-ai-demo-boundary.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article></div></section><section id="group-4" aria-labelledby="heading-4"><div class="section-heading"><h2 id="heading-4">Personal Wiki</h2><span>6 captures</span></div><div class="grid"><article class="card">
-<a class="preview" href="images/06-personal-wiki.png" target="_blank" rel="noopener"><img src="images/06-personal-wiki.png" alt="Personal note and connections" loading="lazy"></a>
-<div class="caption"><p class="file">06-personal-wiki.png <span>1425 x 1164</span></p><h3>Personal note and connections</h3><p>Preview Markdown, follow internal links, and inspect backlinks.</p><a class="open" href="images/06-personal-wiki.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/07-wiki-editor.png" target="_blank" rel="noopener"><img src="images/07-wiki-editor.png" alt="Markdown editing" loading="lazy"></a>
-<div class="caption"><p class="file">07-wiki-editor.png <span>1425 x 1118</span></p><h3>Markdown editing</h3><p>Edit a personal note with automatic browser-local persistence.</p><a class="open" href="images/07-wiki-editor.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/08-knowledge-graph.png" target="_blank" rel="noopener"><img src="images/08-knowledge-graph.png" alt="Actual Wiki relationship graph" loading="lazy"></a>
-<div class="caption"><p class="file">08-knowledge-graph.png <span>1425 x 1113</span></p><h3>Actual Wiki relationship graph</h3><p>Nodes and lines are derived from the user’s stored note links.</p><a class="open" href="images/08-knowledge-graph.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/20-wiki-ai-suggestion.png" target="_blank" rel="noopener"><img src="images/20-wiki-ai-suggestion.png" alt="Review a prepared Wiki suggestion" loading="lazy"></a>
-<div class="caption"><p class="file">20-wiki-ai-suggestion.png <span>1440 x 1164</span></p><h3>Review a prepared Wiki suggestion</h3><p>AI suggestions are explicitly labeled and only applied after the learner chooses.</p><a class="open" href="images/20-wiki-ai-suggestion.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/21-new-wiki-note.png" target="_blank" rel="noopener"><img src="images/21-new-wiki-note.png" alt="Create a personal note" loading="lazy"></a>
-<div class="caption"><p class="file">21-new-wiki-note.png <span>1440 x 1164</span></p><h3>Create a personal note</h3><p>Name a new idea before writing and connecting it.</p><a class="open" href="images/21-new-wiki-note.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/22-wiki-title-validation.png" target="_blank" rel="noopener"><img src="images/22-wiki-title-validation.png" alt="Duplicate-title validation" loading="lazy"></a>
-<div class="caption"><p class="file">22-wiki-title-validation.png <span>1440 x 1164</span></p><h3>Duplicate-title validation</h3><p>A duplicate title produces an inline error while preserving the note and dialog.</p><a class="open" href="images/22-wiki-title-validation.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article></div></section><section id="group-5" aria-labelledby="heading-5"><div class="section-heading"><h2 id="heading-5">Wiki Market</h2><span>4 captures</span></div><div class="grid"><article class="card">
-<a class="preview" href="images/09-wiki-market.png" target="_blank" rel="noopener"><img src="images/09-wiki-market.png" alt="Community note discovery" loading="lazy"></a>
-<div class="caption"><p class="file">09-wiki-market.png <span>1425 x 1889</span></p><h3>Community note discovery</h3><p>Browse free notes and filter them by topic.</p><a class="open" href="images/09-wiki-market.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/10-community-note.png" target="_blank" rel="noopener"><img src="images/10-community-note.png" alt="Publication preview and attribution" loading="lazy"></a>
-<div class="caption"><p class="file">10-community-note.png <span>1440 x 1889</span></p><h3>Publication preview and attribution</h3><p>Read a snapshot, bookmark it, or copy it to a private Wiki.</p><a class="open" href="images/10-community-note.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/23-bookmarked-notes.png" target="_blank" rel="noopener"><img src="images/23-bookmarked-notes.png" alt="Saved community ideas" loading="lazy"></a>
-<div class="caption"><p class="file">23-bookmarked-notes.png <span>1425 x 1120</span></p><h3>Saved community ideas</h3><p>Revisit the notes bookmarked by the current learner.</p><a class="open" href="images/23-bookmarked-notes.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/24-my-publications.png" target="_blank" rel="noopener"><img src="images/24-my-publications.png" alt="Published personal snapshots" loading="lazy"></a>
-<div class="caption"><p class="file">24-my-publications.png <span>1425 x 1131</span></p><h3>Published personal snapshots</h3><p>List the current user’s publications separately from private drafts.</p><a class="open" href="images/24-my-publications.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article></div></section><section id="group-6" aria-labelledby="heading-6"><div class="section-heading"><h2 id="heading-6">Management</h2><span>2 captures</span></div><div class="grid"><article class="card">
-<a class="preview" href="images/11-instructor-management.png" target="_blank" rel="noopener"><img src="images/11-instructor-management.png" alt="Instructor class overview" loading="lazy"></a>
-<div class="caption"><p class="file">11-instructor-management.png <span>1425 x 997</span></p><h3>Instructor class overview</h3><p>Open each teaching space to manage its materials and members.</p><a class="open" href="images/11-instructor-management.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/12-people-and-roles.png" target="_blank" rel="noopener"><img src="images/12-people-and-roles.png" alt="Administrator account roles" loading="lazy"></a>
-<div class="caption"><p class="file">12-people-and-roles.png <span>1425 x 1076</span></p><h3>Administrator account roles</h3><p>Inspect local demo identities and change another account’s role.</p><a class="open" href="images/12-people-and-roles.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article></div></section><section id="group-7" aria-labelledby="heading-7"><div class="section-heading"><h2 id="heading-7">Responsive layouts</h2><span>6 captures</span></div><div class="grid"><article class="card">
-<a class="preview" href="images/13-mobile-market.png" target="_blank" rel="noopener"><img src="images/13-mobile-market.png" alt="Market on a phone" loading="lazy"></a>
-<div class="caption"><p class="file">13-mobile-market.png <span>375 x 3577</span></p><h3>Market on a phone</h3><p>The community grid becomes a single-column reading flow.</p><a class="open" href="images/13-mobile-market.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/30-mobile-classrooms.png" target="_blank" rel="noopener"><img src="images/30-mobile-classrooms.png" alt="Classrooms on a phone" loading="lazy"></a>
-<div class="caption"><p class="file">30-mobile-classrooms.png <span>375 x 2085</span></p><h3>Classrooms on a phone</h3><p>Course cards and home content adapt to a narrow screen.</p><a class="open" href="images/30-mobile-classrooms.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/31-mobile-material-ai.png" target="_blank" rel="noopener"><img src="images/31-mobile-material-ai.png" alt="Reading and AI on a phone" loading="lazy"></a>
-<div class="caption"><p class="file">31-mobile-material-ai.png <span>375 x 1717</span></p><h3>Reading and AI on a phone</h3><p>Document and conversation panels stack while their controls remain available.</p><a class="open" href="images/31-mobile-material-ai.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/32-mobile-personal-wiki.png" target="_blank" rel="noopener"><img src="images/32-mobile-personal-wiki.png" alt="Personal Wiki on a phone" loading="lazy"></a>
-<div class="caption"><p class="file">32-mobile-personal-wiki.png <span>375 x 2007</span></p><h3>Personal Wiki on a phone</h3><p>Notes, Markdown content, and link panels remain accessible at a phone width.</p><a class="open" href="images/32-mobile-personal-wiki.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/33-mobile-knowledge-graph.png" target="_blank" rel="noopener"><img src="images/33-mobile-knowledge-graph.png" alt="Knowledge graph on a phone" loading="lazy"></a>
-<div class="caption"><p class="file">33-mobile-knowledge-graph.png <span>375 x 1125</span></p><h3>Knowledge graph on a phone</h3><p>The graph has a note-list alternative for small-screen navigation.</p><a class="open" href="images/33-mobile-knowledge-graph.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article><article class="card">
-<a class="preview" href="images/34-mobile-instructor-materials.png" target="_blank" rel="noopener"><img src="images/34-mobile-instructor-materials.png" alt="Instructor files on a phone" loading="lazy"></a>
-<div class="caption"><p class="file">34-mobile-instructor-materials.png <span>375 x 1326</span></p><h3>Instructor files on a phone</h3><p>The instructor material table and upload controls adapt to narrow screens.</p><a class="open" href="images/34-mobile-instructor-materials.png" target="_blank" rel="noopener">Open full resolution <span aria-hidden="true">&#8599;</span></a></div></article></div></section></main><footer>WANG Jiahe &middot; dev/WangJiahe &middot; Captured from the running Luma frontend.<a href="README.md">English README</a><a href="#top">Back to top</a></footer></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Luma | 35 prototype screenshots</title>
+    <style>
+      :root {
+        font-family:
+          Segoe UI,
+          Arial,
+          sans-serif;
+        color: #203c34;
+        background: #f5f7f2;
+        line-height: 1.6;
+        scroll-behavior: smooth;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      a {
+        color: #215d4c;
+      }
+      header,
+      main,
+      footer {
+        max-width: 1220px;
+        margin: auto;
+        padding: 30px 28px;
+      }
+      header {
+        padding-top: 48px;
+      }
+      .eyebrow {
+        font-size: 13px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #4a685c;
+      }
+      h1 {
+        font-size: clamp(32px, 5vw, 52px);
+        line-height: 1.12;
+        letter-spacing: -0.04em;
+        margin: 14px 0;
+      }
+      header p {
+        max-width: 780px;
+      }
+      .lead {
+        font-size: 18px;
+        color: #52685e;
+      }
+      .badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 22px 0;
+      }
+      .badge {
+        padding: 5px 12px;
+        border: 1px solid #d7e0d2;
+        border-radius: 20px;
+        background: white;
+        font-size: 13px;
+      }
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        border-top: 1px solid #dbe2d7;
+        padding-top: 20px;
+        margin-top: 25px;
+      }
+      nav a {
+        background: #e9efe2;
+        border-radius: 7px;
+        padding: 8px 12px;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      nav span {
+        margin-left: 6px;
+      }
+      a:focus-visible {
+        outline: 3px solid #215d4c;
+        outline-offset: 4px;
+      }
+      section {
+        margin-bottom: 48px;
+        scroll-margin-top: 20px;
+      }
+      .section-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+        gap: 16px;
+      }
+      .section-heading h2 {
+        font-size: 25px;
+        line-height: 1.3;
+        margin: 0;
+        letter-spacing: -0.025em;
+      }
+      .section-heading > span {
+        color: #576b5f;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 22px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #dce3d8;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px #203c3405;
+      }
+      .preview {
+        display: flex;
+        height: 244px;
+        align-items: center;
+        justify-content: center;
+        padding: 12px;
+        background: #e9eee6;
+        border-bottom: 1px solid #dce3d8;
+      }
+      .preview img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        box-shadow: 0 2px 8px #203c3412;
+      }
+      .caption {
+        padding: 18px;
+      }
+      .caption h3 {
+        font-size: 17px;
+        margin: 5px 0 9px;
+        line-height: 1.35;
+      }
+      .caption > p:not(.file) {
+        font-size: 13px;
+        color: #50655b;
+        margin: 0 0 15px;
+      }
+      .file {
+        font-size: 10px;
+        color: #5c6d63;
+        overflow-wrap: anywhere;
+        margin: 0 0 7px;
+      }
+      .file span {
+        display: block;
+      }
+      .open {
+        font-size: 12px;
+        font-weight: 700;
+        text-underline-offset: 3px;
+      }
+      footer {
+        border-top: 1px solid #dbe2d7;
+        color: #50655b;
+        font-size: 13px;
+        margin-bottom: 24px;
+      }
+      footer a {
+        margin-left: 10px;
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 570px) {
+        header,
+        main,
+        footer {
+          padding: 24px 18px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .preview {
+          height: 260px;
+        }
+        .section-heading h2 {
+          font-size: 21px;
+        }
+        nav {
+          gap: 6px;
+        }
+        nav a {
+          font-size: 12px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        :root {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header id="top">
+      <div class="eyebrow">Luma / WANG Jiahe / Prototype evidence</div>
+      <h1>Your learning, connected.</h1>
+      <p class="lead">
+        35 captures from the actual frontend: a learning workspace, classroom files, guided
+        explanations, connected notes, and community sharing.
+      </p>
+      <div class="badges">
+        <span class="badge">35 original PNGs</span><span class="badge">7 feature groups</span
+        ><span class="badge">Desktop + phone</span><span class="badge">English interface</span>
+      </div>
+      <p>
+        Click a preview to open its full resolution. Everything in this gallery works offline.
+        Google sign-in and AI are labeled demo simulations. Uploaded PDF pages are rendered locally
+        with page navigation.
+      </p>
+      <nav aria-label="Screenshot groups">
+        <a href="#group-1">Identity and workspace <span>6</span></a
+        ><a href="#group-2">Classroom and files <span>8</span></a
+        ><a href="#group-3">AI explanations <span>3</span></a
+        ><a href="#group-4">Personal Wiki <span>6</span></a
+        ><a href="#group-5">Wiki Market <span>4</span></a
+        ><a href="#group-6">Management <span>2</span></a
+        ><a href="#group-7">Responsive layouts <span>6</span></a>
+      </nav>
+    </header>
+    <main>
+      <section id="group-1" aria-labelledby="heading-1">
+        <div class="section-heading">
+          <h2 id="heading-1">Identity and workspace</h2>
+          <span>6 captures</span>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <a class="preview" href="images/01-sign-in.png" target="_blank" rel="noopener"
+              ><img src="images/01-sign-in.png" alt="Demo Google sign-in" loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">01-sign-in.png <span>1440 x 900</span></p>
+              <h3>Demo Google sign-in</h3>
+              <p>
+                Choose an explicitly simulated Google identity for a student, instructor, or
+                administrator.
+              </p>
+              <a class="open" href="images/01-sign-in.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/02-my-classes.png" target="_blank" rel="noopener"
+              ><img src="images/02-my-classes.png" alt="Student learning workspace" loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">02-my-classes.png <span>1425 x 1192</span></p>
+              <h3>Student learning workspace</h3>
+              <p>Browse courses, materials, personal notes, and community ideas from one home.</p>
+              <a class="open" href="images/02-my-classes.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/14-demo-identities.png" target="_blank" rel="noopener"
+              ><img src="images/14-demo-identities.png" alt="Switching perspectives" loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">14-demo-identities.png <span>1440 x 1192</span></p>
+              <h3>Switching perspectives</h3>
+              <p>
+                Move between the four demo identities while keeping their personal Wikis separate.
+              </p>
+              <a class="open" href="images/14-demo-identities.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/15-join-class.png" target="_blank" rel="noopener"
+              ><img src="images/15-join-class.png" alt="Join by invitation code" loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">15-join-class.png <span>1440 x 1192</span></p>
+              <h3>Join by invitation code</h3>
+              <p>Enter the instructor’s class code in a focused join dialog.</p>
+              <a class="open" href="images/15-join-class.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/16-join-validation.png" target="_blank" rel="noopener"
+              ><img
+                src="images/16-join-validation.png"
+                alt="Invalid class-code feedback"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">16-join-validation.png <span>1440 x 1192</span></p>
+              <h3>Invalid class-code feedback</h3>
+              <p>An invalid code shows an actionable error without creating a membership.</p>
+              <a class="open" href="images/16-join-validation.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/17-workspace-search.png" target="_blank" rel="noopener"
+              ><img
+                src="images/17-workspace-search.png"
+                alt="Search across the workspace"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">17-workspace-search.png <span>1440 x 1192</span></p>
+              <h3>Search across the workspace</h3>
+              <p>Find accessible classes, personal notes, and community entries.</p>
+              <a class="open" href="images/17-workspace-search.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+        </div>
+      </section>
+      <section id="group-2" aria-labelledby="heading-2">
+        <div class="section-heading">
+          <h2 id="heading-2">Classroom and files</h2>
+          <span>8 captures</span>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <a
+              class="preview"
+              href="images/03-classroom-materials.png"
+              target="_blank"
+              rel="noopener"
+              ><img
+                src="images/03-classroom-materials.png"
+                alt="Shared classroom materials"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">03-classroom-materials.png <span>1425 x 1135</span></p>
+              <h3>Shared classroom materials</h3>
+              <p>Browse instructor-provided guides and workshop activities.</p>
+              <a
+                class="open"
+                href="images/03-classroom-materials.png"
+                target="_blank"
+                rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/18-classroom-members.png" target="_blank" rel="noopener"
+              ><img
+                src="images/18-classroom-members.png"
+                alt="Student view of the class roster"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">18-classroom-members.png <span>1440 x 900</span></p>
+              <h3>Student view of the class roster</h3>
+              <p>See the instructor and students who belong to the class.</p>
+              <a class="open" href="images/18-classroom-members.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/19-classroom-about.png" target="_blank" rel="noopener"
+              ><img
+                src="images/19-classroom-about.png"
+                alt="Course topics and context"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">19-classroom-about.png <span>1440 x 900</span></p>
+              <h3>Course topics and context</h3>
+              <p>Explain the learning goals, topics, and illustrative class schedule.</p>
+              <a class="open" href="images/19-classroom-about.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a
+              class="preview"
+              href="images/25-instructor-materials.png"
+              target="_blank"
+              rel="noopener"
+              ><img
+                src="images/25-instructor-materials.png"
+                alt="Instructor materials workspace"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">25-instructor-materials.png <span>1425 x 1135</span></p>
+              <h3>Instructor materials workspace</h3>
+              <p>Teachers get upload and removal controls alongside the shared file list.</p>
+              <a
+                class="open"
+                href="images/25-instructor-materials.png"
+                target="_blank"
+                rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a
+              class="preview"
+              href="images/26-upload-material-dialog.png"
+              target="_blank"
+              rel="noopener"
+              ><img
+                src="images/26-upload-material-dialog.png"
+                alt="Upload and categorize a file"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">26-upload-material-dialog.png <span>1440 x 1135</span></p>
+              <h3>Upload and categorize a file</h3>
+              <p>Choose a category and a local file, with supported preview behavior explained.</p>
+              <a
+                class="open"
+                href="images/26-upload-material-dialog.png"
+                target="_blank"
+                rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/27-instructor-roster.png" target="_blank" rel="noopener"
+              ><img
+                src="images/27-instructor-roster.png"
+                alt="Instructor roster management"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">27-instructor-roster.png <span>1440 x 900</span></p>
+              <h3>Instructor roster management</h3>
+              <p>
+                Teachers can remove a demo student while preserving the student’s personal Wiki.
+              </p>
+              <a class="open" href="images/27-instructor-roster.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a
+              class="preview"
+              href="images/28-file-preview-reselection.png"
+              target="_blank"
+              rel="noopener"
+              ><img
+                src="images/28-file-preview-reselection.png"
+                alt="Session-file recovery"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">28-file-preview-reselection.png <span>1425 x 965</span></p>
+              <h3>Session-file recovery</h3>
+              <p>
+                Reloaded binary-file metadata leads to a clear reselection action rather than a
+                broken preview.
+              </p>
+              <a
+                class="open"
+                href="images/28-file-preview-reselection.png"
+                target="_blank"
+                rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a
+              class="preview"
+              href="images/29-uploaded-pdf-preview.png"
+              target="_blank"
+              rel="noopener"
+              ><img
+                src="images/29-uploaded-pdf-preview.png"
+                alt="Canvas-rendered PDF preview"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">29-uploaded-pdf-preview.png <span>1425 x 965</span></p>
+              <h3>Canvas-rendered PDF preview</h3>
+              <p>
+                Read the actual uploaded PDF locally, move between its five pages, and restore the
+                preview by reselection after a reload.
+              </p>
+              <a
+                class="open"
+                href="images/29-uploaded-pdf-preview.png"
+                target="_blank"
+                rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+        </div>
+      </section>
+      <section id="group-3" aria-labelledby="heading-3">
+        <div class="section-heading">
+          <h2 id="heading-3">AI explanations</h2>
+          <span>3 captures</span>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <a class="preview" href="images/04-ai-material-qa.png" target="_blank" rel="noopener"
+              ><img
+                src="images/04-ai-material-qa.png"
+                alt="Document-aware study conversation"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">04-ai-material-qa.png <span>1425 x 965</span></p>
+              <h3>Document-aware study conversation</h3>
+              <p>Read a class document alongside a prepared explanation tied to the material.</p>
+              <a class="open" href="images/04-ai-material-qa.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a
+              class="preview"
+              href="images/05-interactive-animation.png"
+              target="_blank"
+              rel="noopener"
+              ><img
+                src="images/05-interactive-animation.png"
+                alt="Waterfall and Agile animation"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">05-interactive-animation.png <span>1440 x 965</span></p>
+              <h3>Waterfall and Agile animation</h3>
+              <p>A real stepped animation with playback and reset controls.</p>
+              <a
+                class="open"
+                href="images/05-interactive-animation.png"
+                target="_blank"
+                rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/35-ai-demo-boundary.png" target="_blank" rel="noopener"
+              ><img
+                src="images/35-ai-demo-boundary.png"
+                alt="Honest AI scope fallback"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">35-ai-demo-boundary.png <span>1425 x 965</span></p>
+              <h3>Honest AI scope fallback</h3>
+              <p>
+                An unsupported question receives a clear prepared-demo boundary instead of an
+                invented answer.
+              </p>
+              <a class="open" href="images/35-ai-demo-boundary.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+        </div>
+      </section>
+      <section id="group-4" aria-labelledby="heading-4">
+        <div class="section-heading">
+          <h2 id="heading-4">Personal Wiki</h2>
+          <span>6 captures</span>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <a class="preview" href="images/06-personal-wiki.png" target="_blank" rel="noopener"
+              ><img
+                src="images/06-personal-wiki.png"
+                alt="Personal note and connections"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">06-personal-wiki.png <span>1425 x 1164</span></p>
+              <h3>Personal note and connections</h3>
+              <p>Preview Markdown, follow internal links, and inspect backlinks.</p>
+              <a class="open" href="images/06-personal-wiki.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/07-wiki-editor.png" target="_blank" rel="noopener"
+              ><img src="images/07-wiki-editor.png" alt="Markdown editing" loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">07-wiki-editor.png <span>1425 x 1118</span></p>
+              <h3>Markdown editing</h3>
+              <p>Edit a personal note with automatic browser-local persistence.</p>
+              <a class="open" href="images/07-wiki-editor.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/08-knowledge-graph.png" target="_blank" rel="noopener"
+              ><img
+                src="images/08-knowledge-graph.png"
+                alt="Actual Wiki relationship graph"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">08-knowledge-graph.png <span>1425 x 1113</span></p>
+              <h3>Actual Wiki relationship graph</h3>
+              <p>Nodes and lines are derived from the user’s stored note links.</p>
+              <a class="open" href="images/08-knowledge-graph.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a
+              class="preview"
+              href="images/20-wiki-ai-suggestion.png"
+              target="_blank"
+              rel="noopener"
+              ><img
+                src="images/20-wiki-ai-suggestion.png"
+                alt="Review a prepared Wiki suggestion"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">20-wiki-ai-suggestion.png <span>1440 x 1164</span></p>
+              <h3>Review a prepared Wiki suggestion</h3>
+              <p>
+                AI suggestions are explicitly labeled and only applied after the learner chooses.
+              </p>
+              <a class="open" href="images/20-wiki-ai-suggestion.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/21-new-wiki-note.png" target="_blank" rel="noopener"
+              ><img src="images/21-new-wiki-note.png" alt="Create a personal note" loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">21-new-wiki-note.png <span>1440 x 1164</span></p>
+              <h3>Create a personal note</h3>
+              <p>Name a new idea before writing and connecting it.</p>
+              <a class="open" href="images/21-new-wiki-note.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a
+              class="preview"
+              href="images/22-wiki-title-validation.png"
+              target="_blank"
+              rel="noopener"
+              ><img
+                src="images/22-wiki-title-validation.png"
+                alt="Duplicate-title validation"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">22-wiki-title-validation.png <span>1440 x 1164</span></p>
+              <h3>Duplicate-title validation</h3>
+              <p>
+                A duplicate title produces an inline error while preserving the note and dialog.
+              </p>
+              <a
+                class="open"
+                href="images/22-wiki-title-validation.png"
+                target="_blank"
+                rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+        </div>
+      </section>
+      <section id="group-5" aria-labelledby="heading-5">
+        <div class="section-heading">
+          <h2 id="heading-5">Wiki Market</h2>
+          <span>4 captures</span>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <a class="preview" href="images/09-wiki-market.png" target="_blank" rel="noopener"
+              ><img src="images/09-wiki-market.png" alt="Community note discovery" loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">09-wiki-market.png <span>1425 x 1889</span></p>
+              <h3>Community note discovery</h3>
+              <p>Browse free notes and filter them by topic.</p>
+              <a class="open" href="images/09-wiki-market.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/10-community-note.png" target="_blank" rel="noopener"
+              ><img
+                src="images/10-community-note.png"
+                alt="Publication preview and attribution"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">10-community-note.png <span>1440 x 1889</span></p>
+              <h3>Publication preview and attribution</h3>
+              <p>Read a snapshot, bookmark it, or copy it to a private Wiki.</p>
+              <a class="open" href="images/10-community-note.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/23-bookmarked-notes.png" target="_blank" rel="noopener"
+              ><img src="images/23-bookmarked-notes.png" alt="Saved community ideas" loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">23-bookmarked-notes.png <span>1425 x 1120</span></p>
+              <h3>Saved community ideas</h3>
+              <p>Revisit the notes bookmarked by the current learner.</p>
+              <a class="open" href="images/23-bookmarked-notes.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/24-my-publications.png" target="_blank" rel="noopener"
+              ><img
+                src="images/24-my-publications.png"
+                alt="Published personal snapshots"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">24-my-publications.png <span>1425 x 1131</span></p>
+              <h3>Published personal snapshots</h3>
+              <p>List the current user’s publications separately from private drafts.</p>
+              <a class="open" href="images/24-my-publications.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+        </div>
+      </section>
+      <section id="group-6" aria-labelledby="heading-6">
+        <div class="section-heading">
+          <h2 id="heading-6">Management</h2>
+          <span>2 captures</span>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <a
+              class="preview"
+              href="images/11-instructor-management.png"
+              target="_blank"
+              rel="noopener"
+              ><img
+                src="images/11-instructor-management.png"
+                alt="Instructor class overview"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">11-instructor-management.png <span>1425 x 997</span></p>
+              <h3>Instructor class overview</h3>
+              <p>Open each teaching space to manage its materials and members.</p>
+              <a
+                class="open"
+                href="images/11-instructor-management.png"
+                target="_blank"
+                rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/12-people-and-roles.png" target="_blank" rel="noopener"
+              ><img
+                src="images/12-people-and-roles.png"
+                alt="Administrator account roles"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">12-people-and-roles.png <span>1425 x 1076</span></p>
+              <h3>Administrator account roles</h3>
+              <p>Inspect local demo identities and change another account’s role.</p>
+              <a class="open" href="images/12-people-and-roles.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+        </div>
+      </section>
+      <section id="group-7" aria-labelledby="heading-7">
+        <div class="section-heading">
+          <h2 id="heading-7">Responsive layouts</h2>
+          <span>6 captures</span>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <a class="preview" href="images/13-mobile-market.png" target="_blank" rel="noopener"
+              ><img src="images/13-mobile-market.png" alt="Market on a phone" loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">13-mobile-market.png <span>375 x 3577</span></p>
+              <h3>Market on a phone</h3>
+              <p>The community grid becomes a single-column reading flow.</p>
+              <a class="open" href="images/13-mobile-market.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a class="preview" href="images/30-mobile-classrooms.png" target="_blank" rel="noopener"
+              ><img
+                src="images/30-mobile-classrooms.png"
+                alt="Classrooms on a phone"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">30-mobile-classrooms.png <span>375 x 2085</span></p>
+              <h3>Classrooms on a phone</h3>
+              <p>Course cards and home content adapt to a narrow screen.</p>
+              <a class="open" href="images/30-mobile-classrooms.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a
+              class="preview"
+              href="images/31-mobile-material-ai.png"
+              target="_blank"
+              rel="noopener"
+              ><img
+                src="images/31-mobile-material-ai.png"
+                alt="Reading and AI on a phone"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">31-mobile-material-ai.png <span>375 x 1717</span></p>
+              <h3>Reading and AI on a phone</h3>
+              <p>Document and conversation panels stack while their controls remain available.</p>
+              <a class="open" href="images/31-mobile-material-ai.png" target="_blank" rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a
+              class="preview"
+              href="images/32-mobile-personal-wiki.png"
+              target="_blank"
+              rel="noopener"
+              ><img
+                src="images/32-mobile-personal-wiki.png"
+                alt="Personal Wiki on a phone"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">32-mobile-personal-wiki.png <span>375 x 2007</span></p>
+              <h3>Personal Wiki on a phone</h3>
+              <p>Notes, Markdown content, and link panels remain accessible at a phone width.</p>
+              <a
+                class="open"
+                href="images/32-mobile-personal-wiki.png"
+                target="_blank"
+                rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a
+              class="preview"
+              href="images/33-mobile-knowledge-graph.png"
+              target="_blank"
+              rel="noopener"
+              ><img
+                src="images/33-mobile-knowledge-graph.png"
+                alt="Knowledge graph on a phone"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">33-mobile-knowledge-graph.png <span>375 x 1125</span></p>
+              <h3>Knowledge graph on a phone</h3>
+              <p>The graph has a note-list alternative for small-screen navigation.</p>
+              <a
+                class="open"
+                href="images/33-mobile-knowledge-graph.png"
+                target="_blank"
+                rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+          <article class="card">
+            <a
+              class="preview"
+              href="images/34-mobile-instructor-materials.png"
+              target="_blank"
+              rel="noopener"
+              ><img
+                src="images/34-mobile-instructor-materials.png"
+                alt="Instructor files on a phone"
+                loading="lazy"
+            /></a>
+            <div class="caption">
+              <p class="file">34-mobile-instructor-materials.png <span>375 x 1326</span></p>
+              <h3>Instructor files on a phone</h3>
+              <p>The instructor material table and upload controls adapt to narrow screens.</p>
+              <a
+                class="open"
+                href="images/34-mobile-instructor-materials.png"
+                target="_blank"
+                rel="noopener"
+                >Open full resolution <span aria-hidden="true">&#8599;</span></a
+              >
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+    <footer>
+      WANG Jiahe &middot; dev/WangJiahe &middot; Captured from the running Luma frontend.<a
+        href="README.md"
+        >English README</a
+      ><a href="#top">Back to top</a>
+    </footer>
+  </body>
+</html>

@@ -1,288 +1,188 @@
-# Luma - Your learning, connected
+# Luma · Your learning, connected
 
-**Owner: WANG Jiahe (`WangJiahe-polyu`) | Prototype branch: `dev/WangJiahe`**
+**Owner: WANG Jiahe (`WangJiahe-polyu`) · Independent prototype branch: `dev/WangJiahe`.**
 
-An English frontend prototype for students and instructors: shared classroom files, a prepared AI study partner, interactive explanations, a personal linked Wiki, and free community notes.
+An English-language, frontend-only learning platform prototype. The demo connects classroom materials, a prepared AI study partner, interactive explanations, a personal Wiki, and community note sharing.
 
-## Screenshot delivery
+## 本机启动
 
-This package contains **34 screenshots captured from the actual running frontend**. It contains presentation images, not the runnable application source. Open `gallery.html` locally for a grouped visual index; click an image to see its original resolution. The PNG images are in `images/`.
+在 VS Code 中打开本文件夹，打开 PowerShell 终端，运行：
 
-Image numbers preserve their capture sequence. The unverified PDF preview capture is excluded. No generated interface mockups are included.
+```powershell
+.\start-demo.ps1
+```
 
-## Intended users and demonstration flow
+浏览器访问 **http://127.0.0.1:5173/**。保持服务终端运行；停止时按 `Ctrl+C`。本机已安装依赖，启动脚本可以使用 Codex 自带的 Node.js。
 
-A student selects a demo identity, opens a class, reads a teacher-provided document, asks a prepared question, explores the Waterfall/Agile animation, connects an idea in their personal Wiki, and browses a community note. Instructor and administrator views illustrate file, membership, and account-role management.
+首次在其他电脑运行，需要 Node.js 22.13 或更高版本和 pnpm 11.25.0：
 
-## Technical context and limits
+```sh
+pnpm install
+pnpm dev
+```
 
-The application uses React, TypeScript, Vite, Markdown, and browser-local storage. These screenshots require no runtime, installation, environment variables, credentials, or network connection to view. The application source and its full build verification will be delivered separately.
+If PowerShell does not allow local script execution, use a terminal with Node.js available and run `node node_modules/vite/bin/vite.js --host 127.0.0.1`. No system policy changes are necessary.
 
-Google sign-in and AI answers are explicitly simulated. There is no backend, live OAuth or LLM, payment flow, or cross-device synchronization. Screenshots document frontend demo behavior; role controls do not establish server-side security.
+## Demo identities
 
-## Validation and contribution
+Choose an identity on the sign-in screen, then click **Continue with Google · Demo**. Switch identities through the avatar in the top bar.
 
-WANG Jiahe defined the product scope, selected English, and requested presentation evidence and readable code. Codex assisted with implementation, browser checks, and this screenshot package. Images cover normal flows, validation errors, multiple roles, and phone layouts. No external usability study or remote CI run is claimed. Final application validation and PDF preview work remain pending.
+| Identity         | Role          | Best way to explore                          |
+| ---------------- | ------------- | -------------------------------------------- |
+| Alex Morgan      | Student       | Three classes and a connected starter Wiki   |
+| Jamie Chen       | Student       | Join another class and copy a community note |
+| Dr. Sarah Wilson | Instructor    | Upload materials and manage class members    |
+| Taylor Brooks    | Administrator | Inspect accounts and change demo roles       |
 
-The images below use repository-relative paths, so they render in this branch's GitHub README. This is an independent prototype contribution; do not merge it into `main`. Future CI work belongs on a separate feature branch and will check, build, and archive artifacts without deployment.
+Class invitation codes: **SE2026**, **AI2026**, **DESIGN26**. See [the presentation walkthrough](docs/DEMO.md).
 
-## Screenshot gallery
+## What works
 
+- Classroom browsing, code-based joining, material filtering, text/Markdown reading, PDF session preview, download, instructor upload/removal, and membership management.
+- Contextual prepared AI explanations, source navigation, and saving explanations to the personal Wiki.
+- Waterfall vs Agile animation with play, pause, next-step, and reset controls.
+- Markdown note creation/editing, tags, search, unique titles, `[[Note Title]]` links, backlinks, linked-note creation, rename propagation, and an actual relationship graph.
+- Community publication snapshots, explicit publication updates, unpublishing, search/tag filtering, bookmarks, and attributed independent copies.
+- Local account roles, keyboard-friendly dialogs, narrow-screen navigation, persistent text data, and reset/recovery flows.
+
+## Deliberate prototype boundaries
+
+Google sign-in and AI are explicitly labeled simulations. There is no real OAuth, LLM request, file retrieval pipeline, backend, payment system, or cross-device synchronization. Unknown questions and newly uploaded files receive an honest demo fallback.
+
+Small text records live in localStorage under `luma.demo.v1`. Binary file bytes are not persisted: a reload retains metadata and asks the user to reselect the original file. Markdown/text uploads retain their text. Treat this as a classroom demonstration, not storage for important or sensitive documents.
+
+Use **Reset demo data** in the sidebar to restore sample content. This removes local demo edits and returns to sign-in. If saved data is malformed, the app offers an explicit sample-workspace recovery action.
+
+## Code map
+
+```text
+src/
+  data/seed.ts                English sample content
+  lib/domain.ts               Types and pure knowledge-sharing operations
+  lib/domain.test.ts          Ownership, snapshots, validation and recovery tests
+  lib/store.tsx               Persistence, notices, identity and session files
+  components/                Shell, dialogs, Markdown, assistant, animation, graph
+  pages/                     Classes, reader, Wiki, Market and management
+  styles/                    Feature styles and responsive overrides
+docs/                        Design, plan, walkthrough and verification record
+images/          Screenshots of the running app
+```
+
+Use small domain helpers for state transformations. Keep new feature behavior in its page/component and place its styles in the matching stylesheet. Frontend role controls illustrate intended behavior; they are not security enforcement.
+
+## Checks and production build
+
+```sh
+pnpm test
+pnpm run format:check
+pnpm build
+pnpm preview
+```
+
+The build output is `dist/`. Hash routing allows static hosting without server rewrite rules. No external fonts or remote image assets are required at runtime.
+
+Browser verification was performed through the connected browser against the actual local app; [the verification record](docs/VERIFICATION.md) lists the exercised flows. [Screenshot index](images/README.md) maps images to presentation points.
+
+## Branches and delivery
+
+This prototype has its own orphan history on `dev/WangJiahe`. It does not inherit or merge `main` or Wenbin’s prototype. The reference branch was used to compare documentation and screenshot coverage; Luma retains its own implementation and scope.
+
+The application is committed locally on `dev/WangJiahe`. CI configuration is maintained separately on `feature/wangjiahe-prototype-ci`: it checks formatting, tests, build and screenshot links, then archives the static build and screenshots. No branch has been pushed, and no GitHub-hosted CI run or deployment has been completed. The workflow and its usage guide are present on the feature branch.
+
+## Development record and contribution
+
+Wang Jiahe defined the product flow and prototype constraints, selected an English interface, requested actual presentation screenshots, and emphasized readable source code. Codex assisted with implementation, domain tests, browser verification and documentation. The source and prepared content were reviewed; the verification record documents defects found and fixed. No stakeholder interview or external usability study has been claimed.
+
+The initial delivery contained 13 screenshots. This gallery expands coverage to **35 actual running-app screenshots**, including dialogs, validation, teacher controls and phone layouts. PDF.js now renders uploaded PDFs locally; page navigation and reload/reselection recovery were verified against the supplied five-page PDF.
+
+## Prototype screenshots
+
+Click any image to open its full resolution. Screenshots are embedded with repository-relative paths so they render on this branch in GitHub. Desktop images use a 1440 × 900 viewport with full-page capture; mobile images use 390 × 844. AI and sign-in remain explicitly simulated.
 
 ### Identity and workspace
 
+| Demo Google sign-in                           | Student learning workspace                              |
+| --------------------------------------------- | ------------------------------------------------------- |
+| ![Demo Google sign-in](images/01-sign-in.png) | ![Student learning workspace](images/02-my-classes.png) |
 
-**Demo Google sign-in** - `01-sign-in.png` (1440 x 900)
+| Switching perspectives                                   | Join by invitation code                              |
+| -------------------------------------------------------- | ---------------------------------------------------- |
+| ![Switching perspectives](images/14-demo-identities.png) | ![Join by invitation code](images/15-join-class.png) |
 
-Choose an explicitly simulated Google identity for a student, instructor, or administrator.
-
-![Demo Google sign-in](images/01-sign-in.png)
-
-
-**Student learning workspace** - `02-my-classes.png` (1425 x 1192)
-
-Browse courses, materials, personal notes, and community ideas from one home.
-
-![Student learning workspace](images/02-my-classes.png)
-
-
-**Switching perspectives** - `14-demo-identities.png` (1440 x 1192)
-
-Move between the four demo identities while keeping their personal Wikis separate.
-
-![Switching perspectives](images/14-demo-identities.png)
-
-
-**Join by invitation code** - `15-join-class.png` (1440 x 1192)
-
-Enter the instructor’s class code in a focused join dialog.
-
-![Join by invitation code](images/15-join-class.png)
-
-
-**Invalid class-code feedback** - `16-join-validation.png` (1440 x 1192)
-
-An invalid code shows an actionable error without creating a membership.
-
-![Invalid class-code feedback](images/16-join-validation.png)
-
-
-**Search across the workspace** - `17-workspace-search.png` (1440 x 1192)
-
-Find accessible classes, personal notes, and community entries.
-
-![Search across the workspace](images/17-workspace-search.png)
-
+| Invalid class-code feedback                                   | Search across the workspace                                    |
+| ------------------------------------------------------------- | -------------------------------------------------------------- |
+| ![Invalid class-code feedback](images/16-join-validation.png) | ![Search across the workspace](images/17-workspace-search.png) |
 
 ### Classroom and files
 
+| Shared classroom materials                                       | Student view of the class roster                                     |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------- |
+| ![Shared classroom materials](images/03-classroom-materials.png) | ![Student view of the class roster](images/18-classroom-members.png) |
 
-**Shared classroom materials** - `03-classroom-materials.png` (1425 x 1135)
+| Course topics and context                                   | Instructor materials workspace                                        |
+| ----------------------------------------------------------- | --------------------------------------------------------------------- |
+| ![Course topics and context](images/19-classroom-about.png) | ![Instructor materials workspace](images/25-instructor-materials.png) |
 
-Browse instructor-provided guides and workshop activities.
+| Upload and categorize a file                                          | Instructor roster management                                     |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| ![Upload and categorize a file](images/26-upload-material-dialog.png) | ![Instructor roster management](images/27-instructor-roster.png) |
 
-![Shared classroom materials](images/03-classroom-materials.png)
-
-
-**Student view of the class roster** - `18-classroom-members.png` (1440 x 900)
-
-See the instructor and students who belong to the class.
-
-![Student view of the class roster](images/18-classroom-members.png)
-
-
-**Course topics and context** - `19-classroom-about.png` (1440 x 900)
-
-Explain the learning goals, topics, and illustrative class schedule.
-
-![Course topics and context](images/19-classroom-about.png)
-
-
-**Instructor materials workspace** - `25-instructor-materials.png` (1425 x 1135)
-
-Teachers get upload and removal controls alongside the shared file list.
-
-![Instructor materials workspace](images/25-instructor-materials.png)
-
-
-**Upload and categorize a file** - `26-upload-material-dialog.png` (1440 x 1135)
-
-Choose a category and a local file, with supported preview behavior explained.
-
-![Upload and categorize a file](images/26-upload-material-dialog.png)
-
-
-**Instructor roster management** - `27-instructor-roster.png` (1440 x 900)
-
-Teachers can remove a demo student while preserving the student’s personal Wiki.
-
-![Instructor roster management](images/27-instructor-roster.png)
-
-
-**Session-file recovery** - `28-file-preview-reselection.png` (1425 x 965)
-
-Reloaded binary-file metadata leads to a clear reselection action rather than a broken preview.
-
-![Session-file recovery](images/28-file-preview-reselection.png)
-
+| Session-file recovery                                            | Canvas-rendered PDF preview                                        |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------ |
+| ![Session-file recovery](images/28-file-preview-reselection.png) | ![Canvas-rendered PDF preview](images/29-uploaded-pdf-preview.png) |
 
 ### AI explanations
 
+| Document-aware study conversation                                  | Waterfall and Agile animation                                         |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| ![Document-aware study conversation](images/04-ai-material-qa.png) | ![Waterfall and Agile animation](images/05-interactive-animation.png) |
 
-**Document-aware study conversation** - `04-ai-material-qa.png` (1425 x 965)
-
-Read a class document alongside a prepared explanation tied to the material.
-
-![Document-aware study conversation](images/04-ai-material-qa.png)
-
-
-**Waterfall and Agile animation** - `05-interactive-animation.png` (1440 x 965)
-
-A real stepped animation with playback and reset controls.
-
-![Waterfall and Agile animation](images/05-interactive-animation.png)
-
-
-**Honest AI scope fallback** - `35-ai-demo-boundary.png` (1425 x 965)
-
-An unsupported question receives a clear prepared-demo boundary instead of an invented answer.
+**Honest AI scope fallback**
 
 ![Honest AI scope fallback](images/35-ai-demo-boundary.png)
 
-
 ### Personal Wiki
 
+| Personal note and connections                                 | Markdown editing                               |
+| ------------------------------------------------------------- | ---------------------------------------------- |
+| ![Personal note and connections](images/06-personal-wiki.png) | ![Markdown editing](images/07-wiki-editor.png) |
 
-**Personal note and connections** - `06-personal-wiki.png` (1425 x 1164)
+| Actual Wiki relationship graph                                   | Review a prepared Wiki suggestion                                      |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| ![Actual Wiki relationship graph](images/08-knowledge-graph.png) | ![Review a prepared Wiki suggestion](images/20-wiki-ai-suggestion.png) |
 
-Preview Markdown, follow internal links, and inspect backlinks.
-
-![Personal note and connections](images/06-personal-wiki.png)
-
-
-**Markdown editing** - `07-wiki-editor.png` (1425 x 1118)
-
-Edit a personal note with automatic browser-local persistence.
-
-![Markdown editing](images/07-wiki-editor.png)
-
-
-**Actual Wiki relationship graph** - `08-knowledge-graph.png` (1425 x 1113)
-
-Nodes and lines are derived from the user’s stored note links.
-
-![Actual Wiki relationship graph](images/08-knowledge-graph.png)
-
-
-**Review a prepared Wiki suggestion** - `20-wiki-ai-suggestion.png` (1440 x 1164)
-
-AI suggestions are explicitly labeled and only applied after the learner chooses.
-
-![Review a prepared Wiki suggestion](images/20-wiki-ai-suggestion.png)
-
-
-**Create a personal note** - `21-new-wiki-note.png` (1440 x 1164)
-
-Name a new idea before writing and connecting it.
-
-![Create a personal note](images/21-new-wiki-note.png)
-
-
-**Duplicate-title validation** - `22-wiki-title-validation.png` (1440 x 1164)
-
-A duplicate title produces an inline error while preserving the note and dialog.
-
-![Duplicate-title validation](images/22-wiki-title-validation.png)
-
+| Create a personal note                                 | Duplicate-title validation                                         |
+| ------------------------------------------------------ | ------------------------------------------------------------------ |
+| ![Create a personal note](images/21-new-wiki-note.png) | ![Duplicate-title validation](images/22-wiki-title-validation.png) |
 
 ### Wiki Market
 
+| Community note discovery                               | Publication preview and attribution                                  |
+| ------------------------------------------------------ | -------------------------------------------------------------------- |
+| ![Community note discovery](images/09-wiki-market.png) | ![Publication preview and attribution](images/10-community-note.png) |
 
-**Community note discovery** - `09-wiki-market.png` (1425 x 1889)
-
-Browse free notes and filter them by topic.
-
-![Community note discovery](images/09-wiki-market.png)
-
-
-**Publication preview and attribution** - `10-community-note.png` (1440 x 1889)
-
-Read a snapshot, bookmark it, or copy it to a private Wiki.
-
-![Publication preview and attribution](images/10-community-note.png)
-
-
-**Saved community ideas** - `23-bookmarked-notes.png` (1425 x 1120)
-
-Revisit the notes bookmarked by the current learner.
-
-![Saved community ideas](images/23-bookmarked-notes.png)
-
-
-**Published personal snapshots** - `24-my-publications.png` (1425 x 1131)
-
-List the current user’s publications separately from private drafts.
-
-![Published personal snapshots](images/24-my-publications.png)
-
+| Saved community ideas                                    | Published personal snapshots                                   |
+| -------------------------------------------------------- | -------------------------------------------------------------- |
+| ![Saved community ideas](images/23-bookmarked-notes.png) | ![Published personal snapshots](images/24-my-publications.png) |
 
 ### Management
 
-
-**Instructor class overview** - `11-instructor-management.png` (1425 x 997)
-
-Open each teaching space to manage its materials and members.
-
-![Instructor class overview](images/11-instructor-management.png)
-
-
-**Administrator account roles** - `12-people-and-roles.png` (1425 x 1076)
-
-Inspect local demo identities and change another account’s role.
-
-![Administrator account roles](images/12-people-and-roles.png)
-
+| Instructor class overview                                         | Administrator account roles                                    |
+| ----------------------------------------------------------------- | -------------------------------------------------------------- |
+| ![Instructor class overview](images/11-instructor-management.png) | ![Administrator account roles](images/12-people-and-roles.png) |
 
 ### Responsive layouts
 
+| Market on a phone                                 | Classrooms on a phone                                     |
+| ------------------------------------------------- | --------------------------------------------------------- |
+| ![Market on a phone](images/13-mobile-market.png) | ![Classrooms on a phone](images/30-mobile-classrooms.png) |
 
-**Market on a phone** - `13-mobile-market.png` (375 x 3577)
+| Reading and AI on a phone                                      | Personal Wiki on a phone                                        |
+| -------------------------------------------------------------- | --------------------------------------------------------------- |
+| ![Reading and AI on a phone](images/31-mobile-material-ai.png) | ![Personal Wiki on a phone](images/32-mobile-personal-wiki.png) |
 
-The community grid becomes a single-column reading flow.
+| Knowledge graph on a phone                                          | Instructor files on a phone                                               |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| ![Knowledge graph on a phone](images/33-mobile-knowledge-graph.png) | ![Instructor files on a phone](images/34-mobile-instructor-materials.png) |
 
-![Market on a phone](images/13-mobile-market.png)
-
-
-**Classrooms on a phone** - `30-mobile-classrooms.png` (375 x 2085)
-
-Course cards and home content adapt to a narrow screen.
-
-![Classrooms on a phone](images/30-mobile-classrooms.png)
-
-
-**Reading and AI on a phone** - `31-mobile-material-ai.png` (375 x 1717)
-
-Document and conversation panels stack while their controls remain available.
-
-![Reading and AI on a phone](images/31-mobile-material-ai.png)
-
-
-**Personal Wiki on a phone** - `32-mobile-personal-wiki.png` (375 x 2007)
-
-Notes, Markdown content, and link panels remain accessible at a phone width.
-
-![Personal Wiki on a phone](images/32-mobile-personal-wiki.png)
-
-
-**Knowledge graph on a phone** - `33-mobile-knowledge-graph.png` (375 x 1125)
-
-The graph has a note-list alternative for small-screen navigation.
-
-![Knowledge graph on a phone](images/33-mobile-knowledge-graph.png)
-
-
-**Instructor files on a phone** - `34-mobile-instructor-materials.png` (375 x 1326)
-
-The instructor material table and upload controls adapt to narrow screens.
-
-![Instructor files on a phone](images/34-mobile-instructor-materials.png)
+For image descriptions and individual full-size previews, see the [complete screenshot index](images/README.md).
