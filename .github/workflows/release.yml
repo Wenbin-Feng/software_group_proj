@@ -1,0 +1,117 @@
+name: Release production
+on:
+  push:
+    branches: [release]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: folio-production
+  cancel-in-progress: false
+jobs:
+  verify:
+    # A manual run on any other branch must never deploy production.
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+      - run: shellcheck deploy/*.sh
+      - name: Install browser integration dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Run browser integration checks
+        run: node scripts/e2e.mjs
+      - name: Save browser integration results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: folio-release-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 35
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST || '20.164.17.72' }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER || 'azureuserwjh' }}
+      APP_PUBLIC_URL: ${{ vars.APP_PUBLIC_URL || 'https://folio-group-project.vercel.app' }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Check deployment configuration
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for value in DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID APP_PUBLIC_URL; do
+            if [[ -z ${!value} ]]; then echo "Missing deployment setting: $value" >&2; exit 1; fi
+          done
+          [[ $DEPLOY_HOST =~ ^[a-zA-Z0-9.-]+$ && $DEPLOY_USER =~ ^[a-z_][a-z0-9_-]*$ ]]
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" >~/.ssh/folio_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" >~/.ssh/known_hosts
+          chmod 600 ~/.ssh/folio_deploy ~/.ssh/known_hosts
+      - run: npm ci
+      - run: npm install --global vercel@64.0.2
+      - name: Build matching frontend before touching the server
+        run: |
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+      - name: Record previous frontend deployment
+        id: previous
+        run: node deploy/vercel-current.mjs
+      - name: Build backend image on runner
+        run: |
+          docker build --platform linux/amd64 --tag "folio-api:$GITHUB_SHA" .
+          docker save "folio-api:$GITHUB_SHA" | gzip -1 > "$RUNNER_TEMP/api-image.tar.gz"
+      - name: Upload prebuilt backend and release helpers
+        run: |
+          ssh -i ~/.ssh/folio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /srv/folio/incoming/$GITHUB_SHA"
+          scp -i ~/.ssh/folio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -r deploy "$DEPLOY_USER@$DEPLOY_HOST:/srv/folio/incoming/$GITHUB_SHA/"
+          scp -i ~/.ssh/folio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "$RUNNER_TEMP/api-image.tar.gz" "$DEPLOY_USER@$DEPLOY_HOST:/srv/folio/incoming/$GITHUB_SHA/api-image.tar.gz"
+      - name: Back up, migrate, and deploy backend
+        id: backend
+        run: |
+          ssh -i ~/.ssh/folio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "sudo bash /srv/folio/incoming/$GITHUB_SHA/deploy/release.sh $GITHUB_SHA /srv/folio/incoming/$GITHUB_SHA"
+      - name: Stage the matching production frontend
+        id: frontend
+        run: |
+          url=$(vercel deploy --prebuilt --prod --skip-domain --yes --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          node deploy/smoke.mjs "$url" "$GITHUB_SHA"
+      - name: Promote frontend
+        id: promote
+        run: vercel promote '${{ steps.frontend.outputs.url }}' --yes --token="$VERCEL_TOKEN"
+      - name: Verify public release
+        run: node deploy/smoke.mjs "$APP_PUBLIC_URL" "$GITHUB_SHA"
+      - name: Restore previous frontend after failed verification
+        if: failure() && steps.promote.conclusion == 'success' && steps.previous.outputs.previous_url != ''
+        run: vercel promote '${{ steps.previous.outputs.previous_url }}' --yes --token="$VERCEL_TOKEN"
+      - name: Restore previous backend after frontend failure
+        if: failure() && steps.backend.conclusion == 'success'
+        run: |
+          ssh -i ~/.ssh/folio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "sudo bash /srv/folio/bin/rollback.sh $GITHUB_SHA"
+      - name: Remove SSH credentials
+        if: always()
+        run: rm -f ~/.ssh/folio_deploy ~/.ssh/known_hosts

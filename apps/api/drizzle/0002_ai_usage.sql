@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS ai_usage (
+ userId TEXT NOT NULL, day TEXT NOT NULL, kind TEXT NOT NULL,
+ count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(userId,day,kind)
+);

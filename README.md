@@ -1,111 +1,106 @@
 # Folio
 
-**Make it make sense.** A course companion that turns materials into conversations, visual explanations, and connected knowledge.
+**Make it make sense.** A course companion for learning from materials, asking questions, exploring visual explanations, and building a connected personal Wiki.
 
-Wenbin’s independent first-stage prototype, built in React on `dev/wenbin`. This branch started from an empty orphan commit and has no shared history or files with `main`.
+The `dev/wenbin-final` implementation separates a React/Vite frontend from a Node.js 24/Fastify API. Wallet accounts, permissions, courses, files, conversations, Wiki publications, Inbox messages, and generation jobs persist on the server in SQLite. It builds on the earlier `dev/wenbin` prototype; the existing `main` branch has a separate history.
 
 ## Run locally
 
-Use Node.js 22.12 or later and npm.
+Use **Node.js 24** and npm. From the repository root:
 
-```bash
+```sh
 npm ci
+cp .env.example .env
+```
+
+Edit `.env` locally. For AI features, provide `H2A_LLM_API_KEY`; the default base URL is OpenRouter and the default model is `qwen/qwen3.6-plus`. Keep all `H2A_` variables on the backend. No secret should have a `VITE_` prefix or be committed.
+
+Start the API in one terminal:
+
+```sh
+node --env-file=.env --import tsx --watch apps/api/src/server.ts
+```
+
+Start the frontend in another terminal:
+
+```sh
 npm run dev
 ```
 
-Open the local URL printed by Vite, normally <http://127.0.0.1:5173>.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173), matching `APP_PUBLIC_URL` in `.env`. Vite proxies `/api` to the API at `127.0.0.1:3001`. Local data and original files stay in `.data/`; restarting the processes preserves them. Database migrations run automatically when the backend starts. To run them explicitly:
 
-```bash
-npm run build
-npm run preview
+```sh
+node --env-file=.env --import tsx apps/api/src/migrate.ts
 ```
 
-The production preview normally runs at <http://127.0.0.1:4173>. The built `dist/` directory is a static site; no API keys or environment variables are required.
+For a compiled backend and production frontend build:
 
-## Explore the prototype
+```sh
+npm run build
+node --env-file=.env apps/api/dist/server.js
+```
 
-1. **Courses:** browse your courses as cards, search by name/code/instructor, then open a course.
-2. **Course workspace:** a full-height three-column learning environment. The left file tree contains `course_material/`, `personal_material/`, and `LLM_wiki/`; the middle is your conversation; the right is a tabbed reader for documents, wiki pages, and HTML animations.
-3. **Documents and animations:** clicking a file opens or reuses its tab. Cited sources jump to the relevant page. Animations open in additional tabs, leaving your documents available. Tabs can be closed, switched with the keyboard, and retain their individual page state.
-4. **Uploads:** the file-tree plus button accepts PDF, Markdown and text files up to 10 MB. Student uploads go to personal materials; instructor uploads go to shared course materials. Original PDFs and extracted text can be read and downloaded from the right panel.
-5. **My wiki:** browse your personal notes from all courses in a three-column card library. Each card opens one note in an Obsidian-inspired workspace with a course/folder tree, note tabs, Markdown editing, outline, outgoing links and backlinks. A local graph and an expandable full graph use actual `[[wiki links]]`; select nodes to open notes, zoom, pan or use the keyboard-accessible note list. Course workspaces keep `LLM_wiki/` limited to the current course.
-6. **Wiki market:** browse versioned course publications, save them, and import independently editable copies with remapped internal links. Publications can contain one note or several pages from the same course. The market has a course selector; the personal library defaults to all courses with an optional filter.
-7. **Instructor view:** switch to Richard Lui (Software Engineering) or Emily Chan (Web Application Development). Teachers have **Courses / Inbox** navigation. Each teaching space contains **Overview / Materials / Students / Wiki market**. Statistics come from actual local records and the course roster, including learners with no activity. Student detail exposes sessions, uploaded files and published Wiki snapshots. Session review is read-only and preserves the original list/search on return; private Wiki notes are unavailable to teachers.
-8. **Inbox:** students can message their course teacher from Inbox or **Ask teacher** inside a course, optionally linking an own session. Teachers reply from a unified private inbox. Both sides have unread indicators; teachers can resolve threads and a student follow-up reopens them. Messages are text-only and stay in this browser.
-9. **Course library:** teachers can upload, preview, download, rename, archive and restore public materials. Archived documents leave new learning source lists while their original files and historical citations remain readable. Teachers can feature published Wiki snapshots; students see these under **Teacher picks**.
+`apps/web/dist` contains the frontend. Deploy it with the API proxy configuration; serving only those static files does not provide accounts or persistence.
 
-### Suggested five-minute demo
+## Accounts and courses
 
-- Open **Courses**, choose **Software Engineering**, and inspect the three file folders.
-- Open a course document and a personal file; switch their right-side tabs.
-- Select **Visualize** under the existing explanation. The animation opens in its own tab while the document stays open.
-- Compare inventory with and without a lock. Ask a follow-up, save its explanation to Wiki, and find the new page in `LLM_wiki/`.
-- Open **My wiki** to see notes from both courses. Choose a card, follow its links, inspect backlinks and open the full graph from the left ribbon.
-- Edit a note with `[[Note title|label]]`, save, and watch the graph and connections update. Publish a page or a connected collection to its course market.
-- Send a question with **Ask teacher**, switch to its course instructor, reply in Inbox and mark it resolved. Switch back to the student and follow up to reopen it.
-- In teacher mode, open **Students**, search a learner and review a session; return to the same student and search. Manage course documents and feature a published Wiki in the course market.
+- Connect MetaMask and sign the server-generated login message. This is an off-chain signature: login sends no transaction and costs **zero Gas**. The server validates a five-minute, one-time challenge and stores a seven-day HttpOnly session.
+- On first login, enter a display name and select **Student** or **Teacher**. Students also enter a student number. The server stores the selected role and prevents changing it after onboarding. Student numbers are self-reported information.
+- Teachers create courses with a name, course code, and description, then share the generated student join code. They can reset that code. Students join using the code.
+- Fresh databases contain sample course materials. Students can try `FOLIO-SE` or `FOLIO-WEB` as join codes. A teacher creates their own course to manage materials, students, Inbox, and courseware.
+- Each wallet is a separate account. The first version supports MetaMask ordinary Ethereum accounts. Wallet recovery and contract-wallet signatures are outside this version.
 
-## Prototype boundaries
+## Learning and teaching
 
-- **No live LLM is connected.** The tutor performs local keyword retrieval and uses prepared teaching explanations for supported concepts. Other questions return matching source excerpts or a clear no-match response. “Demo responses” is visible in the studio.
-- **Animations are authored interactive HTML/React scenes.** The prototype demonstrates where an AI-generated explanation would appear; it does not generate arbitrary HTML from a model.
-- **Identity and permissions are demonstrated in the UI.** Course ownership, enrollment, private messages and teacher read-only boundaries are checked in client logic, including actions and direct links. The role switcher is not authentication. All example users share one browser-local data store. A production system needs authenticated server-side membership, authorization, and storage.
-- **Browser-local persistence:** workspace records are in `localStorage` (`folio-workspace-v1`); uploaded original files are in IndexedDB (`folio-original-files`). There is no multi-device or multi-user synchronization. Clearing browser site data removes the workspace and uploads.
-- **Inbox is a local interaction demo:** switching identities in the same browser lets you demonstrate sending and replying; it does not deliver messages to another person's device or email. The selected demo identity persists across refreshes. Older workspace records are migrated without resetting existing materials, sessions, notes or stored originals.
-- **PDF extraction is text-based:** scanned/image-only PDFs need OCR elsewhere. Empty, oversized, encrypted, unsupported, and unreadable files show errors. Seed course documents are original sample text, rather than uploaded copies of actual lecture slides.
-- **Wiki behavior is Obsidian-inspired:** Markdown pages, internal links, backlinks, folders and source references. Native Obsidian plugin compatibility, vault synchronization and automatic LLM maintenance are not implemented.
-- **Market publications are snapshots:** later private edits do not silently update published content. A new publication creates a new version. Only selected content is shared; private attachment and session metadata are excluded from publication records.
-- Student numbers, the other student identities, course codes and lecture content are example data. Wenbin is the prototype owner. Instructor names are demo labels rather than connected accounts.
+**Student workspace:** Courses opens a three-column learning space with a file tree, conversation, and tabbed document/Wiki/HTML reader. Upload personal PDF, Markdown, or text files, select sources, and ask Qwen questions with streamed responses and page references. Visualize creates a structured interactive explanation with steps and a short understanding check, displayed in an isolated HTML iframe.
 
-## Implementation
+**Personal Wiki:** save explanations, edit Markdown, follow `[[wiki links]]`, inspect backlinks and the graph, and organize notes across courses. Publish selected pages as versioned course snapshots. Market saves and imports create independent copies while preserving attribution and remapping internal links.
 
-- React + Vite, plain CSS, Lucide icons, locally bundled DM Sans and Instrument Serif fonts.
-- PDF.js for browser-local PDF text extraction; IndexedDB for original files.
-- Hash navigation supports direct links to sessions and wiki notes.
-- Responsive layouts, visible keyboard focus, modal focus containment, reduced-motion styles, and labelled interactive controls.
+**Teacher workspace:** manage your course's public materials, rename/archive/restore files, review enrolled students' sessions and uploaded materials in read-only mode, feature published Wiki snapshots, and reply to private course Inbox threads. Teachers cannot access students' private Wiki titles, counts, contents, or graphs. The backend enforces course ownership, enrollment, and account permissions for every resource.
+
+**Teacher Courseware:** select active public course materials, enter a topic, teaching requirements, language, and slide count, then generate a private draft. Review and edit its title, slide content, and teaching notes; preview the HTML, download an editable PowerPoint, or publish it into course materials. Generated text, tables, and basic shapes are native PowerPoint objects. Complex web animations do not become executable PowerPoint animations. HTML preview and PPTX are rendered from the same validated slide structure; this is not an arbitrary webpage-to-PowerPoint converter.
+
+**Inbox:** private text threads between a course teacher and an enrolled student, with session links, unread state, teacher resolution, and reopening on a student follow-up. Messages persist across accounts and devices through the API.
+
+## AI and file limits
+
+| Capability | Current limit |
+| --- | --- |
+| Uploaded originals | PDF, Markdown, UTF-8 text; non-empty and at most 10 MB |
+| PDF parsing | At most 500 pages and 2 million extracted characters; text-based PDFs, no OCR |
+| Selected source materials | At most 30 per request; only accessible, active materials |
+| Chat | 6,000 characters per question; one active answer per session |
+| Daily chat requests | 60 per account, configurable with `H2A_DAILY_CHAT_LIMIT` |
+| Daily generation requests | 10 per account shared by visualizations and courseware, configurable with `H2A_DAILY_GENERATION_LIMIT` |
+| Generation queue | One worker, at most two queued/running jobs per account, up to three attempts per job |
+| Courseware | 1–20 slides, default 10; 16:9; topic up to 200 characters and requirements up to 4,000 characters |
+
+Daily quotas reset at **00:00 UTC**. Failed provider attempts and user retries count toward the quota. Downloading an existing PPTX does not call the model again. AI requests use the configured OpenRouter account and its billing; application quotas limit request counts, not provider prices.
+
+The server retrieves relevant text chunks and validates model citations against selected material/page pairs. It labels answers unsupported by selected materials as general explanation. AI output should be reviewed before publishing. File parsing runs in a separate persistent queue, so it does not wait behind model generation. Up to five file jobs per account can be pending. Generation jobs and outputs persist in SQLite; the worker resumes interrupted jobs after a restart and reports failures for retry. Existing private browser prototype data is not imported automatically.
+
+## Repository and validation
 
 ```text
-src/
-  App.jsx                 Course-first shell, role switcher, routing and search
-  context.jsx             Shared application state
-  data.js                 Original example courses and learning content
-  components/
-    Courses.jsx           Course card grid, search and filters
-    CourseWorkspace.jsx   File tree, conversation and preview tabs
-    WorkspacePreview.jsx  PDF, Markdown, wiki and animation readers
-    Studio.jsx            Embedded learning conversation demo
-    Animation.jsx         Interactive concurrency and browser explanations
-    Teacher.jsx           Teaching courses, overview, materials and students
-    Inbox.jsx             Private course threads, replies and unread status
-    WikiLibrary.jsx       All-course personal note cards and filters
-    Wiki.jsx              Obsidian-inspired note workspace and publishing
-    WikiGraph.jsx         Interactive local/full graph from actual links
-    Market.jsx            Published collections and independent imports
-    ui.jsx                Shared accessible dialog and avatar
-  lib/
-    files.js              File validation and text extraction
-    originals.js          IndexedDB original-file storage
-    navigation.js         Course-aware routing and legacy link handling
-    wikiLinks.js          Wiki link parsing, resolution, forward/backlinks
-    access.js             Course membership and identity permission checks
-    workspaceData.js      Compatible local-data migration and demo teachers
-    inbox.js              Authorized message and read-state transitions
+apps/web/       React, Vite, course workspace, Wiki, Inbox, teacher Courseware
+apps/api/       Fastify, SIWE authentication, SQLite/Drizzle, Qwen and task worker
+scripts/e2e.mjs Browser integration checks with isolated accounts and a mock AI server
+deploy/         VM provisioning, Nginx/TLS, backup, release and rollback helpers
+.github/        CI and release-only production deployment workflows
 ```
 
-## Validation
+```sh
+npm run check
+npm test
+npm run build
+npx playwright install chromium
+CI=1 node scripts/e2e.mjs
+```
 
-The first prototype was built and exercised on 15 October 2026:
+The browser checks use actual API signature verification and SQLite, with synthetic wallets and a local mock model. They exercise first-login roles, teacher course creation, student joining, uploads, streamed chat, private Wiki, interactive HTML, editable Chinese PPTX, publication, reload persistence, and responsive Courseware. These automated checks make no paid OpenRouter calls. Screenshots and the generated test PPTX go into ignored `test-results/`.
 
-- Production build passed.
-- Real five-page PDF uploaded, extracted, persisted, opened as original PDF and downloaded; text references remained readable.
-- Student workspace isolation, instructor read-only access and student file visibility were exercised through the UI.
-- Animation results differed correctly: two accepted orders without a lock, one accepted order with a lock.
-- Session-to-wiki save, versioned two-page publication, bookmark, cross-student import and remapped internal links were exercised.
-- Course-aware routing and legacy session links were checked; the revised course grid and workspace are validated at phone, tablet and desktop widths.
-- File and animation tabs, source page navigation, uploads, wiki links and instructor read-only access were exercised in the revised workspace.
-- All-course wiki cards, course-scoped classroom notes, cross-course aliases/backlinks, live graph updates, graph keyboard navigation/zoom, note creation/editing, scoped publishing, private-note filtering and phone panel switching were exercised in the revised wiki.
-- Teacher course ownership, roster filtering, private Wiki exclusion, Inbox send/reply/resolve/follow-up/unread flows, cross-identity denials, read-only session return navigation, real PDF upload/rename, archive/historical citation/restore, and teacher Wiki picks were exercised in the UI.
+CI performs the checks, build, and browser integration run on development pushes and PRs. **Only updates to `release` trigger automatic production deployment.** The release workflow backs up SQLite and files, applies unapplied migrations, checks the API version, then promotes the matching Vercel frontend. Normal database changes require no manual SQL. An unsuccessful migration stops the release; application rollback preserves data and does not automatically reverse SQL.
 
-Run `npm run check` for persistent domain assertions covering identity boundaries, membership, compatible migration, Inbox transitions and route round-trips. UI and responsive verification covers 375, 768, 1024 and 1440 pixel widths.
+See [deployment and recovery instructions](docs/DEPLOYMENT.md) for secrets, HTTPS, backups, and rollback. The intended frontend project is `folio-group-project`; Azure hosts the API and persistent data. At the initial infrastructure check on **17 October 2026**, the VM's local HTTP service worked but public ports **80 and 443 timed out**. Trusted HTTPS and public end-to-end deployment still require the server administrator to open those ports and a successful public smoke check.
 
-Visual and interaction decisions are documented in [DESIGN.md](DESIGN.md). Screenshots live in `docs/screenshots/`.
+Visual decisions remain in [DESIGN.md](DESIGN.md). Existing prototype screenshots are in `docs/screenshots/`; new browser-check screenshots are generated in `test-results/screenshots/`.

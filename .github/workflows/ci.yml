@@ -1,0 +1,41 @@
+name: CI
+on:
+  push:
+    branches-ignore: [release]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+      - name: Validate deployment scripts
+        run: |
+          shellcheck deploy/*.sh
+          node --check deploy/smoke.mjs
+          node --check deploy/vercel-current.mjs
+      - name: Install browser integration dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Run browser integration checks
+        run: node scripts/e2e.mjs
+      - name: Save browser integration results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: folio-ci-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,0 +1,441 @@
+.courseware {
+  padding: 24px 0 48px;
+  color: var(--ink, #202d44);
+}
+.courseware-header,
+.courseware-review-bar,
+.courseware-review-bar > div,
+.courseware-section-title,
+.courseware-task-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.courseware-header {
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.courseware-kicker {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  color: #748096;
+  text-transform: uppercase;
+}
+.courseware-header h2 {
+  font-family: "Instrument Serif", serif;
+  font-size: 34px;
+  font-weight: 400;
+  margin: 7px 0;
+}
+.courseware-header p,
+.courseware-help,
+.courseware-task p {
+  font-size: 12px;
+  color: #768095;
+  line-height: 1.6;
+  margin: 4px 0;
+}
+.courseware-grid {
+  display: grid;
+  grid-template-columns: minmax(290px, 0.9fr) minmax(0, 1.2fr);
+  gap: 24px;
+}
+.courseware-form,
+.courseware-library,
+.courseware-edit-panel,
+.courseware-preview {
+  border: 1px solid #e1e5ee;
+  border-radius: 12px;
+  background: #fff;
+  padding: 23px;
+  min-width: 0;
+}
+.courseware-section-title {
+  margin-bottom: 22px;
+  color: #3156d3;
+}
+.courseware-section-title h3 {
+  font-size: 15px;
+  color: #202d44;
+  margin: 0;
+}
+.courseware-section-title > span {
+  margin-left: auto;
+  font-size: 11px;
+  color: #758098;
+}
+.courseware label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+.courseware label small {
+  font-weight: 400;
+  font-size: 10px;
+  color: #758098;
+}
+.courseware input:not([type="checkbox"]),
+.courseware textarea,
+.courseware select {
+  width: 100%;
+  border: 1px solid #dfe4ee;
+  border-radius: 7px;
+  background: #fff;
+  padding: 10px 11px;
+  font:
+    400 12px/1.6 "DM Sans",
+    sans-serif;
+  color: #202d44;
+  min-height: 39px;
+}
+.courseware input:focus-visible,
+.courseware textarea:focus-visible,
+.courseware select:focus-visible,
+.courseware button:focus-visible,
+.courseware a:focus-visible {
+  outline: 2px solid #3156d3;
+  outline-offset: 2px;
+}
+.courseware textarea {
+  resize: vertical;
+}
+.courseware-form-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+}
+.courseware fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+}
+.courseware legend {
+  width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+}
+.courseware legend span {
+  float: right;
+  font-weight: 400;
+  font-size: 11px;
+  color: #758098;
+}
+.courseware-source-list {
+  max-height: 220px;
+  overflow: auto;
+  margin-top: 10px;
+  border: 1px solid #e7ebf1;
+  border-radius: 8px;
+}
+.courseware-source-list label {
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 12px;
+  margin: 0;
+  border-bottom: 1px solid #eef0f5;
+  cursor: pointer;
+  font-weight: 500;
+}
+.courseware-source-list label:last-child {
+  border-bottom: 0;
+}
+.courseware-source-list input {
+  accent-color: #3156d3;
+}
+.courseware-source-list span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.courseware-source-list small {
+  display: block;
+  margin-top: 3px;
+}
+.courseware-source-list > p {
+  font-size: 12px;
+  color: #758098;
+  padding: 12px;
+}
+.courseware-generate {
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 9px;
+}
+.courseware-empty {
+  display: flex;
+  min-height: 240px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  color: #8a94a5;
+  padding: 22px;
+}
+.courseware-empty h3 {
+  font-family: "Instrument Serif", serif;
+  font-weight: 400;
+  font-size: 24px;
+  color: #202d44;
+  margin: 18px 0 5px;
+}
+.courseware-empty p {
+  font-size: 12px;
+  line-height: 1.7;
+  max-width: 280px;
+}
+.courseware-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e5e8f0;
+  border-radius: 9px;
+  padding: 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.courseware-card:hover {
+  background: #f7f9fd;
+  border-color: #b7c4ed;
+}
+.courseware-card-icon {
+  display: grid;
+  place-items: center;
+  background: #edf1fc;
+  color: #3156d3;
+  width: 43px;
+  height: 48px;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+.courseware-card > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.courseware-card strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.courseware-card small {
+  display: block;
+  font-size: 10px;
+  color: #8690a2;
+  margin-top: 5px;
+}
+.courseware-status {
+  display: inline-flex;
+  font-size: 10px;
+  text-transform: capitalize;
+  background: #f0f2f6;
+  color: #6b768b;
+  border-radius: 4px;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+.courseware-status.published {
+  background: #eaf4ef;
+  color: #477c65;
+}
+.courseware-error {
+  border: 1px solid #efc8c6;
+  background: #fff4f3;
+  color: #a0413b;
+  padding: 12px 15px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.7;
+  margin-bottom: 18px;
+}
+.courseware-task {
+  padding: 16px 18px;
+  background: #f2f5fd;
+  border: 1px solid #dce4fb;
+  border-radius: 9px;
+  margin-bottom: 22px;
+}
+.courseware-task-heading {
+  font-size: 12px;
+  color: #3156d3;
+}
+.courseware-task-heading > span {
+  margin-left: auto;
+  font-size: 11px;
+}
+.courseware-task progress {
+  display: block;
+  width: 100%;
+  height: 5px;
+  accent-color: #3156d3;
+  margin: 13px 0 8px;
+}
+.courseware-task.failed {
+  background: #fff8ed;
+  border-color: #efddba;
+}
+.courseware-task.failed .courseware-task-heading {
+  color: #976b31;
+}
+.courseware-task.succeeded {
+  background: #f0f7f3;
+  border-color: #dbe9e0;
+}
+.courseware-task.succeeded .courseware-task-heading {
+  color: #477c65;
+}
+.courseware-review-bar {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.courseware-unsaved {
+  font-size: 11px;
+  color: #a27a39;
+}
+.courseware-review-bar .btn {
+  font-size: 11px;
+}
+.courseware-review-bar .disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.courseware-title-label {
+  font-size: 11px !important;
+}
+.courseware-title-label input {
+  font-family: "Instrument Serif", serif !important;
+  font-size: 24px !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  padding-left: 0 !important;
+}
+.courseware-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.3fr);
+  gap: 20px;
+}
+.courseware-slide-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.courseware-slide-tabs button {
+  height: 29px;
+  min-width: 30px;
+  border: 1px solid #e1e5ee;
+  border-radius: 5px;
+  background: white;
+  color: #788296;
+  font-size: 11px;
+  cursor: pointer;
+}
+.courseware-slide-tabs button[aria-selected="true"] {
+  background: #3156d3;
+  color: white;
+  border-color: #3156d3;
+}
+.courseware-edit-panel > .courseware-kicker {
+  display: block;
+  margin-bottom: 17px;
+}
+.courseware-source-note {
+  font-size: 10px;
+  line-height: 1.7;
+  color: #758098;
+  display: flex;
+  gap: 7px;
+}
+.courseware-preview {
+  padding: 0;
+  overflow: hidden;
+  background: #edf0f6;
+  display: flex;
+  flex-direction: column;
+  min-height: 560px;
+}
+.courseware-preview > div {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: #fff;
+  padding: 13px 16px;
+  font-size: 11px;
+  color: #758098;
+  border-bottom: 1px solid #e1e5ee;
+}
+.courseware-preview > div span {
+  margin-left: auto;
+  font-size: 10px;
+}
+.courseware-preview iframe {
+  border: 0;
+  width: 100%;
+  flex: 1;
+  min-height: 560px;
+}
+.courseware-spin {
+  animation: courseware-spin 1.5s linear infinite;
+}
+@keyframes courseware-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .courseware-spin {
+    animation: none;
+  }
+}
+@media (max-width: 1050px) {
+  .courseware-grid,
+  .courseware-editor-layout {
+    grid-template-columns: 1fr;
+  }
+  .courseware-preview {
+    min-height: 500px;
+  }
+  .courseware-preview iframe {
+    min-height: 500px;
+  }
+}
+@media (max-width: 600px) {
+  .courseware {
+    padding-top: 14px;
+  }
+  .courseware-header {
+    align-items: flex-start;
+  }
+  .courseware-header h2 {
+    font-size: 28px;
+  }
+  .courseware-form,
+  .courseware-library,
+  .courseware-edit-panel {
+    padding: 17px;
+  }
+  .courseware-review-bar > div {
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .courseware-review-bar .btn {
+    padding: 8px;
+  }
+  .courseware-card {
+    gap: 9px;
+  }
+  .courseware-card .courseware-status {
+    font-size: 9px;
+  }
+  .courseware-preview,
+  .courseware-preview iframe {
+    min-height: 390px;
+  }
+}

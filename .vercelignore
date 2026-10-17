@@ -1,0 +1,15 @@
+.git
+node_modules
+.deployment
+.data
+.env
+.env.*
+*.sqlite*
+*.db
+playwright-report
+test-results
+
+**/.data
+**/data
+*.pem
+*.key

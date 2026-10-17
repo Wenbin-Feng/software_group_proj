@@ -4,5 +4,14 @@ dist/
 .env
 .env.*
 !.env.example
+.vercel/
+.deployment/
+.data/
+data/
+*.sqlite
+*.sqlite-*
+*.db
 playwright-report/
 test-results/
+*.pem
+*.key
