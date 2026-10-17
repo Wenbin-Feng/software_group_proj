@@ -250,9 +250,9 @@ export async function deckPptx(deck: SlideDeck): Promise<Buffer> {
       items.forEach((line, i) =>
         slide.addText(line, {
           x,
-          y: 2 + i * 0.68,
+          y: 2 + i * 0.78,
           w,
-          h: 0.6,
+          h: 0.75,
           fontSize: 21,
           color: "202D44",
           breakLine: false,
