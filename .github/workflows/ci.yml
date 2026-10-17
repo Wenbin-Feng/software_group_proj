@@ -11,7 +11,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,6 +31,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run browser integration checks
         run: node scripts/e2e.mjs
+      - name: Verify Linux backend packaging
+        run: bash deploy/verify-image.sh folio-api:verify
       - name: Save browser integration results
         if: always()
         uses: actions/upload-artifact@v4
