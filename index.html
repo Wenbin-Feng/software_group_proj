@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="ReviewRoom AI is a frontend prototype for practising software engineering conversations and code review."
+    />
+    <title>ReviewRoom AI · Practice before it counts</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2316324f'/%3E%3Ctext x='18' y='45' font-size='38' font-family='Georgia' fill='white'%3ER%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div class="app-shell">
+      <header class="topbar">
+        <button class="brand" type="button" data-view="home" aria-label="ReviewRoom AI home">
+          <span class="brand-mark" aria-hidden="true">R</span>
+          <span>
+            <strong>ReviewRoom</strong>
+            <small>AI practice studio</small>
+          </span>
+        </button>
+
+        <nav class="main-nav" aria-label="Main navigation">
+          <button class="nav-link active" type="button" data-view="home">Home</button>
+          <button class="nav-link" type="button" data-view="practice">Practice</button>
+          <button class="nav-link" type="button" data-view="code-lab">Code lab</button>
+          <button class="nav-link" type="button" data-view="coach">Teacher studio</button>
+        </nav>
+
+        <div class="profile-chip" title="Demo identity">
+          <span class="avatar">LA</span>
+          <span><strong>LICK_Alex</strong><small>Student demo</small></span>
+        </div>
+      </header>
+
+      <main id="main-content" tabindex="-1"></main>
+
+      <footer>
+        <span>ReviewRoom AI · Independent prototype by LICK_Alex</span>
+        <span class="demo-label">Demo data · No real AI call</span>
+      </footer>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
