@@ -79,6 +79,28 @@ Daily quotas reset at **00:00 UTC**. Failed provider attempts and user retries c
 
 The server retrieves relevant text chunks and validates model citations against selected material/page pairs. It labels answers unsupported by selected materials as general explanation. AI output should be reviewed before publishing. File parsing runs in a separate persistent queue, so it does not wait behind model generation. Up to five file jobs per account can be pending. Generation jobs and outputs persist in SQLite; the worker resumes interrupted jobs after a restart and reports failures for retry. Existing private browser prototype data is not imported automatically.
 
+## Langfuse observability and model costs
+
+The backend optionally exports metadata-only traces to Langfuse Cloud using its OpenTelemetry SDK. Set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and `LANGFUSE_BASE_URL` in the backend environment; never expose them through Vite or the frontend. Set `LANGFUSE_TRACING_ENVIRONMENT=production` on the server. Missing credentials or `LANGFUSE_ENABLED=false` disables tracing. Export failures do not retry or fail model requests.
+
+Traces group **Course Chat**, **Courseware Generation**, and **Visual Explanation** with retrieval, **Model Call**, validation, and rendering steps. Exports and publication are traced separately. Generation retries are separate attempts with the same job ID; recovering an already-saved result does not create another model call. This instruments the existing fixed workflows; it does not introduce an autonomous agent.
+
+Each model observation records the actual model ID, provider, timing, token usage, and USD cost. OpenRouter's reported `usage.cost` is preferred and marked `costSource=provider_reported`; upstream inference cost is kept separately because it is not necessarily the account charge. Input/cache and output/reasoning buckets are mutually exclusive, including usage delivered in the final streaming event. A missing final usage report is unknown, rather than zero.
+
+`metadata.pricing` contains a dated public OpenRouter catalog snapshot: `inputUsdPerMillion`, `outputUsdPerMillion`, optional cache rates, and applied pricing overrides. Langfuse v4 read APIs return nested metadata as dotted keys such as `pricing.inputUsdPerMillion`. Prices are discovered dynamically, cached for five minutes, and fetched concurrently with generation. Catalog rates can differ from the routed provider, discounts, and extra billable operations. If actual cost is absent, only supported, complete counts/rates produce a clearly labelled `catalog_estimate`; otherwise Folio leaves cost unset. Langfuse may also infer costs from its own model definitions, so consult `costSource` for the provenance of Folio's reported charge. Unit prices are metadata; `costDetails` contains dollar amounts, not rates.
+
+Raw prompts, answers, uploaded materials, personal profiles, wallet addresses, and private Wiki contents are excluded. Account and session correlation uses pseudonymous IDs; only allowlisted operational IDs, counts, and accounting metadata are exported. Errors use fixed labels rather than exception messages.
+
+Normal automated tests use in-memory exporters or disable Langfuse entirely, with no paid requests. For an explicit live test with **two short billable Qwen calls**, run:
+
+```sh
+node --env-file=.env --import tsx scripts/test-langfuse.mjs --run
+```
+
+The script forces the `test` environment, verifies non-streaming and streaming generation, flushes the SDK, reads observations back from Langfuse, and checks hierarchy, actual costs, unit rates, token totals, and privacy. It prints safe trace IDs and accounting summaries only.
+
+To repeat readback without another model request, replace `--run` with `--trace-id=<test trace ID>` within one hour of the original test.
+
 ## Repository and validation
 
 ```text

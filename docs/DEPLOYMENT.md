@@ -58,9 +58,15 @@ H2A_LLM_API_KEY=<existing OpenRouter key>
 H2A_LLM_MODEL=qwen/qwen3.6-plus
 H2A_DAILY_CHAT_LIMIT=60
 H2A_DAILY_GENERATION_LIMIT=10
+LANGFUSE_PUBLIC_KEY=<Langfuse project public key>
+LANGFUSE_SECRET_KEY=<Langfuse project secret key>
+LANGFUSE_BASE_URL=https://jp.cloud.langfuse.com
+LANGFUSE_TRACING_ENVIRONMENT=production
 ```
 
 Then run `sudo chmod 600 /srv/folio/server.env` and `sudo bash /srv/folio/bin/enable-https.sh`. The script requests a trusted, short-lived IP certificate and switches Nginx to HTTPS. Set `ACME_EMAIL` when running it if certificate account notices should go to a known email address. Without it, renewal still runs automatically. The deploy hook tests and reloads Nginx after renewal.
+
+Langfuse credentials belong only in this root-readable runtime environment, not Vercel frontend variables, GitHub build logs, or images. The release image reads them through the existing Docker environment file, so future releases retain the configuration. Tracing uses outbound HTTPS and does not require opening an additional public port. The API batches exports and flushes after requests and workers drain during graceful shutdown. Set `LANGFUSE_ENABLED=false` to temporarily disable tracing; missing credentials also disable it. The optional live test documented in the README checks real ingestion in the separate `test` environment and is never run automatically by CI or releases.
 
 [Let's Encrypt's Certbot IP certificate instructions](https://letsencrypt.org/2026/03/11/shorter-certs-certbot) require Certbot 5.4+ for webroot support, the `shortlived` profile, and explicit webserver certificate installation. Check `sudo systemctl list-timers folio-*` and periodically inspect `journalctl -u folio-certbot-renew.service`; IP certificates are valid for approximately six days.
 

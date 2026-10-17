@@ -13,6 +13,10 @@ import { registerResources } from "./core/resources.js";
 import { registerUploads } from "./core/uploads.js";
 import { HttpError } from "./core/types.js";
 import { openApiDocument } from "./core/openapi.js";
+import {
+  initializeObservability,
+  shutdownObservability,
+} from "./observability.js";
 export interface AppOptions {
   dataDir?: string;
   publicUrl?: string;
@@ -95,15 +99,13 @@ export async function buildApp(options: AppOptions = {}) {
   });
   app.setErrorHandler((error, req, reply) => {
     if (error instanceof ZodError)
-      return reply
-        .code(400)
-        .send({
-          error: "Invalid request.",
-          details: error.issues.map((i) => ({
-            path: i.path.join("."),
-            message: i.message,
-          })),
-        });
+      return reply.code(400).send({
+        error: "Invalid request.",
+        details: error.issues.map((i) => ({
+          path: i.path.join("."),
+          message: i.message,
+        })),
+      });
     const status = (error as any).statusCode || 500;
     if (status >= 500)
       app.log.error(
@@ -116,14 +118,12 @@ export async function buildApp(options: AppOptions = {}) {
         },
         "Request failed",
       );
-    return reply
-      .code(status)
-      .send({
-        error:
-          status >= 500
-            ? "Something went wrong. Please try again."
-            : (error as Error).message,
-      });
+    return reply.code(status).send({
+      error:
+        status >= 500
+          ? "Something went wrong. Please try again."
+          : (error as Error).message,
+    });
   });
   app.get("/api/openapi.json", async () => openApiDocument(origin));
   app.get("/api/health", async () => ({
@@ -147,12 +147,35 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(resolve(process.argv[1])).href
 ) {
-  const app = await buildApp({ logger: true });
+  initializeObservability();
+  let app;
+  try {
+    app = await buildApp({ logger: true });
+  } catch (error) {
+    await shutdownObservability();
+    throw error;
+  }
+  let stopping = false;
   const stop = async () => {
-    await app.close();
-    process.exit(0);
+    if (stopping) return;
+    stopping = true;
+    // Fastify's onClose hooks run in reverse registration order. Flush only after
+    // all requests, generation workers, file workers, and the database have closed.
+    try {
+      await app.close();
+    } finally {
+      await shutdownObservability();
+    }
   };
   process.on("SIGTERM", stop);
   process.on("SIGINT", stop);
-  await app.listen({ port: Number(process.env.PORT || 3001), host: "0.0.0.0" });
+  try {
+    await app.listen({
+      port: Number(process.env.PORT || 3001),
+      host: "0.0.0.0",
+    });
+  } catch (error) {
+    await stop();
+    throw error;
+  }
 }

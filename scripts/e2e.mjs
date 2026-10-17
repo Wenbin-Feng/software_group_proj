@@ -166,6 +166,7 @@ async function api(page, path, options = {}) {
 const errors = [];
 try {
   start(["apps/api/dist/server.js"], root, {
+    LANGFUSE_ENABLED: "false",
     DATA_DIR: folder,
     APP_PUBLIC_URL: origin,
     ORIGIN_SECRET: "",
@@ -257,15 +258,13 @@ try {
   await student
     .getByRole("button", { name: "Upload personal material", exact: true })
     .click();
-  await student
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "transactions.md",
-      mimeType: "text/markdown",
-      buffer: Buffer.from(
-        "# Atomic operations\nA conditional inventory update protects the check and write together. A transaction alone does not define isolation. Concurrency needs a protected invariant.",
-      ),
-    });
+  await student.locator("input[type=file]").setInputFiles({
+    name: "transactions.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from(
+      "# Atomic operations\nA conditional inventory update protects the check and write together. A transaction alone does not define isolation. Concurrency needs a protected invariant.",
+    ),
+  });
   await student
     .getByRole("dialog")
     .getByRole("button", {
