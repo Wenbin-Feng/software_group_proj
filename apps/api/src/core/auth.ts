@@ -4,12 +4,21 @@ import { createSiweMessage } from "viem/siwe";
 import { getAddress, isAddress, verifyMessage } from "viem";
 import { z } from "zod";
 import { HttpError, type User } from "./types.js";
+import {
+  registerGoogle,
+  oauthBrowserCookie,
+  oauthBrowserCookiePath,
+} from "./google.js";
+import {
+  createGoogleOidcProvider,
+  type GoogleOidcProvider,
+} from "./google-oidc.js";
 export const sessionCookie = "folio_session";
 const browserCookie = "folio_login";
 export const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 export function toUser(row: any): User {
-  const initials = String(row.name || "Wallet")
+  const initials = String(row.name || "Account")
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
@@ -22,7 +31,10 @@ export function toUser(row: any): User {
     studentId: row.student_id,
     role: row.role || "student",
     profileComplete: Boolean(row.profile_complete),
-    walletAddress: row.wallet_address,
+    walletAddress: row.wallet_address || null,
+    googleLinked: Boolean(row.google_sub),
+    googleEmail: row.google_email || null,
+    authMethod: row.auth_method || (row.wallet_address ? "wallet" : "google"),
     initials,
     color: row.role === "teacher" ? "#b16c4b" : "#3156d3",
   };
@@ -35,20 +47,59 @@ export function requestUser(
   if (!token) return null;
   const row = app.folio.db
     .prepare(
-      "SELECT u.* FROM users u JOIN auth_sessions s ON s.user_id=u.id WHERE s.token_hash=? AND s.expires_at>?",
+      "SELECT u.*,COALESCE(m.method,'wallet') AS auth_method FROM users u JOIN auth_sessions s ON s.user_id=u.id LEFT JOIN auth_session_methods m ON m.token_hash=s.token_hash WHERE s.token_hash=? AND s.expires_at>?",
     )
     .get(hash(token), app.folio.now());
   return row ? toUser(row) : null;
 }
-export async function registerAuth(app: FastifyInstance, secure: boolean) {
+export function authCookieOptions(secure: boolean) {
+  return { httpOnly: true, secure, sameSite: "lax" as const, path: "/api" };
+}
+/** Call inside the authentication transaction, then set the cookie after commit. */
+export function createSession(
+  app: FastifyInstance,
+  request: FastifyRequest,
+  userId: string,
+  method: "wallet" | "google" = "wallet",
+) {
+  const { db, now } = app.folio;
+  const token = randomBytes(32).toString("base64url");
+  const timestamp = now();
+  const old = request.cookies[sessionCookie];
+  if (old)
+    db.prepare("DELETE FROM auth_sessions WHERE token_hash=?").run(hash(old));
+  db.prepare("DELETE FROM auth_sessions WHERE expires_at<=?").run(timestamp);
+  db.prepare(
+    "INSERT INTO auth_sessions(token_hash,user_id,expires_at,created_at) VALUES(?,?,?,?)",
+  ).run(hash(token), userId, timestamp + 7 * 86400_000, timestamp);
+  db.prepare(
+    "INSERT INTO auth_session_methods(token_hash,method) VALUES(?,?)",
+  ).run(hash(token), method);
+  return token;
+}
+export function setSessionCookie(
+  reply: FastifyReply,
+  token: string,
+  secure: boolean,
+) {
+  reply.setCookie(sessionCookie, token, {
+    ...authCookieOptions(secure),
+    maxAge: 7 * 86400,
+  });
+}
+export async function registerAuth(
+  app: FastifyInstance,
+  secure: boolean,
+  googleProvider?: GoogleOidcProvider | null,
+) {
   const { db, now, publicUrl } = app.folio;
   const origin = new URL(publicUrl);
-  const cookieOptions = {
-    httpOnly: true,
+  const cookieOptions = authCookieOptions(secure);
+  await registerGoogle(
+    app,
     secure,
-    sameSite: "lax" as const,
-    path: "/api",
-  };
+    googleProvider === undefined ? createGoogleOidcProvider() : googleProvider,
+  );
   const challengeSchema = z
     .object({
       address: z.string().refine(isAddress, "Invalid Ethereum address"),
@@ -135,8 +186,8 @@ export async function registerAuth(app: FastifyInstance, secure: boolean) {
       } catch {}
       if (!valid)
         throw new HttpError(401, "The wallet signature could not be verified.");
-      const token = randomBytes(32).toString("base64url");
       const timestamp = now();
+      let token = "";
       const user = db.transaction(() => {
         const consumed = db
           .prepare(
@@ -155,34 +206,17 @@ export async function registerAuth(app: FastifyInstance, secure: boolean) {
         const row = db
           .prepare("SELECT * FROM users WHERE wallet_address=? COLLATE NOCASE")
           .get(challenge.address) as any;
-        const old = request.cookies[sessionCookie];
-        if (old)
-          db.prepare("DELETE FROM auth_sessions WHERE token_hash=?").run(
-            hash(old),
-          );
-        db.prepare("DELETE FROM auth_sessions WHERE expires_at<=?").run(
-          timestamp,
-        );
-        db.prepare("INSERT INTO auth_sessions VALUES(?,?,?,?)").run(
-          hash(token),
-          row.id,
-          timestamp + 7 * 86400_000,
-          timestamp,
-        );
+        token = createSession(app, request, row.id);
         return toUser(row);
       })();
-      reply
-        .clearCookie(browserCookie, { path: "/api/auth" })
-        .setCookie(sessionCookie, token, {
-          ...cookieOptions,
-          maxAge: 7 * 86400,
-        });
+      reply.clearCookie(browserCookie, { path: "/api/auth" });
+      setSessionCookie(reply, token, secure);
       return { user };
     },
   );
   app.post("/api/auth/profile", async (request) => {
     const actor = app.folio.user(request);
-    if (!actor) throw new HttpError(401, "Please connect your wallet.");
+    if (!actor) throw new HttpError(401, "Please sign in.");
     const input = z
       .object({
         name: z.string().trim().min(1).max(80),
@@ -205,7 +239,12 @@ export async function registerAuth(app: FastifyInstance, secure: boolean) {
       db.prepare(
         "UPDATE users SET name=?,student_id=?,role=?,profile_complete=1 WHERE id=?",
       ).run(input.name, input.studentId, input.role, actor.id);
-      return toUser(db.prepare("SELECT * FROM users WHERE id=?").get(actor.id));
+      return toUser({
+        ...(db
+          .prepare("SELECT * FROM users WHERE id=?")
+          .get(actor.id) as object),
+        auth_method: actor.authMethod,
+      });
     })();
     return { user };
   });
@@ -215,9 +254,15 @@ export async function registerAuth(app: FastifyInstance, secure: boolean) {
       db.prepare("DELETE FROM auth_sessions WHERE token_hash=?").run(
         hash(token),
       );
+    const browser = request.cookies[oauthBrowserCookie];
+    if (browser)
+      db.prepare("DELETE FROM google_oauth_states WHERE browser_hash=?").run(
+        hash(browser),
+      );
     reply
       .clearCookie(sessionCookie, { path: "/api" })
-      .clearCookie(browserCookie, { path: "/api/auth" });
+      .clearCookie(browserCookie, { path: "/api/auth" })
+      .clearCookie(oauthBrowserCookie, { path: oauthBrowserCookiePath });
     return { ok: true };
   });
 }

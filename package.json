@@ -17,7 +17,7 @@
     "test": "npm run test -w apps/api && node --test apps/web/tests/*.test.js",
     "build": "npm run build -w apps/api && npm run build -w apps/web",
     "db:migrate": "node --env-file=.env --import tsx apps/api/src/migrate.ts",
-    "test:e2e": "node scripts/e2e.mjs"
+    "test:e2e": "node scripts/e2e.mjs && node scripts/e2e-google.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0"

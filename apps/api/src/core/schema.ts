@@ -6,7 +6,9 @@ import {
 } from "drizzle-orm/sqlite-core";
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
-  walletAddress: text("wallet_address").notNull().unique(),
+  walletAddress: text("wallet_address").unique(),
+  googleSub: text("google_sub").unique(),
+  googleEmail: text("google_email"),
   name: text("name").notNull().default(""),
   studentId: text("student_id").notNull().default(""),
   role: text("role"),
@@ -31,6 +33,12 @@ export const authSessions = sqliteTable("auth_sessions", {
     .references(() => users.id),
   expiresAt: integer("expires_at").notNull(),
   createdAt: integer("created_at").notNull(),
+});
+export const authSessionMethods = sqliteTable("auth_session_methods", {
+  tokenHash: text("token_hash")
+    .primaryKey()
+    .references(() => authSessions.tokenHash, { onDelete: "cascade" }),
+  method: text("method").notNull(),
 });
 export const authChallenges = sqliteTable("auth_challenges", {
   id: text("id").primaryKey(),
@@ -88,4 +96,19 @@ export const fileJobs = sqliteTable("file_jobs", {
   error: text("error"),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
+});
+
+export const googleOAuthStates = sqliteTable("google_oauth_states", {
+  stateHash: text("state_hash").primaryKey(),
+  browserHash: text("browser_hash").notNull(),
+  nonce: text("nonce").notNull(),
+  codeVerifier: text("code_verifier").notNull(),
+  mode: text("mode").notNull(),
+  linkUserId: text("link_user_id").references(() => users.id),
+  linkSessionHash: text("link_session_hash").references(
+    () => authSessions.tokenHash,
+  ),
+  expiresAt: integer("expires_at").notNull(),
+  createdAt: integer("created_at").notNull(),
+  consumedAt: integer("consumed_at"),
 });

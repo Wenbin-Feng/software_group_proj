@@ -534,7 +534,7 @@ test("database records survive app restart and applied migrations are tracked", 
         .prepare("SELECT count(*) as total FROM __folio_migrations")
         .get() as any
     ).total,
-    4,
+    5,
   );
 });
 test("notes cannot forge private source pages, foreign sessions or cross-course publication attribution", async (t) => {

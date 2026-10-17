@@ -69,7 +69,14 @@ function roleRoute(route, role, data) {
     return { ...route, view: "teacher", teacherPage: "market" };
   return route;
 }
-export default function App({ authenticatedUser, initialData, onLogout }) {
+export default function App({
+  authenticatedUser,
+  initialData,
+  onLogout,
+  googleEnabled = false,
+  onConnectGoogle,
+  authFeedback,
+}) {
   const [data, updateData] = useState(initialData);
   const dataRef = useRef(data);
   const revisionRef = useRef(0);
@@ -156,12 +163,30 @@ export default function App({ authenticatedUser, initialData, onLogout }) {
     };
   const [activeSessionId, setActiveSessionId] = useState(route.sessionId);
   const [activeNoteId, setActiveNoteId] = useState(route.noteId);
-  const [dialog, setDialog] = useState(null),
+  const [dialog, setDialog] = useState(
+      authFeedback?.error || authFeedback?.linked ? "identity" : null,
+    ),
     [preview, setPreview] = useState(null),
     [workspaceRequest, setWorkspaceRequest] = useState(null),
     [composeRequest, setComposeRequest] = useState(null),
-    [toastMessage, setToastMessage] = useState(""),
+    [toastMessage, setToastMessage] = useState(
+      authFeedback && !authFeedback.error && !authFeedback.linked
+        ? authFeedback.message
+        : "",
+    ),
     [mobileOpen, setMobileOpen] = useState(false);
+  const [connectingGoogle, setConnectingGoogle] = useState(false),
+    [googleError, setGoogleError] = useState("");
+  async function connectGoogle() {
+    setConnectingGoogle(true);
+    setGoogleError("");
+    try {
+      await onConnectGoogle();
+    } catch (error) {
+      setGoogleError(error.message);
+      setConnectingGoogle(false);
+    }
+  }
   const clearComposeRequest = useCallback(() => setComposeRequest(null), []);
   const isReview =
     role === "teacher" && view === "teacher" && route.teacherPage === "review";
@@ -715,8 +740,8 @@ export default function App({ authenticatedUser, initialData, onLogout }) {
               </div>
             </div>
             <p className="muted">
-              Your wallet signs you in. Your personal Wiki stays private,
-              including from teachers.
+              Sign in with Google or your wallet. Your personal Wiki stays
+              private, including from teachers.
             </p>
           </div>
         </Modal>
@@ -724,7 +749,11 @@ export default function App({ authenticatedUser, initialData, onLogout }) {
       {dialog === "identity" && (
         <Modal
           title="Your account"
-          subtitle="Signed in with MetaMask"
+          subtitle={
+            authenticatedUser.authMethod === "google"
+              ? "Signed in with Google"
+              : "Signed in with MetaMask"
+          }
           onClose={() => setDialog(null)}
         >
           <div className="about-content">
@@ -733,9 +762,64 @@ export default function App({ authenticatedUser, initialData, onLogout }) {
             <p>
               {role === "teacher" ? "Teacher" : `Student · ${user.studentId}`}
             </p>
-            <p className="muted" style={{ overflowWrap: "anywhere" }}>
-              {authenticatedUser.walletAddress}
-            </p>
+            <div className="account-methods">
+              {authenticatedUser.googleLinked && (
+                <div className="account-method">
+                  <strong>Google connected</strong>
+                  <span>
+                    {authenticatedUser.googleEmail ||
+                      "Connected Google account"}
+                  </span>
+                </div>
+              )}
+              {authenticatedUser.walletAddress && (
+                <div className="account-method">
+                  <strong>Wallet</strong>
+                  <span>{authenticatedUser.walletAddress}</span>
+                </div>
+              )}
+            </div>
+            {authFeedback &&
+              (authFeedback.error || authFeedback.linked) &&
+              !googleError && (
+                <div
+                  className={authFeedback.error ? "auth-error" : "auth-success"}
+                  role={authFeedback.error ? "alert" : "status"}
+                >
+                  {authFeedback.message}
+                </div>
+              )}
+            {googleError && (
+              <div className="auth-error" role="alert">
+                {googleError}
+              </div>
+            )}
+            {googleEnabled &&
+              !authenticatedUser.googleLinked &&
+              onConnectGoogle && (
+                <>
+                  <p className="muted">
+                    Connect Google to sign in to this same account without your
+                    wallet. Your courses and learning stay together.
+                  </p>
+                  <button
+                    className="btn auth-google"
+                    onClick={connectGoogle}
+                    disabled={connectingGoogle}
+                    aria-busy={connectingGoogle}
+                  >
+                    <img
+                      className="google-mark"
+                      src="/google-g.png"
+                      width="20"
+                      height="20"
+                      alt=""
+                      aria-hidden="true"
+                    />
+                    {connectingGoogle ? "Opening Google…" : "Connect Google"}
+                  </button>
+                </>
+              )}
             <button className="btn btn-outline" onClick={onLogout}>
               Sign out
             </button>

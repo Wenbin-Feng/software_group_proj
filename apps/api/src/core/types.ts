@@ -7,7 +7,10 @@ export interface User {
   studentId: string;
   role: "student" | "teacher";
   profileComplete: boolean;
-  walletAddress: string;
+  walletAddress: string | null;
+  googleLinked: boolean;
+  googleEmail: string | null;
+  authMethod: "wallet" | "google";
   initials: string;
   color: string;
 }

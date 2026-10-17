@@ -89,7 +89,14 @@ export function createStore(
       .prepare("SELECT * FROM users WHERE profile_complete=1")
       .all() as any[];
     const publicIdentity = (row: any) => {
-      const { walletAddress, profileComplete, ...rest } = toUser(row);
+      const {
+        walletAddress,
+        profileComplete,
+        googleLinked,
+        googleEmail,
+        authMethod,
+        ...rest
+      } = toUser(row);
       return rest;
     };
     return {
@@ -148,7 +155,7 @@ export function createStore(
     user: (r: any) => requestUser(app, r),
     requireUser: (r: any) => {
       const u = requestUser(app, r);
-      if (!u) throw new HttpError(401, "Please connect your wallet.");
+      if (!u) throw new HttpError(401, "Please sign in.");
       if (!u.profileComplete)
         throw new HttpError(403, "Complete your profile first.");
       return u;

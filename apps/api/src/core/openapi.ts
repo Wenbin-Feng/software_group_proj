@@ -23,7 +23,10 @@ const user = {
     studentId: str,
     role: { enum: ["student", "teacher"] },
     profileComplete: { type: "boolean" },
-    walletAddress: str,
+    walletAddress: { type: ["string", "null"] },
+    googleLinked: { type: "boolean" },
+    googleEmail: { type: ["string", "null"] },
+    authMethod: { enum: ["wallet", "google"] },
     initials: str,
     color: str,
   },
@@ -40,8 +43,60 @@ export function openApiDocument(publicUrl: string) {
     },
     "/api/auth/me": {
       get: {
-        summary: "Current wallet session; null before login",
+        summary: "Current Google or wallet session; null before login",
         responses: { 200: response("Session", object({ user })) },
+      },
+    },
+    "/api/auth/providers": {
+      get: {
+        summary: "Available sign-in methods; credentials are never returned",
+        responses: {
+          200: response(
+            "Providers",
+            object({
+              google: { type: "boolean" },
+              wallet: { type: "boolean" },
+            }),
+          ),
+        },
+      },
+    },
+    "/api/auth/google/start": {
+      post: {
+        summary:
+          "Start browser-bound Google sign-in or explicitly link the current account",
+        description:
+          "Requires the exact website Origin; link mode also requires an authenticated session. Sets a ten-minute HttpOnly OAuth browser cookie.",
+        requestBody: body(
+          object({ mode: { enum: ["login", "link"], default: "login" } }),
+        ),
+        responses: {
+          200: response("Google authorization URL", object({ url: str })),
+          401: error,
+          403: error,
+          429: error,
+          503: error,
+        },
+      },
+    },
+    "/api/auth/google/callback": {
+      get: {
+        summary:
+          "Consume a one-time Google OAuth callback and redirect to the canonical website",
+        description:
+          "Validates browser state, PKCE, nonce, ID-token signature/issuer/audience/expiry and verified email. Google access/refresh tokens are not persisted. Errors redirect with a fixed error code.",
+        parameters: [
+          { name: "state", in: "query", required: true, schema: str },
+          { name: "code", in: "query", schema: str },
+          { name: "error", in: "query", schema: str },
+        ],
+        responses: {
+          303: {
+            description:
+              "Canonical website redirect and common HttpOnly session cookie on success",
+          },
+          429: error,
+        },
       },
     },
     "/api/auth/challenge": {

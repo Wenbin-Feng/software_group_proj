@@ -82,11 +82,75 @@
   color: #667085;
   line-height: 1.7;
 }
-.auth-submit {
+.btn.auth-submit {
   width: 100%;
   min-height: 48px;
   justify-content: center;
   margin-top: 24px;
+}
+.btn.auth-google {
+  min-height: 48px;
+  padding: 12px;
+  gap: 10px;
+  background: #fff;
+  border-color: #747775;
+  color: #1f1f1f;
+  font-size: 14px;
+  font-weight: 500;
+}
+.btn.auth-google:hover:not(:disabled) {
+  background: #f8fafd;
+  border-color: #1f1f1f;
+}
+.google-mark {
+  flex: 0 0 20px;
+  object-fit: contain;
+}
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #667085;
+  font-size: 12px;
+  margin: 22px 0 16px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: #e2e6ee;
+}
+.btn.auth-wallet {
+  margin-top: 0;
+}
+.account-methods {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+}
+.account-method {
+  display: grid;
+  gap: 5px;
+  text-align: left;
+  padding: 14px;
+  border: 1px solid #e2e6ee;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.account-method span {
+  color: #667085;
+  overflow-wrap: anywhere;
+}
+.auth-success {
+  background: #effaf5;
+  border: 1px solid #add9c0;
+  border-radius: 8px;
+  color: #24613f;
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-top: 20px;
 }
 .auth-hint {
   font-size: 12px;

@@ -13,6 +13,7 @@ import { registerResources } from "./core/resources.js";
 import { registerUploads } from "./core/uploads.js";
 import { HttpError } from "./core/types.js";
 import { openApiDocument } from "./core/openapi.js";
+import type { GoogleOidcProvider } from "./core/google-oidc.js";
 import {
   initializeObservability,
   shutdownObservability,
@@ -26,6 +27,7 @@ export interface AppOptions {
   now?: () => number;
   logger?: boolean;
   originSecret?: string;
+  googleProvider?: GoogleOidcProvider | null;
 }
 export async function buildApp(options: AppOptions = {}) {
   const publicUrl =
@@ -40,6 +42,16 @@ export async function buildApp(options: AppOptions = {}) {
             "req.headers.x-origin-secret",
             "res.headers.set-cookie",
           ],
+          serializers: {
+            // OAuth callbacks contain one-time codes/state in their query; never log them.
+            req(request: any) {
+              return {
+                method: request.method,
+                url: String(request.url || "").split("?")[0],
+                remoteAddress: request.ip,
+              };
+            },
+          },
         }
       : false,
     bodyLimit: 4 * 1024 * 1024,
@@ -133,6 +145,7 @@ export async function buildApp(options: AppOptions = {}) {
   await registerAuth(
     app,
     options.secureCookies ?? origin.startsWith("https://"),
+    options.googleProvider,
   );
   await registerResources(app, core);
   await registerUploads(app);

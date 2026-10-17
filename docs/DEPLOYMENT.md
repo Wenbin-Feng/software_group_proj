@@ -10,7 +10,7 @@ Both CI verification jobs build and run browser integration checks with syntheti
 
 ## Accounts, courses, and generation
 
-The frontend uses React/Vite in `apps/web`; Fastify, the SQLite/Drizzle store, off-chain SIWE verification, and the embedded generation worker live in `apps/api`. First wallet login asks for a display name and **Student or Teacher** role; students also provide a student number. The chosen role is persisted by the backend and becomes immutable after onboarding. There is no teacher-wallet whitelist in this version. A login signature sends no blockchain transaction and costs zero Gas; model calls use the configured provider account separately.
+The frontend uses React/Vite in `apps/web`; Fastify, the SQLite/Drizzle store, off-chain SIWE verification, and the embedded generation worker live in `apps/api`. Google is the primary sign-in option, with MetaMask retained. First login asks for a display name and **Student or Teacher** role; students also provide a student number. The chosen role is persisted by the backend and becomes immutable after onboarding. Existing wallet users link Google explicitly from Your account; Google users do not need a wallet. There is no teacher-wallet whitelist in this version. A login signature sends no blockchain transaction and costs zero Gas; model calls use the configured provider account separately.
 
 Teachers create courses and share/reset their join codes; students join by code. Teachers may only manage their own courses and see enrolled students' sessions/uploads read-only; private student Wiki metadata and contents remain inaccessible. Sample course materials are seeded on a fresh database with student join codes `FOLIO-SE` and `FOLIO-WEB`, without copying browser prototype records into real accounts.
 
@@ -62,9 +62,13 @@ LANGFUSE_PUBLIC_KEY=<Langfuse project public key>
 LANGFUSE_SECRET_KEY=<Langfuse project secret key>
 LANGFUSE_BASE_URL=https://jp.cloud.langfuse.com
 LANGFUSE_TRACING_ENVIRONMENT=production
+GOOGLE_CLIENT_ID=<Google OAuth Web application client ID>
+GOOGLE_CLIENT_SECRET=<Google OAuth client secret>
 ```
 
 Then run `sudo chmod 600 /srv/folio/server.env` and `sudo bash /srv/folio/bin/enable-https.sh`. The script requests a trusted, short-lived IP certificate and switches Nginx to HTTPS. Set `ACME_EMAIL` when running it if certificate account notices should go to a known email address. Without it, renewal still runs automatically. The deploy hook tests and reloads Nginx after renewal.
+
+Google credentials also stay in the API runtime environment. Register `https://folio-group-project.vercel.app/api/auth/google/callback` in Google Cloud. This domain callback passes through the existing Vercel proxy; the Azure IP is not the Google redirect URI. The application derives the callback from `APP_PUBLIC_URL`. Apply the updated Folio Nginx HTTPS template (which logs paths without OAuth query strings), test its configuration, and reload it before enabling Google on an existing installation. OAuth state lives in SQLite, expires after ten minutes, and survives restarts. Database migrations retain the original four-column auth session table for rollback compatibility.
 
 Langfuse credentials belong only in this root-readable runtime environment, not Vercel frontend variables, GitHub build logs, or images. The release image reads them through the existing Docker environment file, so future releases retain the configuration. Tracing uses outbound HTTPS and does not require opening an additional public port. The API batches exports and flushes after requests and workers drain during graceful shutdown. Set `LANGFUSE_ENABLED=false` to temporarily disable tracing; missing credentials also disable it. The optional live test documented in the README checks real ingestion in the separate `test` environment and is never run automatically by CI or releases.
 

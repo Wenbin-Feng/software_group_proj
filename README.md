@@ -2,7 +2,7 @@
 
 **Make it make sense.** A course companion for learning from materials, asking questions, exploring visual explanations, and building a connected personal Wiki.
 
-The `dev/wenbin-final` implementation separates a React/Vite frontend from a Node.js 24/Fastify API. Wallet accounts, permissions, courses, files, conversations, Wiki publications, Inbox messages, and generation jobs persist on the server in SQLite. It builds on the earlier `dev/wenbin` prototype; the existing `main` branch has a separate history.
+The `dev/wenbin-final` implementation separates a React/Vite frontend from a Node.js 24/Fastify API. Google and wallet accounts, permissions, courses, files, conversations, Wiki publications, Inbox messages, and generation jobs persist on the server in SQLite. It builds on the earlier `dev/wenbin` prototype; the existing `main` branch has a separate history.
 
 ## Run locally
 
@@ -44,11 +44,26 @@ node --env-file=.env apps/api/dist/server.js
 
 ## Accounts and courses
 
-- Connect MetaMask and sign the server-generated login message. This is an off-chain signature: login sends no transaction and costs **zero Gas**. The server validates a five-minute, one-time challenge and stores a seven-day HttpOnly session.
+- Choose **Continue with Google** to sign in without a wallet. Google requests only `openid email profile`. An existing wallet user can open **Your account → Connect Google** before switching methods; this keeps the same account, courses, sessions, and Wiki. Accounts are never automatically merged by email.
+- Alternatively, connect MetaMask and sign the server-generated login message. This is an off-chain signature: login sends no transaction and costs **zero Gas**. The server validates a five-minute, one-time challenge and stores a seven-day HttpOnly session.
 - On first login, enter a display name and select **Student** or **Teacher**. Students also enter a student number. The server stores the selected role and prevents changing it after onboarding. Student numbers are self-reported information.
 - Teachers create courses with a name, course code, and description, then share the generated student join code. They can reset that code. Students join using the code.
 - Fresh databases contain sample course materials. Students can try `FOLIO-SE` or `FOLIO-WEB` as join codes. A teacher creates their own course to manage materials, students, Inbox, and courseware.
-- Each wallet is a separate account. The first version supports MetaMask ordinary Ethereum accounts. Wallet recovery and contract-wallet signatures are outside this version.
+- Google identities use the stable Google `sub`; a wallet is optional. Existing ordinary Ethereum wallet accounts remain supported. Google and wallet sessions use the same seven-day HttpOnly cookie; switching an installed wallet does not sign out a Google session. Wallet recovery and contract-wallet signatures are outside this version.
+
+## Configure Google sign-in
+
+Create an OAuth **Web application** client in Google Cloud, with External audience and only the basic `openid email profile` scopes. Register the exact authorized redirect URI:
+
+```text
+https://folio-group-project.vercel.app/api/auth/google/callback
+```
+
+Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` only in the API environment (`/srv/folio/server.env` in production). The callback is derived from `APP_PUBLIC_URL`, never forwarded Host headers or user-controlled redirect parameters. For local interactive Google testing, separately register `http://127.0.0.1:5173/api/auth/google/callback` in the same Google client. If the credentials are absent, the login page keeps the wallet option available.
+
+The backend uses Authorization Code flow with S256 PKCE, a browser-bound ten-minute one-time state, and a nonce. It validates the Google ID-token signature, issuer, client audience, expiry, and verified email. Access and refresh tokens are not persisted. Linking requires the original Folio session to remain valid and rejects identities already owned by another account. Existing users keep their IDs, ownership, sessions, and files through the versioned SQLite migration. Sign-in method metadata is stored separately so the old four-column session schema remains compatible with application rollback.
+
+OAuth callback queries and cookies are excluded from API request logs. The Folio Nginx template also logs URI paths without query strings. Existing installations must apply the updated `deploy/nginx-https.conf` template, run `nginx -t`, and reload Nginx before enabling the new public callback.
 
 ## Learning and teaching
 
@@ -116,10 +131,10 @@ npm run check
 npm test
 npm run build
 npx playwright install chromium
-CI=1 node scripts/e2e.mjs
+CI=1 npm run test:e2e
 ```
 
-The browser checks use actual API signature verification and SQLite, with synthetic wallets and a local mock model. They exercise first-login roles, teacher course creation, student joining, uploads, streamed chat, private Wiki, interactive HTML, editable Chinese PPTX, publication, reload persistence, and responsive Courseware. These automated checks make no paid OpenRouter calls. Screenshots and the generated test PPTX go into ignored `test-results/`.
+The browser checks use actual API signature verification and SQLite, with synthetic wallets and a local mock model. They exercise first-login roles, teacher course creation, student joining, uploads, streamed chat, private Wiki, interactive HTML, editable Chinese PPTX, publication, reload persistence, and responsive Courseware. The additional Google browser suite uses an injected local identity provider and a temporary database to exercise callbacks, wallet-free student/teacher onboarding, account linking, session persistence, errors, privacy and mobile layout. Unit tests separately validate real signed JWT processing and reject forged tokens. These automated checks make no real Google requests or paid OpenRouter calls. Screenshots and the generated test PPTX go into ignored `test-results/`.
 
 CI performs the checks, build, browser integration run, and a Linux Docker packaging smoke test on development pushes and PRs. The image test runs native SQLite migrations and starts the non-root API using temporary data, without credentials, network access, or published ports. **Only updates to `release` trigger automatic production deployment.** The release workflow backs up SQLite and files, applies unapplied migrations, checks the API version, then promotes the matching Vercel frontend. Normal database changes require no manual SQL. An unsuccessful migration stops the release; application rollback preserves data and does not automatically reverse SQL.
 
