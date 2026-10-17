@@ -25,6 +25,8 @@ The prototype responds to one gap in technical education: students may understan
 6. Inspect a small JavaScript example in the Code Review Lab and reveal three review concerns.
 7. Use Teacher Studio to edit an activity title, goal, difficulty and feedback focus, then save the draft locally.
 8. Use the same interface at desktop and mobile widths.
+9. Open **Study cards** for three software-project concepts: low coupling, requirements change and acceptance criteria. Each has three short cards: plain-language explanation → workplace example → connection back to the term. Switch between two prepared examples per concept.
+10. Read the Traditional Chinese explanations alongside English terms, or listen to the current card using a compatible device voice. Playback is optional; a related role-play remains a separate next step.
 
 ## Run locally
 
@@ -46,6 +48,7 @@ Opening `index.html` directly also works in modern browsers, but a local server 
 - Responsive CSS
 - Plain JavaScript
 - Browser `localStorage` for the teacher draft and student reflection
+- Browser `speechSynthesis` for optional card narration; no TTS API key
 - No framework, backend, database, external font or remote asset
 
 ## Prototype boundaries
@@ -55,12 +58,17 @@ Opening `index.html` directly also works in modern browsers, but a local server 
 - Teacher drafts and reflections stay in the current browser only.
 - There is no authentication, class enrolment, analytics dashboard or shared course storage.
 - No stakeholder interview or external usability test has been completed yet.
+- Study cards are authored examples, not real client case studies or content extracted from course slides. Further-reading links are not course citations.
+- Narration depends on installed/available Chinese voices. Cantonese, offline playback, pause/resume and background playback are device-dependent; some voices may use a network service. All content remains readable when speech is unavailable.
+- Card position stays in memory during navigation but resets on reload. Reading a card does not count as demonstrated mastery or change the demo scores.
 
 These boundaries keep the prototype focused on validating the interaction idea instead of pretending that unfinished infrastructure already exists.
 
 ## Validation
 
 The complete student flow, Code Review Lab, Teacher Studio local save and mobile layout were exercised in Chrome on 17 October 2026. The checked flow produced no JavaScript console or page errors. Full details are in [the validation record](docs/VALIDATION.md).
+
+The Study cards addition passed 67 automated browser assertions, including existing-flow regression checks. Speech controls were tested with a mocked engine; the native headless browser exposed no voices, so audible output and pronunciation have not been verified.
 
 ## Design and validation material
 
@@ -82,6 +90,10 @@ All screenshots below come from the running prototype.
 | Teacher Studio | Mobile home |
 | --- | --- |
 | ![Teacher Studio](docs/screenshots/05-teacher-studio.png) | ![Mobile home](docs/screenshots/06-mobile-home.png) |
+
+| Workplace study cards | Mobile study cards |
+| --- | --- |
+| ![Study cards with a workplace example](docs/screenshots/07-study-cards.png) | ![Mobile study cards](docs/screenshots/08-study-mobile.png) |
 
 ## Contribution record
 

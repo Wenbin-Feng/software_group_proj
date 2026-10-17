@@ -50,6 +50,7 @@
   }
 
   function setView(view) {
+    if (state.view === "study") window.ReviewRoomStudy.leave();
     state.view = view;
     document.querySelectorAll(".nav-link").forEach((button) => {
       button.classList.toggle("active", button.dataset.view === view);
@@ -94,6 +95,14 @@
           <button class="primary-button" type="button" data-start="pr-review">Start an 8-minute practice</button>
           <button class="secondary-button" type="button" data-view="coach">See the teacher view</button>
         </div>
+      </section>
+
+      <section class="study-entry" lang="zh-Hant" aria-labelledby="study-entry-title">
+        <div><span class="eyebrow">Small moments, practical learning</span>
+          <h2 id="study-entry-title">有幾分鐘？先讀懂一個概念。</h2>
+          <p>用辦公室項目例子理解英文術語。三張短卡，可讀、可聽，再按需要進入練習。</p>
+        </div>
+        <button class="secondary-button" type="button" data-view="study">打開短卡 →</button>
       </section>
 
       <section aria-labelledby="practice-heading">
@@ -294,6 +303,7 @@
 
   function render() {
     if (state.view === "home") renderHome();
+    if (state.view === "study") window.ReviewRoomStudy.mount(app);
     if (state.view === "practice") renderPractice();
     if (state.view === "code-lab") renderCodeLab();
     if (state.view === "coach") renderTeacherStudio();

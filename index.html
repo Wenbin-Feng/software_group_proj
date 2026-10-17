@@ -10,6 +10,7 @@
     <title>ReviewRoom AI · Practice before it counts</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2316324f'/%3E%3Ctext x='18' y='45' font-size='38' font-family='Georgia' fill='white'%3ER%3C/text%3E%3C/svg%3E" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="study.css" />
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
@@ -25,6 +26,7 @@
 
         <nav class="main-nav" aria-label="Main navigation">
           <button class="nav-link active" type="button" data-view="home">Home</button>
+          <button class="nav-link" type="button" data-view="study">Study cards</button>
           <button class="nav-link" type="button" data-view="practice">Practice</button>
           <button class="nav-link" type="button" data-view="code-lab">Code lab</button>
           <button class="nav-link" type="button" data-view="coach">Teacher studio</button>
@@ -46,6 +48,8 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script src="data.js"></script>
+    <script src="study-data.js"></script>
+    <script src="study.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
