@@ -163,6 +163,28 @@ async function api(page, path, options = {}) {
     { path, options },
   );
 }
+async function switchRole(page, role) {
+  await page
+    .getByRole("button", { name: "Account settings", exact: true })
+    .last()
+    .click();
+  const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  await settings
+    .getByRole("radio", {
+      name: role === "teacher" ? "Teacher" : "Student",
+      exact: true,
+    })
+    .check();
+  await settings
+    .getByRole("button", { name: "Save changes", exact: true })
+    .click();
+  await settings.waitFor({ state: "hidden" });
+  await page.getByRole("heading", { name: "Courses.", exact: true }).waitFor();
+  const result = await api(page, "/api/auth/me");
+  assert.equal(result.user.role, role);
+  assert.equal(result.user.authMethod, "wallet");
+  return result.user;
+}
 const errors = [];
 try {
   start(["apps/api/dist/server.js"], root, {
@@ -303,6 +325,21 @@ try {
   const persisted = await api(student, "/api/workspace");
   assert.equal(persisted.notes[0].id, state.notes[0].id);
   assert.equal(persisted.materials.filter((m) => m.ownerId).length, 1);
+  const studentAccount = (await api(student, "/api/auth/me")).user;
+  assert.equal((await switchRole(student, "teacher")).id, studentAccount.id);
+  assert.equal((await api(student, "/api/workspace")).notes.length, 0);
+  assert.equal((await switchRole(student, "student")).id, studentAccount.id);
+  await student.reload();
+  await student
+    .getByRole("button", { name: "Account settings", exact: true })
+    .last()
+    .waitFor();
+  const afterRoleSwitch = await api(student, "/api/workspace");
+  assert.equal(afterRoleSwitch.notes[0].id, state.notes[0].id);
+  assert.equal(afterRoleSwitch.sessions[0].id, state.sessions[0].id);
+  assert.ok(afterRoleSwitch.sessions[0].messages[1].visualizationHtml);
+  assert.equal(afterRoleSwitch.materials.filter((m) => m.ownerId).length, 1);
+  assert.ok(afterRoleSwitch.courses.some((item) => item.id === course.id));
   await teacher.reload();
   const view = await api(teacher, "/api/workspace");
   assert.equal(view.notes.length, 0);
@@ -340,7 +377,7 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log(
-    "Browser E2E passed: real SIWE onboarding, teacher creation, student join, upload, streamed AI, private Wiki, dynamic HTML, editable PPTX, publication, reload persistence and responsive courseware.",
+    "Browser E2E passed: real SIWE onboarding, teacher creation, student join, upload, streamed AI, private Wiki, dynamic HTML, editable PPTX, publication, reversible account roles, reload persistence and responsive courseware.",
   );
 } catch (error) {
   if (browser)

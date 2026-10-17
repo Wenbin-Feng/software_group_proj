@@ -138,7 +138,9 @@ export function openApiDocument(publicUrl: string) {
     "/api/auth/profile": {
       post: {
         ...secured,
-        summary: "Complete or update profile; role is chosen once",
+        summary: "Complete onboarding or update the current role’s profile",
+        description:
+          "After onboarding, use PATCH /api/auth/settings to change roles.",
         requestBody: body(
           object(
             {
@@ -154,6 +156,31 @@ export function openApiDocument(publicUrl: string) {
           400: error,
           401: error,
           409: error,
+        },
+      },
+    },
+    "/api/auth/settings": {
+      patch: {
+        ...secured,
+        summary: "Update account details or switch between student and teacher",
+        description:
+          "Requires a completed profile and exact website Origin. Provide at least one field. A student role requires a student number; omitted fields retain their values and a blank teacher student number preserves the previous number. Keeps the account ID, session, course ownership, enrollments and private records. Returns the workspace authorized for the new role in the same transaction.",
+        requestBody: body({
+          ...object({
+            name: { type: "string", minLength: 1, maxLength: 80 },
+            studentId: { type: "string", maxLength: 40 },
+            role: { enum: ["student", "teacher"] },
+          }),
+          minProperties: 1,
+        }),
+        responses: {
+          200: response(
+            "Saved account and updated workspace",
+            object({ user, data: { type: "object" } }, ["user", "data"]),
+          ),
+          400: error,
+          401: error,
+          403: error,
         },
       },
     },

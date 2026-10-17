@@ -260,7 +260,7 @@ async function finishProfile(page, role, name) {
 async function signOut(page) {
   await page
     .getByRole("button", { name: "Account settings", exact: true })
-    .first()
+    .last()
     .click();
   await page
     .getByRole("dialog")
@@ -269,6 +269,140 @@ async function signOut(page) {
   await page
     .getByRole("button", { name: "Continue with Google", exact: true })
     .waitFor();
+}
+
+async function openSettings(page) {
+  await page
+    .getByRole("button", { name: "Account settings", exact: true })
+    .last()
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Settings", exact: true });
+  await dialog.waitFor();
+  await dialog.evaluate(async (element) => {
+    const animations = [];
+    for (let current = element; current; current = current.parentElement)
+      animations.push(...current.getAnimations());
+    await Promise.all(
+      animations.map((animation) => animation.finished.catch(() => {})),
+    );
+  });
+  return dialog;
+}
+
+async function switchRole(page, role) {
+  const dialog = await openSettings(page);
+  await dialog
+    .getByRole("radio", {
+      name: role === "teacher" ? "Teacher" : "Student",
+      exact: true,
+    })
+    .check();
+  await dialog
+    .getByRole("button", { name: "Save changes", exact: true })
+    .click();
+  await dialog.waitFor({ state: "hidden" });
+  await page.getByRole("heading", { name: "Courses.", exact: true }).waitFor();
+  const result = await api(page, "/api/auth/me");
+  assert.equal(result.body.user.role, role);
+  return result.body.user;
+}
+
+async function assertPendingWikiFailure(page, note, userId) {
+  await page.goto(`${origin}/#/wiki?note=${note.id}&course=${note.courseId}`);
+  await page.getByRole("button", { name: "Edit note", exact: true }).click();
+  await page
+    .getByLabel("Markdown content")
+    .fill(`${note.content}\nAn update that will fail to save.`);
+  const cookieBefore = (await page.context().cookies()).find(
+    (cookie) => cookie.name === "folio_session",
+  )?.value;
+  assert.ok(cookieBefore);
+  let releasePut;
+  let markPending;
+  const putHeld = new Promise((done) => {
+    releasePut = done;
+  });
+  const putStarted = new Promise((done) => {
+    markPending = done;
+  });
+  const routePattern = `**/api/notes/${note.id}`;
+  const holdPut = async (route) => {
+    if (route.request().method() !== "PUT") return route.continue();
+    markPending();
+    await putHeld;
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "Synthetic pending Wiki save failure." }),
+    });
+  };
+  let patchCalls = 0;
+  const countSettings = (request) => {
+    if (
+      request.method() === "PATCH" &&
+      new URL(request.url()).pathname === "/api/auth/settings"
+    )
+      patchCalls += 1;
+  };
+  await page.route(routePattern, holdPut, { times: 1 });
+  page.on("request", countSettings);
+  try {
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await putStarted;
+    const settings = await openSettings(page);
+    await settings.getByRole("radio", { name: "Teacher", exact: true }).check();
+    await settings
+      .getByRole("button", { name: "Save changes", exact: true })
+      .click();
+    await settings
+      .getByRole("button", { name: "Saving…", exact: true })
+      .waitFor();
+    assert.equal(
+      patchCalls,
+      0,
+      "Account settings must wait for the pending Wiki update",
+    );
+    releasePut();
+    await settings
+      .getByRole("alert")
+      .getByText(/Recent workspace changes could not be saved/)
+      .waitFor();
+    assert.equal(
+      patchCalls,
+      0,
+      "A failed Wiki update must prevent the account settings PATCH",
+    );
+    const user = (await api(page, "/api/auth/me")).body.user;
+    assert.equal(user.id, userId);
+    assert.equal(user.role, "student");
+    assert.equal(user.authMethod, "google");
+    assert.equal(
+      (await page.context().cookies()).find(
+        (cookie) => cookie.name === "folio_session",
+      )?.value,
+      cookieBefore,
+    );
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Create course", exact: true })
+        .count(),
+      0,
+    );
+  } finally {
+    releasePut();
+    page.off("request", countSettings);
+    await page.unroute(routePattern, holdPut);
+  }
+  await page.reload();
+  await page.getByRole("button", { name: "Edit note", exact: true }).waitFor();
+  const workspace = (await api(page, "/api/workspace")).body;
+  assert.equal(
+    workspace.notes.find((item) => item.id === note.id)?.content,
+    note.content,
+  );
+  console.log(
+    "Google E2E: failed pending Wiki save blocks role changes without sending PATCH or rotating the login session.",
+  );
 }
 
 try {
@@ -378,11 +512,11 @@ try {
     (item) => item.code === "GOOGLE2026",
   );
   assert.ok(course?.joinCode);
-  const roleChange = await api(teacher, "/api/auth/profile", {
+  const onboardingOverwrite = await api(teacher, "/api/auth/profile", {
     method: "POST",
     body: { name: "Google Teacher", role: "student", studentId: "fake-number" },
   });
-  assert.equal(roleChange.status, 409);
+  assert.equal(onboardingOverwrite.status, 409);
   await teacher.evaluate(() => window.folioTestAccountsChanged([]));
   await teacher.reload();
   await teacher
@@ -411,7 +545,7 @@ try {
   );
   assert.equal(await teacher.getByLabel("Display name").count(), 0);
   console.log(
-    "Google E2E: no-wallet teacher onboarding, immutable role, account changes, and relogin persistence passed.",
+    "Google E2E: no-wallet teacher onboarding, onboarding overwrite protection, account changes, and relogin persistence passed.",
   );
 
   const { page: student } = await newPage();
@@ -487,6 +621,217 @@ try {
   });
   console.log(
     "Google E2E: student onboarding, course join, private notes, and account isolation passed.",
+  );
+
+  await assertPendingWikiFailure(student, note, studentUser.id);
+  await student.setViewportSize({ width: 375, height: 812 });
+  let settings = await openSettings(student);
+  assert.equal(
+    await settings.getByLabel("Display name").inputValue(),
+    "Google Student",
+  );
+  assert.equal(
+    await settings.getByLabel("Student number").inputValue(),
+    "24000002",
+  );
+  await student.evaluate(() => document.fonts.ready);
+  const settingsBounds = await settings.boundingBox();
+  assert.ok(
+    settingsBounds.x >= 0 && settingsBounds.x + settingsBounds.width <= 375,
+  );
+  assert.ok(
+    settingsBounds.y >= 0 && settingsBounds.y + settingsBounds.height <= 812,
+    "Settings dialog should fit a mobile viewport and scroll internally",
+  );
+  assert.ok(
+    await student.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  );
+  for (const [label, control] of [
+    ["Display name", settings.getByLabel("Display name")],
+    ["Student number", settings.getByLabel("Student number")],
+    [
+      "Save changes",
+      settings.getByRole("button", { name: "Save changes", exact: true }),
+    ],
+    [
+      "Close dialog",
+      settings.getByRole("button", { name: "Close dialog", exact: true }),
+    ],
+  ]) {
+    const bounds = await control.boundingBox();
+    assert.ok(
+      bounds.height >= 44,
+      `Settings ${label} needs a 44px touch target; actual height ${bounds.height}px`,
+    );
+  }
+  for (const role of ["Student", "Teacher"])
+    assert.ok(
+      await settings
+        .getByRole("radio", { name: role, exact: true })
+        .evaluate(
+          (radio) =>
+            radio.closest("label").getBoundingClientRect().height >= 44,
+        ),
+    );
+  for (let i = 0; i < 14; i++) {
+    await student.keyboard.press("Tab");
+    assert.ok(
+      await settings.evaluate((dialog) =>
+        dialog.contains(document.activeElement),
+      ),
+      "Settings keyboard focus escaped the modal",
+    );
+  }
+  await student.keyboard.press("Escape");
+  await settings.waitFor({ state: "hidden" });
+  assert.equal(
+    await student.evaluate(() =>
+      document.activeElement?.getAttribute("aria-label"),
+    ),
+    "Account settings",
+  );
+  settings = await openSettings(student);
+  await settings.getByLabel("Display name").fill("Google Student Teacher");
+  await settings.getByRole("radio", { name: "Teacher", exact: true }).check();
+  await student.route(
+    "**/api/auth/settings",
+    (route) =>
+      route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "Test save failed. Please retry." }),
+      }),
+    { times: 1 },
+  );
+  await settings
+    .getByRole("button", { name: "Save changes", exact: true })
+    .click();
+  await settings
+    .getByRole("alert")
+    .getByText("Test save failed. Please retry.", { exact: true })
+    .waitFor();
+  const failedSettingsUser = (await api(student, "/api/auth/me")).body.user;
+  assert.equal(failedSettingsUser.role, "student");
+  assert.equal(failedSettingsUser.name, "Google Student");
+  assert.equal(
+    await student
+      .getByRole("button", { name: "Create course", exact: true })
+      .count(),
+    0,
+  );
+  await student.screenshot({
+    path: resolve(screenshots, "settings-failed-375.png"),
+    fullPage: true,
+  });
+  await settings
+    .getByRole("button", { name: "Save changes", exact: true })
+    .click();
+  await settings.waitFor({ state: "hidden" });
+  await student
+    .getByRole("button", { name: "Create course", exact: true })
+    .waitFor();
+  const teacherSettingsUser = (await api(student, "/api/auth/me")).body.user;
+  assert.equal(teacherSettingsUser.id, studentUser.id);
+  assert.equal(teacherSettingsUser.role, "teacher");
+  assert.equal(teacherSettingsUser.name, "Google Student Teacher");
+  assert.equal(teacherSettingsUser.studentId, "24000002");
+  assert.equal(teacherSettingsUser.authMethod, "google");
+  assert.equal((await api(student, "/api/workspace")).body.notes.length, 0);
+  await student.setViewportSize({ width: 1440, height: 1000 });
+  await student
+    .getByRole("button", { name: "Create course", exact: true })
+    .click();
+  await student.getByLabel("Course name").fill("Role switch retained course");
+  await student.getByLabel("Course code", { exact: true }).fill("SWITCH2026");
+  await student
+    .getByLabel("Description", { exact: true })
+    .fill("This course belongs to the same account after switching roles.");
+  await student
+    .getByRole("dialog")
+    .getByRole("button", { name: "Create course", exact: true })
+    .click();
+  await student.getByText("Student join code:").waitFor();
+  const ownedCourse = (await api(student, "/api/workspace")).body.courses.find(
+    (item) => item.code === "SWITCH2026",
+  );
+  assert.equal(ownedCourse.teacherId, studentUser.id);
+  await student.reload();
+  await student
+    .getByRole("button", { name: "Account settings", exact: true })
+    .last()
+    .waitFor();
+  assert.equal((await api(student, "/api/auth/me")).body.user.role, "teacher");
+  settings = await openSettings(student);
+  await settings.getByLabel("Display name").fill("Google Student");
+  await settings.getByRole("radio", { name: "Student", exact: true }).check();
+  assert.equal(
+    await settings.getByLabel("Student number").inputValue(),
+    "24000002",
+  );
+  await settings
+    .getByRole("button", { name: "Save changes", exact: true })
+    .click();
+  await settings.waitFor({ state: "hidden" });
+  await student
+    .getByRole("heading", { name: "Courses.", exact: true })
+    .waitFor();
+  const restoredStudent = (await api(student, "/api/auth/me")).body.user;
+  const restoredWorkspace = (await api(student, "/api/workspace")).body;
+  assert.equal(restoredStudent.id, studentUser.id);
+  assert.equal(restoredStudent.role, "student");
+  assert.equal(
+    restoredWorkspace.notes.find((item) => item.id === note.id)?.content,
+    note.content,
+  );
+  assert.ok(restoredWorkspace.courses.some((item) => item.id === course.id));
+  assert.ok(
+    !restoredWorkspace.courses.some((item) => item.id === ownedCourse.id),
+  );
+  assert.equal(
+    (
+      await api(student, `/api/courses/${ownedCourse.id}/join-code/reset`, {
+        method: "POST",
+        body: {},
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await api(student, "/api/courses", {
+        method: "POST",
+        body: { name: "Denied course", code: "DENIED" },
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    await student
+      .getByRole("button", { name: "Create course", exact: true })
+      .count(),
+    0,
+  );
+  await switchRole(student, "teacher");
+  assert.ok(
+    (await api(student, "/api/workspace")).body.courses.some(
+      (item) => item.id === ownedCourse.id,
+    ),
+  );
+  await switchRole(student, "student");
+  await student.reload();
+  await student
+    .getByRole("button", { name: "Account settings", exact: true })
+    .last()
+    .waitFor();
+  assert.equal((await api(student, "/api/auth/me")).body.user.role, "student");
+  assert.equal(
+    (await api(student, "/api/workspace")).body.notes[0].id,
+    note.id,
+  );
+  console.log(
+    "Google E2E: editable mobile settings, failed-save recovery, reversible roles, permission changes, and retained student/teacher data passed.",
   );
 
   const { page: wallet, account } = await newPage(`0x${"5".repeat(64)}`);
@@ -588,7 +933,7 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log(
-    "Google browser E2E passed: local provider boundary, real OAuth callback and cookies, Student/Teacher onboarding, durable identity, role lock, private Wiki isolation, wallet linking, cancellation, and responsive accessible login.",
+    "Google browser E2E passed: local provider boundary, real OAuth callback and cookies, Student/Teacher onboarding and reversible settings, durable identity, private Wiki isolation, wallet linking, cancellation, and responsive accessible login.",
   );
 } catch (error) {
   if (browser)

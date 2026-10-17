@@ -125,7 +125,7 @@ async function parsed(app: FastifyInstance, auth: any, id: string) {
   }
   assert.fail("Document parsing timed out");
 }
-test("SIWE exact messages are browser-bound, one-time and verified; onboarding role cannot change", async (t) => {
+test("SIWE messages are browser-bound, one-time and verified; role changes use settings", async (t) => {
   const app = await fixture(t);
   const challenge = await app.inject({
     method: "POST",

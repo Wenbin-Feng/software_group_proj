@@ -33,6 +33,7 @@ import Wiki from "./components/Wiki";
 import Market from "./components/Market";
 import Teacher from "./components/Teacher";
 import Inbox from "./components/Inbox";
+import Settings from "./components/Settings";
 import { getOriginal } from "./lib/originals";
 import { buildRoute, parseRoute } from "./lib/navigation";
 import { api, persistChanges, workspaceChanges, flushChanges } from "./lib/api";
@@ -76,12 +77,15 @@ export default function App({
   googleEnabled = false,
   onConnectGoogle,
   authFeedback,
+  settingsFeedback,
+  onSaveSettings,
 }) {
   const [data, updateData] = useState(initialData);
   const dataRef = useRef(data);
   const revisionRef = useRef(0);
   const [syncing, setSyncing] = useState(0);
   const [syncError, setSyncError] = useState("");
+  const syncErrorRef = useRef("");
   const patchLocal = useCallback((updater) => {
     const next =
       typeof updater === "function" ? updater(dataRef.current) : updater;
@@ -103,10 +107,13 @@ export default function App({
       patchLocal(next);
       if (!changes.length) return;
       setSyncing((count) => count + 1);
+      syncErrorRef.current = "";
       setSyncError("");
       persistChanges(
         changes,
         async (error) => {
+          syncErrorRef.current =
+            error.message || "Workspace changes could not be saved.";
           setSyncError(error.message);
           const result = await api("/api/workspace").catch(() => null);
           if (result) patchLocal(result.data || result);
@@ -127,6 +134,14 @@ export default function App({
     },
     [patchLocal],
   );
+  async function saveAccountSettings(values) {
+    await flushChanges();
+    if (syncErrorRef.current)
+      throw new Error(
+        "Recent workspace changes could not be saved. Review them or reload before saving account settings.",
+      );
+    return onSaveSettings(values);
+  }
   useEffect(() => {
     const timer = setInterval(() => {
       if (!syncing && document.visibilityState === "visible")
@@ -164,19 +179,33 @@ export default function App({
   const [activeSessionId, setActiveSessionId] = useState(route.sessionId);
   const [activeNoteId, setActiveNoteId] = useState(route.noteId);
   const [dialog, setDialog] = useState(
-      authFeedback?.error || authFeedback?.linked ? "identity" : null,
+      settingsFeedback
+        ? settingsFeedback.open
+          ? "identity"
+          : null
+        : authFeedback?.error || authFeedback?.linked
+          ? "identity"
+          : null,
     ),
     [preview, setPreview] = useState(null),
     [workspaceRequest, setWorkspaceRequest] = useState(null),
     [composeRequest, setComposeRequest] = useState(null),
     [toastMessage, setToastMessage] = useState(
-      authFeedback && !authFeedback.error && !authFeedback.linked
-        ? authFeedback.message
-        : "",
+      settingsFeedback
+        ? settingsFeedback.open
+          ? ""
+          : settingsFeedback.message
+        : authFeedback && !authFeedback.error && !authFeedback.linked
+          ? authFeedback.message
+          : "",
     ),
     [mobileOpen, setMobileOpen] = useState(false);
   const [connectingGoogle, setConnectingGoogle] = useState(false),
     [googleError, setGoogleError] = useState("");
+  useEffect(() => {
+    if (settingsFeedback && !settingsFeedback.open)
+      document.getElementById("main-content")?.focus();
+  }, []);
   async function connectGoogle() {
     setConnectingGoogle(true);
     setGoogleError("");
@@ -394,6 +423,7 @@ export default function App({
       className="profile"
       onClick={() => setDialog("identity")}
       aria-label="Account settings"
+      title="Settings"
     >
       <Avatar {...currentActor} />
       <span>
@@ -638,6 +668,7 @@ export default function App({
               className={`role-toggle ${role === "teacher" ? "is-teacher" : ""}`}
               onClick={() => setDialog("identity")}
               aria-label="Account settings"
+              title="Settings"
             >
               <GraduationCap size={16} />
               <span>{role === "teacher" ? "Instructor" : "Student"}</span>
@@ -747,84 +778,20 @@ export default function App({
         </Modal>
       )}
       {dialog === "identity" && (
-        <Modal
-          title="Your account"
-          subtitle={
-            authenticatedUser.authMethod === "google"
-              ? "Signed in with Google"
-              : "Signed in with MetaMask"
-          }
+        <Settings
+          user={authenticatedUser}
+          onSave={saveAccountSettings}
           onClose={() => setDialog(null)}
-        >
-          <div className="about-content">
-            <Avatar {...currentActor} />
-            <h3>{currentActor.name}</h3>
-            <p>
-              {role === "teacher" ? "Teacher" : `Student · ${user.studentId}`}
-            </p>
-            <div className="account-methods">
-              {authenticatedUser.googleLinked && (
-                <div className="account-method">
-                  <strong>Google connected</strong>
-                  <span>
-                    {authenticatedUser.googleEmail ||
-                      "Connected Google account"}
-                  </span>
-                </div>
-              )}
-              {authenticatedUser.walletAddress && (
-                <div className="account-method">
-                  <strong>Wallet</strong>
-                  <span>{authenticatedUser.walletAddress}</span>
-                </div>
-              )}
-            </div>
-            {authFeedback &&
-              (authFeedback.error || authFeedback.linked) &&
-              !googleError && (
-                <div
-                  className={authFeedback.error ? "auth-error" : "auth-success"}
-                  role={authFeedback.error ? "alert" : "status"}
-                >
-                  {authFeedback.message}
-                </div>
-              )}
-            {googleError && (
-              <div className="auth-error" role="alert">
-                {googleError}
-              </div>
-            )}
-            {googleEnabled &&
-              !authenticatedUser.googleLinked &&
-              onConnectGoogle && (
-                <>
-                  <p className="muted">
-                    Connect Google to sign in to this same account without your
-                    wallet. Your courses and learning stay together.
-                  </p>
-                  <button
-                    className="btn auth-google"
-                    onClick={connectGoogle}
-                    disabled={connectingGoogle}
-                    aria-busy={connectingGoogle}
-                  >
-                    <img
-                      className="google-mark"
-                      src="/google-g.png"
-                      width="20"
-                      height="20"
-                      alt=""
-                      aria-hidden="true"
-                    />
-                    {connectingGoogle ? "Opening Google…" : "Connect Google"}
-                  </button>
-                </>
-              )}
-            <button className="btn btn-outline" onClick={onLogout}>
-              Sign out
-            </button>
-          </div>
-        </Modal>
+          onLogout={onLogout}
+          googleEnabled={googleEnabled && Boolean(onConnectGoogle)}
+          onConnectGoogle={connectGoogle}
+          connectingGoogle={connectingGoogle}
+          googleError={googleError}
+          authFeedback={authFeedback}
+          settingsMessage={
+            settingsFeedback?.open ? settingsFeedback.message : ""
+          }
+        />
       )}
       {preview && (
         <MaterialPreview

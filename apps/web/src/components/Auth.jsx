@@ -8,7 +8,7 @@ import {
   Wallet,
 } from "lucide-react";
 import App from "../App";
-import { api } from "../lib/api";
+import { api, flushChanges } from "../lib/api";
 import "./auth.css";
 
 const googleErrors = {
@@ -70,6 +70,8 @@ export default function Auth() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [busyProvider, setBusyProvider] = useState(null);
+  const [workspaceVersion, setWorkspaceVersion] = useState(0);
+  const [settingsFeedback, setSettingsFeedback] = useState(null);
   const [name, setName] = useState(""),
     [studentId, setStudentId] = useState(""),
     [role, setRole] = useState("student");
@@ -77,6 +79,7 @@ export default function Auth() {
   const userRef = useRef(user);
   userRef.current = user;
   const acceptUser = (next) => {
+    if (next?.id !== userRef.current?.id) setSettingsFeedback(null);
     userRef.current = next;
     setUser(next);
     if (next && !next.profileComplete) {
@@ -127,6 +130,7 @@ export default function Auth() {
         return;
       userRef.current = null;
       setWorkspace(null);
+      setSettingsFeedback(null);
       setUser(null);
       api("/api/auth/logout", { method: "POST" }).catch(() => {});
     };
@@ -230,8 +234,28 @@ export default function Auth() {
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
     setWorkspace(null);
+    setSettingsFeedback(null);
     acceptUser(null);
     location.hash = "#/courses";
+  }
+  async function saveSettings(values) {
+    await flushChanges();
+    const result = await api("/api/auth/settings", {
+      method: "PATCH",
+      body: values,
+    });
+    const roleChanged = result.user.role !== userRef.current?.role;
+    if (roleChanged) location.hash = "#/courses";
+    acceptUser(result.user);
+    setWorkspace(result.data);
+    setSettingsFeedback({
+      open: !roleChanged,
+      message: roleChanged
+        ? `Switched to ${result.user.role === "teacher" ? "Teacher" : "Student"}.`
+        : "Settings saved.",
+    });
+    setWorkspaceVersion((version) => version + 1);
+    return result;
   }
   if (loading)
     return (
@@ -243,12 +267,15 @@ export default function Auth() {
   if (user?.profileComplete && workspace)
     return (
       <App
+        key={`${user.id}:${user.role}:${workspaceVersion}`}
         authenticatedUser={user}
         initialData={workspace}
         onLogout={logout}
         googleEnabled={providers.google}
         onConnectGoogle={() => google("link")}
         authFeedback={feedback}
+        settingsFeedback={settingsFeedback}
+        onSaveSettings={saveSettings}
       />
     );
   return (
@@ -377,8 +404,8 @@ export default function Auth() {
                 </label>
               )}
               <p className="auth-hint">
-                Your role is saved when you complete this step. Teachers manage
-                the courses they create.
+                You can change your role later in Settings. Teachers manage the
+                courses they create.
               </p>
               <button className="btn btn-primary auth-submit" disabled={busy}>
                 {busy ? "Saving…" : "Open my workspace"}

@@ -1,10 +1,20 @@
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
-export function Modal({ title, subtitle, onClose, children, wide = false }) {
+export function Modal({
+  title,
+  subtitle,
+  onClose,
+  children,
+  wide = false,
+  closeDisabled = false,
+  className = "",
+}) {
   const ref = useRef(null);
   const close = useRef(onClose);
-  close.current = onClose;
+  close.current = () => {
+    if (!closeDisabled) onClose();
+  };
   useEffect(() => {
     const previous = document.activeElement;
     const before = document.body.style.overflow;
@@ -14,7 +24,7 @@ export function Modal({ title, subtitle, onClose, children, wide = false }) {
         ...ref.current.querySelectorAll(
           'button, a[href], input, select, textarea, [tabindex="0"]',
         ),
-      ].filter((el) => !el.disabled && el.offsetParent !== null);
+      ].filter((el) => !el.matches(":disabled") && el.offsetParent !== null);
     const first =
       focusables().find((el) => el.tagName === "INPUT") || focusables()[0];
     first?.focus();
@@ -44,10 +54,12 @@ export function Modal({ title, subtitle, onClose, children, wide = false }) {
   return (
     <div
       className="modal-backdrop"
-      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+      onMouseDown={(event) =>
+        event.target === event.currentTarget && close.current()
+      }
     >
       <section
-        className={`modal-panel ${wide ? "modal-wide" : ""}`}
+        className={`modal-panel ${wide ? "modal-wide" : ""} ${className}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-heading"
@@ -61,7 +73,8 @@ export function Modal({ title, subtitle, onClose, children, wide = false }) {
           <button
             className="icon-btn"
             aria-label="Close dialog"
-            onClick={onClose}
+            onClick={() => close.current()}
+            disabled={closeDisabled}
           >
             <X size={20} />
           </button>

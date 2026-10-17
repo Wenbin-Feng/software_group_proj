@@ -105,14 +105,12 @@ export function createStore(
       students: rows
         .filter(
           (r) =>
-            r.role === "student" && (r.id === user.id || studentIds.has(r.id)),
+            (user.role === "student" && r.id === user.id) ||
+            studentIds.has(r.id),
         )
         .map(publicIdentity),
       teachers: rows
-        .filter(
-          (r) =>
-            r.role === "teacher" && courses.some((c) => c.teacherId === r.id),
-        )
+        .filter((r) => courses.some((c) => c.teacherId === r.id))
         .map(publicIdentity),
       enrollments,
       materials: all("materials")

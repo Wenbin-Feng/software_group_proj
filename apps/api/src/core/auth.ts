@@ -232,10 +232,7 @@ export async function registerAuth(
         .prepare("SELECT * FROM users WHERE id=?")
         .get(actor.id) as any;
       if (row.profile_complete && row.role !== input.role)
-        throw new HttpError(
-          409,
-          "Account roles cannot be changed after onboarding.",
-        );
+        throw new HttpError(409, "Use account settings to change your role.");
       db.prepare(
         "UPDATE users SET name=?,student_id=?,role=?,profile_complete=1 WHERE id=?",
       ).run(input.name, input.studentId, input.role, actor.id);
@@ -247,6 +244,46 @@ export async function registerAuth(
       });
     })();
     return { user };
+  });
+  app.patch("/api/auth/settings", async (request) => {
+    const actor = app.folio.requireUser(request);
+    const input = z
+      .object({
+        name: z.string().trim().min(1).max(80).optional(),
+        studentId: z.string().trim().max(40).optional(),
+        role: z.enum(["student", "teacher"]).optional(),
+      })
+      .strict()
+      .refine((value) => Object.keys(value).length > 0, {
+        message: "Provide at least one account setting.",
+      })
+      .parse(request.body);
+    return db.transaction(() => {
+      const row = db
+        .prepare("SELECT * FROM users WHERE id=?")
+        .get(actor.id) as any;
+      const role = input.role ?? row.role;
+      // Keep the student number when teaching, so switching back needs no re-entry.
+      const studentId =
+        role === "teacher" && !input.studentId
+          ? row.student_id
+          : (input.studentId ?? row.student_id);
+      if (role === "student" && !studentId)
+        throw new HttpError(400, "Students must provide their student number.");
+      db.prepare("UPDATE users SET name=?,student_id=?,role=? WHERE id=?").run(
+        input.name ?? row.name,
+        studentId,
+        role,
+        actor.id,
+      );
+      const user = toUser({
+        ...(db
+          .prepare("SELECT * FROM users WHERE id=?")
+          .get(actor.id) as object),
+        auth_method: actor.authMethod,
+      });
+      return { user, data: app.folio.workspace(user) };
+    })();
   });
   app.post("/api/auth/logout", async (request, reply) => {
     const token = request.cookies[sessionCookie];
