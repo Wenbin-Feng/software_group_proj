@@ -202,16 +202,21 @@ export default function Teacher() {
   useEffect(() => {
     const nav = tabsRef.current,
       tab = nav?.querySelector('[aria-current="page"]');
-    if (nav && tab)
-      nav.scrollLeft = Math.max(
-        0,
-        tab.offsetLeft -
-          nav.offsetLeft -
-          nav.clientWidth +
-          tab.clientWidth +
-          12,
-      );
-  }, [page]);
+    if (!nav || !tab) return;
+    const revealCurrentTab = () => {
+      const bounds = nav.getBoundingClientRect();
+      const current = tab.getBoundingClientRect();
+      if (current.right > bounds.right - 8)
+        nav.scrollLeft += current.right - bounds.right + 8;
+      else if (current.left < bounds.left + 8)
+        nav.scrollLeft -= bounds.left - current.left + 8;
+    };
+    revealCurrentTab();
+    const observer = new ResizeObserver(revealCurrentTab);
+    observer.observe(nav);
+    observer.observe(tab);
+    return () => observer.disconnect();
+  }, [page, courseId, teacherId, role, data.courses]);
   if (role !== "teacher")
     return (
       <div className="tportal">

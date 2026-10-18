@@ -193,6 +193,10 @@
   font-weight: 650;
   letter-spacing: 0.14em;
   color: #667ca9;
+  max-width: calc(100% - 40px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .courses-cover-web .courses-cover-code {
   color: #977bab;
@@ -224,6 +228,14 @@
   gap: 8px;
   margin-bottom: 10px;
   font-size: 11px;
+  flex-wrap: wrap;
+}
+.courses-card-meta > span,
+.courses-card h2,
+.courses-instructor,
+.courses-description {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .courses-card-meta > span:first-child {
   color: #3156d3;
@@ -313,6 +325,7 @@
   color: #8d98a9;
   font-size: 11px;
   margin: 28px 0 0;
+  text-align: center;
 }
 .courses-bottom-note > svg {
   color: #a0aabb;

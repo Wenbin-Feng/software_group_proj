@@ -122,6 +122,7 @@ To repeat readback without another model request, replace `--run` with `--trace-
 apps/web/       React, Vite, course workspace, Wiki, Inbox, teacher Courseware
 apps/api/       Fastify, SIWE authentication, SQLite/Drizzle, Qwen and task worker
 scripts/e2e.mjs Browser integration checks with isolated accounts and a mock AI server
+scripts/ui-audit.mjs Responsive layout checks with isolated long-content fixtures
 deploy/         VM provisioning, Nginx/TLS, backup, release and rollback helpers
 .github/        CI and release-only production deployment workflows
 ```
@@ -132,9 +133,13 @@ npm test
 npm run build
 npx playwright install chromium
 CI=1 npm run test:e2e
+# Run only the responsive layout regression checks:
+npm run test:ui
 ```
 
 The browser checks use actual API signature verification and SQLite, with synthetic wallets and a local mock model. They exercise first-login roles, teacher course creation, student joining, uploads, streamed chat, private Wiki, interactive HTML, editable Chinese PPTX, publication, reload persistence, and responsive Courseware. The additional Google browser suite uses an injected local identity provider and a temporary database to exercise callbacks, wallet-free student/teacher onboarding, account linking, role switches from Settings, retained learning and teaching data, failed-save feedback, session persistence, privacy and mobile layout. Unit tests separately validate real signed JWT processing and reject forged tokens. These automated checks make no real Google requests or paid OpenRouter calls. Screenshots and the generated test PPTX go into ignored `test-results/`.
+
+The responsive suite checks login, onboarding, student and teacher pages, menus, previews, and dialogs from 320px to 1920px wide, including short mobile and landscape screens. Long mixed Chinese/English names, titles, codes, and filenames exercise wrapping and shrinking. It checks page overflow, clipped or unreachable controls, distorted icons, breadcrumb layout, and scrollable dialogs; failures block CI and release. Screenshots and geometry reports are saved under ignored `test-results/ui/`. The fixtures use a temporary SQLite database and never load private environment files or call external identity, AI, or tracing services.
 
 CI performs the checks, build, browser integration run, and a Linux Docker packaging smoke test on development pushes and PRs. The image test runs native SQLite migrations and starts the non-root API using temporary data, without credentials, network access, or published ports. **Only updates to `release` trigger automatic production deployment.** The release workflow backs up SQLite and files, applies unapplied migrations, checks the API version, then promotes the matching Vercel frontend. Normal database changes require no manual SQL. An unsuccessful migration stops the release; application rollback preserves data and does not automatically reverse SQL.
 

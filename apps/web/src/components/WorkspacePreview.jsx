@@ -12,6 +12,7 @@ import {
   Play,
 } from "lucide-react";
 import { getOriginal } from "../lib/originals";
+import { coursewareHtml } from "../lib/coursewareHtml";
 import { WikiMarkdown } from "./Wiki";
 import LearningAnimation from "./Animation";
 
@@ -397,7 +398,13 @@ export default function WorkspacePreview({
           title={material.name}
           sandbox="allow-scripts"
           referrerPolicy="no-referrer"
-          srcDoc={material.html}
+          srcDoc={
+            material.type === "pptx" &&
+            typeof material.generatedCoursewareId === "string" &&
+            material.generatedCoursewareId
+              ? coursewareHtml(material.html)
+              : material.html
+          }
         />
       </div>
     );

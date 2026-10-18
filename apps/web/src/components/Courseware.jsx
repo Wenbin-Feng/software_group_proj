@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useApp } from "../context";
 import { api } from "../lib/api";
+import { coursewareHtml } from "../lib/coursewareHtml";
 import "./courseware.css";
 
 export default function Courseware() {
@@ -443,7 +444,7 @@ export default function Courseware() {
               </div>
               <iframe
                 title="Courseware preview"
-                srcDoc={selected.html}
+                srcDoc={coursewareHtml(selected.html)}
                 sandbox=""
                 referrerPolicy="no-referrer"
               />

@@ -508,11 +508,15 @@ export default function App({
             </nav>
             <div className="sidebar-bottom">
               <button className="help-link" onClick={() => setDialog("about")}>
-                <CircleHelp size={17} />
-                Help & about
-                <span className="demo-dot" />
-                Learning workspace
+                <CircleHelp size={17} aria-hidden="true" />
+                <span>Help & about</span>
               </button>
+              <p className="sidebar-caption">
+                <span className="demo-dot" aria-hidden="true" />
+                {role === "teacher"
+                  ? "Teaching workspace"
+                  : "Learning workspace"}
+              </p>
               {profile}
             </div>
           </aside>
@@ -536,7 +540,10 @@ export default function App({
                 </button>
                 <span className="course-topbar-separator" />
                 <Network size={16} className="course-topbar-code" />
-                <strong className="course-topbar-title">
+                <strong
+                  className="course-topbar-title"
+                  title={wikiNote?.title || "Wiki note unavailable"}
+                >
                   {wikiNote?.title || "Wiki note unavailable"}
                 </strong>
               </>
@@ -555,7 +562,10 @@ export default function App({
                 <span className="course-topbar-code">
                   {courseAllowed ? course.code : ""}
                 </span>
-                <strong className="course-topbar-title">
+                <strong
+                  className="course-topbar-title"
+                  title={courseAllowed ? course.name : "Course unavailable"}
+                >
                   {courseAllowed ? course.name : "Course unavailable"}
                 </strong>
               </>
@@ -579,7 +589,7 @@ export default function App({
                     <ChevronRight size={14} />
                   </>
                 )}
-                <strong>{label}</strong>
+                <strong title={label}>{label}</strong>
               </>
             )}
           </div>
@@ -731,7 +741,7 @@ export default function App({
           </footer>
         )}
       </div>
-      {toastMessage && (
+      {toastMessage && !dialog && !preview && !mobileOpen && (
         <div className="app-toast" role="status">
           <CheckCheck size={18} />
           <span>{toastMessage}</span>

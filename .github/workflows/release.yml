@@ -31,6 +31,8 @@ jobs:
         run: node scripts/e2e.mjs
       - name: Run Google login browser checks with a local identity provider
         run: node scripts/e2e-google.mjs
+      - name: Check responsive layouts and long-content rendering
+        run: npm run test:ui
       - name: Verify Linux backend packaging
         run: bash deploy/verify-image.sh folio-api:verify
       - name: Save browser integration results

@@ -198,6 +198,8 @@
   letter-spacing: -0.15px;
   font-weight: 500;
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .workspace-folder > small {
   font-size: 10px;
@@ -391,14 +393,19 @@
   border-bottom: 1px solid #e9ecf2;
   padding: 5px 16px;
   background: #fff;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .workspace-page-control {
   display: flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
+  flex: 1;
 }
 .workspace-page-control > label {
   margin: 0;
+  min-width: 0;
 }
 .workspace-page-control select {
   border: 0;
@@ -407,6 +414,7 @@
   color: #8995a8;
   font-size: 11px;
   max-width: 125px;
+  width: 100%;
   padding: 6px 1px;
   cursor: pointer;
 }
@@ -528,6 +536,14 @@
   gap: 7px;
   font-size: 11px;
   color: #97a2b5;
+  min-width: 0;
+  flex: 1;
+}
+.workspace-note-path > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .workspace-note-paper {
   padding: 11px 7px 34px;
@@ -605,6 +621,8 @@
 }
 .workspace-note-references > button > span {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .workspace-note-references small {
   display: block;

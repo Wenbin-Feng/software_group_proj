@@ -35,6 +35,7 @@
 }
 .wiki-library-summary {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 13px;
   color: #77839a;
@@ -312,12 +313,14 @@
 }
 .wiki-library-owner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   color: #6e7d94;
   font-size: 11px;
   margin-bottom: 13px;
+  overflow-wrap: anywhere;
 }
 .wiki-library-owner > span {
   font-size: 11px;
@@ -360,6 +363,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  text-align: center;
   color: #8d98a9;
   font-size: 11px;
   margin: 28px 0 0;

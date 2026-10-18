@@ -73,6 +73,7 @@
 .studio-session-switch-wrap {
   position: relative;
   min-width: 0;
+  flex: 1;
 }
 .studio-session-switch {
   border: 0;
@@ -84,6 +85,7 @@
   cursor: pointer;
   color: var(--studio-ink);
   min-width: 0;
+  max-width: 100%;
   padding: 2px;
 }
 .studio-session-icon {
@@ -125,6 +127,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 .studio-session-options .icon-btn {
   width: 31px;
@@ -194,6 +197,8 @@
 }
 .studio-session-popover > button > span {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .studio-session-popover small {
   display: block;
@@ -882,7 +887,7 @@
   font-size: 7px;
   color: #a2abbb;
   margin-top: 5px;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .anim-connectors {
   position: relative;
@@ -942,6 +947,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .anim-database > div > span {
   font-size: 6px;
@@ -1061,6 +1068,7 @@
 }
 .anim-controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding-bottom: 17px;
@@ -1121,6 +1129,7 @@
   border-top: 1px solid #f0f2f6;
   padding: 12px 12px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   gap: 9px;
@@ -1830,6 +1839,7 @@
   height: 100%;
   min-height: 0;
   min-width: 0;
+  container-type: inline-size;
   padding: 0;
   background: #fff;
   --studio-ink: #202b3d;
@@ -1876,8 +1886,15 @@
   width: 13px;
 }
 .studio-embedded .studio-session-options {
+  position: relative;
   gap: 6px;
   flex-shrink: 0;
+}
+.studio-embedded .studio-material-control {
+  position: static;
+}
+.studio-embedded .studio-source-popover {
+  right: 0;
 }
 .studio-embedded .studio-session-options .icon-btn {
   width: 34px;
@@ -1916,8 +1933,8 @@
 .studio-embedded .studio-session-popover,
 .studio-embedded .studio-source-popover {
   top: 42px;
-  max-width: calc(100vw - 40px);
-  max-height: min(480px, 60vh);
+  max-width: min(calc(100vw - 40px), calc(100cqw - 26px));
+  max-height: min(480px, max(100px, calc(100dvh - 210px)));
   overflow-y: auto;
 }
 .studio-embedded .studio-session-popover {
@@ -2238,5 +2255,37 @@
 @media (max-width: 600px) {
   .studio-review-source-count {
     display: none;
+  }
+}
+
+/* Keep the conversation readable when a phone is held in landscape. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .studio-embedded .studio-session-bar {
+    height: 44px;
+    min-height: 44px;
+  }
+  .studio-embedded .studio-chat-feed {
+    padding: 10px 20px 12px;
+  }
+  .studio-embedded .studio-message,
+  .studio-embedded .studio-message.from-user {
+    margin-block: 12px 16px;
+  }
+  .studio-embedded .studio-composer-area {
+    padding: 6px 18px;
+  }
+  .studio-embedded .studio-composer {
+    padding: 6px 12px 5px;
+  }
+  .studio-embedded .studio-composer textarea {
+    height: 30px;
+    min-height: 30px;
+    padding: 3px 0;
+  }
+  .studio-embedded .studio-composer-bottom {
+    margin-top: 2px;
+  }
+  .studio-embedded .studio-composer-note {
+    margin-top: 4px;
   }
 }

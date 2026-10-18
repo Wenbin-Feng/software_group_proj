@@ -282,6 +282,8 @@
   padding: 0;
   display: flex;
   gap: 16px;
+  min-width: 0;
+  flex-wrap: wrap;
   margin: 20px 0;
 }
 .auth-roles legend {
@@ -325,6 +327,12 @@
   border-radius: 8px;
   font: inherit;
   min-width: 0;
+  flex: 0 1 360px;
+  max-width: 100%;
+}
+.course-enrollment > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .generated-html {
   width: 100%;
@@ -369,5 +377,10 @@
   }
   .generated-html {
     min-height: 450px;
+  }
+}
+@media (max-width: 480px) {
+  form.course-enrollment > .btn {
+    width: 100%;
   }
 }
