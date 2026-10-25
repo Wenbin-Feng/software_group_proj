@@ -6,7 +6,7 @@
 const Engine = (() => {
 
   /* ---------------- 持久化 ---------------- */
-  const KEY = 'asap_state_v1';
+  const KEY = 'asap_state_v2';
 
   let state = {
     role: 'student',              // student | instructor | admin
@@ -18,6 +18,7 @@ const Engine = (() => {
     lastActivity: null,
     completed: 0,                 // 已完成活动数
     streak: 5,
+    uploads: [],                  // 学生自主上传的课程资料
   };
 
   function init() {
@@ -25,7 +26,13 @@ const Engine = (() => {
     let saved = null;
     try { saved = localStorage.getItem(KEY); } catch (e) { saved = null; }
     if (saved) {
-      try { state = JSON.parse(saved); return; } catch (e) { /* 忽略损坏数据 */ }
+      try {
+        state = JSON.parse(saved);
+        if (!Array.isArray(state.uploads)) state.uploads = [];
+        // 旧版本可能残留已下线活动，兜底
+        if (!Array.isArray(state.topics) || !state.topics.length) reset();
+        return;
+      } catch (e) { /* 忽略损坏数据 */ }
     }
     reset();
   }
@@ -37,6 +44,7 @@ const Engine = (() => {
     state.loopStage = 'plan';
     state.lastActivity = null;
     state.completed = 0;
+    state.uploads = [];
     save();
   }
 
@@ -53,13 +61,27 @@ const Engine = (() => {
     return Math.round(state.topics.reduce((s, t) => s + t.mastery, 0) / state.topics.length);
   }
 
+  /* ---------------- 教师发布的学习路径 ---------------- */
+  /* 学生端只读：知识点与顺序来自 DATA.published（教师发布），学生不可增删 */
+  function published() { return DATA.published; }
+
+  function pathTopics() {
+    const order = DATA.published.order;
+    const map = {};
+    state.topics.forEach(t => { map[t.id] = t; });
+    const list = order.map(id => map[id]).filter(Boolean);
+    // 兜底：教师发布之外的知识点追加在后面
+    state.topics.forEach(t => { if (!order.includes(t.id)) list.push(t); });
+    return list;
+  }
+
   /* ---------------- 自适应规划规则 ---------------- */
-  /* 决策优先级：
-     1) 反复出错 → 复习
-     2) 掌握不足 (<40) → 概念讲解
-     3) 中等 (40-70) → 针对性练习
-     4) 较好 (70-85) → 难度提升挑战
-     5) 已掌握 (>=85) → 应用类活动（仿真 / 角色扮演 / 编程）
+  /* 学生端只有 3 种活动：讲解 / 实践练习 / 复习
+     决策优先级：
+     1) 反复出错 (errors>=2 且 mastery<75) → 复习
+     2) 掌握不足 (mastery<45)              → 知识点讲解
+     3) 中等 (45-79)                       → 实践练习（练习 + 编程实践）
+     4) 已掌握 (>=80)                      → 复习（间隔回顾，维持长期记忆）
   */
   function plan(topicId) {
     const t = topic(topicId);
@@ -70,26 +92,19 @@ const Engine = (() => {
     if (t.errors >= 2 && t.mastery < 75) {
       actId = 'review';
       rule = `errors >= 2 且 mastery < 75`;
-      reason = `该知识点已累计 <b>${t.errors} 次错误</b>，且掌握度仅 ${t.mastery}%，需要先纠正错误概念再继续。`;
-    } else if (t.mastery < 40) {
+      reason = `该知识点已累计 <b>${t.errors} 次错误</b>，且掌握度仅 ${t.mastery}%，先通过复习纠正错误概念再继续。`;
+    } else if (t.mastery < 45) {
       actId = 'explain';
-      rule = `mastery < 40`;
-      reason = `掌握度 ${t.mastery}%（&lt; 40%）属于薄弱区，需要先建立概念理解。`;
-    } else if (t.mastery < 70) {
+      rule = `mastery < 45`;
+      reason = `掌握度 ${t.mastery}% 属于薄弱区，先学习教师发布资料生成的知识点讲解。`;
+    } else if (t.mastery < 80) {
       actId = 'practice';
-      rule = `40 <= mastery < 70`;
-      reason = `掌握度 ${t.mastery}% 已有基础但仍不稳定，通过针对性练习巩固应用。`;
-    } else if (t.mastery < 85) {
-      actId = 'challenge';
-      rule = `70 <= mastery < 85`;
-      reason = `掌握度 ${t.mastery}% 接近熟练，提升难度以突破瓶颈。`;
+      rule = `45 <= mastery < 80`;
+      reason = `掌握度 ${t.mastery}% 已有基础但仍不稳定，通过实践练习（练习 + 编程任务）巩固应用。`;
     } else {
-      // 已掌握 → 应用类活动轮转
-      const applied = ['simulation', 'roleplay', 'coding', 'game'];
-      const idx = (t.attempts || 0) % applied.length;
-      actId = applied[idx];
-      rule = `mastery >= 85 → 应用类轮转`;
-      reason = `掌握度 ${t.mastery}% 已达熟练，转向知识应用与迁移（${DATA.activities[actId].name}）。`;
+      actId = 'review';
+      rule = `mastery >= 80`;
+      reason = `掌握度 ${t.mastery}% 已达熟练，安排间隔复习以维持长期记忆。`;
     }
 
     return { topic: t, activity: DATA.activities[actId], reason, rule };
@@ -124,29 +139,17 @@ const Engine = (() => {
       case 'explain':
         delta = 9;
         break;
-      case 'practice':
-        delta = outcome.correct ? 13 : 4;
-        if (!outcome.correct) t.errors += 1;
+      case 'practice': {
+        // 实践练习 = 阶段一「针对性练习」+ 阶段二「编程实践」
+        const quizOk = outcome.quizCorrect !== false;
+        const codeOk = outcome.codePass === true;
+        delta = (quizOk ? 8 : 3) + (codeOk ? 6 : 2);
+        if (!quizOk) t.errors += 1;
         break;
-      case 'challenge':
-        delta = outcome.correct ? 16 : 3;
-        if (!outcome.correct) t.errors += 1;
-        break;
+      }
       case 'review':
         delta = 7;
         t.errors = 0;                     // 复习后清空错误计数
-        break;
-      case 'game':
-        delta = Math.round(6 + (outcome.score || 0) * 0.45);
-        break;
-      case 'simulation':
-        delta = outcome.correct ? 12 : 5;
-        break;
-      case 'roleplay':
-        delta = 8;
-        break;
-      case 'coding':
-        delta = outcome.correct ? 12 : 5;
         break;
       default:
         delta = 5;
@@ -198,7 +201,66 @@ const Engine = (() => {
   function setRole(r) { state.role = r; save(); }
   function role() { return state.role; }
 
-  /* ---------------- 生成式课程（模拟 AI） ---------------- */
+  /* ---------------- 学生自主上传的课程资料 ---------------- */
+  function uploads() { return state.uploads; }
+
+  function addUpload(file) {
+    const rec = {
+      id: 'up_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      name: file.name,
+      kind: (file.name.split('.').pop() || 'FILE').toUpperCase().slice(0, 5),
+      size: fmtSize(file.size),
+      from: '我的上传',
+      status: 'indexing',     // indexing → indexed
+      ts: Date.now(),
+    };
+    state.uploads.unshift(rec);
+    save();
+
+    // 模拟后端「解析 → 切片 → 向量化 → 写入知识库」的过程
+    setTimeout(() => {
+      const r = state.uploads.find(x => x.id === rec.id);
+      if (r) { r.status = 'indexed'; save(); }
+      if (window.App && location.hash.indexOf('materials') >= 0) App.render();
+    }, 1600);
+
+    return rec;
+  }
+
+  function removeUpload(id) {
+    state.uploads = state.uploads.filter(x => x.id !== id);
+    save();
+  }
+
+  function fmtSize(b) {
+    if (!b && b !== 0) return '—';
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(0) + ' KB';
+    return (b / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  /* ---------------- AI 问答助手（基于资料检索，模拟 RAG） ---------------- */
+  function ask(q) {
+    const text = (q || '').trim();
+    const mine = state.uploads.filter(x => x.status === 'indexed');
+    const corpus = DATA.materials.length + mine.length;
+
+    if (!text) return { answer: '请输入你的问题。', sources: [], hit: false, corpus };
+
+    const hit = DATA.assistant.kb.find(e => e.kw.some(k => text.toLowerCase().includes(k.toLowerCase())));
+
+    if (!hit) {
+      return { answer: DATA.assistant.noHit, sources: [], hit: false, corpus };
+    }
+
+    const tp = DATA.topics.find(t => t.id === hit.topicId);
+    const sources = hit.src.concat(mine.slice(0, 2).map(m => m.name));
+    const answer = hit.a + (tp ? `\n\n相关知识点：${tp.icon} ${tp.name}（教师发布路径内）。` : '');
+
+    return { answer, sources, hit: true, topicId: hit.topicId, corpus };
+  }
+
+  /* ---------------- 生成式课程（模拟 AI，教师端使用） ---------------- */
   function generateCourse(topicText) {
     const t = topicText.trim() || '软件工程';
     const tmpl = [
@@ -247,6 +309,9 @@ const Engine = (() => {
     topics, topic, overallMastery,
     plan, nextTopic, nextPlan, applyResult, applyPreTest,
     setStage, stage, setRole, role,
+    published, pathTopics,
+    uploads, addUpload, removeUpload,
+    ask,
     generateCourse, classMatrix, topicAverages,
   };
 })();

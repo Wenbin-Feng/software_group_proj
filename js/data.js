@@ -16,16 +16,11 @@ const DATA = {
     { id: 'agent',   name: 'AI Agent 编排',   icon: '🤖', desc: '工具调用、工作流与状态机',    mastery: 36, attempts: 4,  errors: 2 },
   ],
 
-  /* ---------- 学习活动类型 ---------- */
+  /* ---------- 学习活动类型（学生端只有 3 种） ---------- */
   activities: {
-    explain:    { id: 'explain',    name: '交互式讲解',        icon: '🎧', ability: '知识理解',             desc: '可暂停、可提问的 AI 讲解' },
-    practice:   { id: 'practice',   name: '针对性练习',        icon: '🎯', ability: '知识应用',             desc: '根据学生状态动态生成的题目' },
-    challenge:  { id: 'challenge',  name: '难度提升挑战',      icon: '⚡', ability: '综合应用',             desc: '更高难度的综合场景题' },
-    review:     { id: 'review',     name: '知识复习',          icon: '🔁', ability: '巩固纠错',             desc: '针对历史错误的闪卡复习' },
-    simulation: { id: 'simulation', name: '交互仿真',          icon: '🧩', ability: '系统设计 / Agent 编排', desc: '可视化沙盒：编排 AI Agent 工作流' },
-    roleplay:   { id: 'roleplay',   name: '角色扮演 / 模拟面试', icon: '🎭', ability: '软技能 / 产品思维',  desc: 'AI 扮演客户 / PM，练习需求沟通' },
-    game:       { id: 'game',       name: 'Bug Hunter 小游戏', icon: '🐛', ability: 'Discernment',          desc: '限时找出 AI 生成代码中的问题' },
-    coding:     { id: 'coding',     name: '在线编程',          icon: '💻', ability: '编程实践',             desc: '浏览器内编码运行，AI 实时反馈' },
+    explain:  { id: 'explain',  name: '知识点讲解', icon: '🎧', ability: '理解概念', desc: '基于教师发布资料的分页讲解，可随时提问' },
+    practice: { id: 'practice', name: '实践练习',   icon: '🎯', ability: '练习 + 编程', desc: '先做针对性练习，再完成一个编程实践任务' },
+    review:   { id: 'review',   name: '知识复习',   icon: '🔁', ability: '巩固纠错', desc: '针对历史错误的闪卡回顾' },
   },
 
   /* ---------- 练习题库（practice） ---------- */
@@ -160,112 +155,71 @@ const DATA = {
     ],
   },
 
-  /* ---------- Bug Hunter 关卡 ---------- */
-  bugs: [
-    {
-      id: 'b1', topic: 'quality', title: '用户积分计算',
-      lang: 'python', time: 45,
-      lines: [
-        'def calc_bonus(points, is_vip):',
-        '    bonus = points * 0.1',
-        '    if is_vip = True:            # BUG: 赋值而非比较',
-        '        bonus = bonus * 2',
-        '    return round(bonus)',
-        '',
-        'def apply(points_list, users):',
-        '    total = 0',
-        '    for p in points_list:',
-        '        total += calc_bonus(p, True)',
-        '    return total / len(points_list)',
-      ],
-      bugLines: [2],
-      hints: ['第 3 行：判断相等应该用 ==', 'if is_vip = True 是语法错误（应使用 ==）'],
-    },
-    {
-      id: 'b2', topic: 'agent', title: 'Agent 调用计数',
-      lang: 'python', time: 50,
-      lines: [
-        'MAX_STEPS = 10',
-        '',
-        'def run_agent(task):',
-        '    steps = 0',
-        '    history = []',
-        '    while steps < MAX_STEPS:',
-        '        action = llm_plan(task, history)',
-        '        result = call_tool(action)',
-        '        history.append(result)',
-        '        if result.done:',
-        '            break',
-        '        # BUG: 忘记递增 steps，导致无限循环',
-        '    return summarize(history)',
-      ],
-      bugLines: [10],
-      hints: ['循环里没有任何地方改变 steps 的值', '第 11 行缺少 steps += 1'],
-    },
-    {
-      id: 'b3', topic: 'test', title: '分页查询边界',
-      lang: 'javascript', time: 40,
-      lines: [
-        'function paginate(items, page = 1, size = 10) {',
-        '  const start = (page - 1) * size;',
-        '  const end = start + size;',
-        '  // BUG: 未处理 page 为 0 或负数的情况',
-        '  return items.slice(start, end);',
-        '}',
-        '',
-        'function totalPages(total, size = 10) {',
-        '  return total / size;   // BUG: 应为向上取整',
-        '}',
-      ],
-      bugLines: [3, 8],
-      hints: ['page=0 时 start 为负数，slice 行为异常', 'totalPages 需要 Math.ceil'],
-    },
+  /* ---------- 教师发布的学习路径（学生端只读） ---------- */
+  published: {
+    courseId: 'c1',
+    course: '软件工程导论 · SE-3A',
+    instructor: 'Dr. Chan',
+    updated: '2026-10-20',
+    term: '2026 Fall',
+    note: '知识点、顺序与配套资料均由教师发布，学生端不可自行增删。',
+    order: ['req', 'design', 'test', 'quality', 'agile', 'cicd', 'git', 'agent'],
+  },
+
+  /* ---------- 课程资料（教师发布） ---------- */
+  materials: [
+    { id: 'm1', name: 'Week03_需求工程.pdf',        kind: 'PDF',  size: '2.4 MB', pages: 18, from: '教师发布' },
+    { id: 'm2', name: 'Week05_软件设计与架构.pdf',  kind: 'PDF',  size: '3.1 MB', pages: 24, from: '教师发布' },
+    { id: 'm3', name: 'Week07_软件测试.pptx',       kind: 'PPT',  size: '5.6 MB', pages: 31, from: '教师发布' },
+    { id: 'm4', name: 'Week09_代码质量与重构.pdf',  kind: 'PDF',  size: '1.8 MB', pages: 15, from: '教师发布' },
+    { id: 'm5', name: '课程实验指导书.md',          kind: 'MD',   size: '86 KB',  pages: 9,  from: '教师发布' },
   ],
 
-  /* ---------- 角色扮演脚本（需求沟通 / 模拟面试） ---------- */
-  roleplay: {
-    scenario: '你是一名软件工程师，正在与「客户方产品经理」沟通一个校园活动报名系统的需求。',
-    persona: { name: 'Priya（客户方 PM）', avatar: 'P' },
-    opening: '你好！我们想做一个校园活动报名系统。大概就是学生能看到活动、报名、然后我们后台能导出名单。预算不多，三个月内要上线。',
-    replies: [
-      { kw: ['活动', '功能', '需求', '报名'], text: '对，主要就是报名。不过我们更在意的是「活动开始前能自动提醒已报名的同学」——之前用群发总是漏人。' },
-      { kw: ['提醒', '通知', '消息'], text: '提醒我们是想要微信推送 + 短信兜底，因为有的同学不看微信。你们能做到吗？大概提前 24 小时和 1 小时各一次。' },
-      { kw: ['人数', '上限', '容量', '名额'], text: '活动有名额上限的，超了要能自动进候补队列。有人取消的话，候补第一位自动补上——这个逻辑希望是自动的。' },
-      { kw: ['导出', '报表', '数据', '名单'], text: '导出名单主要是给学院做考勤用，需要包含学号、姓名、报名时间、签到状态。最好能按活动一键导出 Excel。' },
-      { kw: ['预算', '时间', '三个月', '上线', '排期'], text: '三个月是硬 deadline，因为要赶上学期的社团文化节。如果功能太多做不完，我们宁愿先上「报名 + 提醒」，导出后面再说。' },
-      { kw: ['技术', '架构', '数据库', '怎么实现'], text: '技术选型我们不干涉，你们定就行。但希望后续别的学院也能用，最好能支持多个学院各自管理自己的活动。' },
-      { kw: ['权限', '角色', '管理员', '多学院'], text: '权限这块：校级管理员看全部，学院管理员只能看自己学院的活动，学生只能看和报自己能报的。' },
-      { kw: ['签到', '考勤'], text: '签到我们想用扫码，现场生成二维码，学生扫一下就签到。要防止代签——比如限制地理位置或者二维码 30 秒刷新。' },
+  /* ---------- AI 问答助手（基于资料检索作答） ---------- */
+  assistant: {
+    welcome: '你好，我是课程 AI 问答助手。我只依据「教师发布的课程资料 + 你自己上传的资料」作答，并给出引用出处，供你自行判断。',
+    examples: [
+      '非功能性需求包含哪些内容？',
+      '测试金字塔是怎么分层的？',
+      'rebase 和 merge 有什么区别？',
+      '什么样的代码算坏味道？',
+      'CI 和 CD 的区别是什么？',
     ],
-    fallback: '嗯，这个我们内部再确认一下。你继续说说看，你觉得目前最关键、最需要先确定的是哪一块？',
-    coach: [
-      '✅ 好问题——你在主动澄清模糊需求，这正是需求工程的核心。',
-      '💡 提示：试着把客户说的「想要」转成可验证的验收标准（Given/When/Then）。',
-      '💡 提示：注意识别「谁」是真正的用户，以及不同角色的权限边界。',
-      '💡 提示：可以追问优先级——三个月做不完时，哪些是可裁剪的（MoSCoW）。',
+    kb: [
+      { kw: ['非功能', '性能', '可用性', '质量属性', '响应'], topicId: 'req',
+        a: '非功能性需求描述系统「做得多好」，即质量属性：性能、可用性、安全性、可维护性等，而不是具体业务行为。例如「系统在 2 秒内响应 95% 的请求」就是非功能性需求。它常被忽略，却是架构决策的主要驱动因素。',
+        src: ['Week03_需求工程.pdf · P7–P9'] },
+      { kw: ['需求', '验收', '歧义', '评审'], topicId: 'req',
+        a: '好需求应当可验证、无歧义、可追溯。一条需求写完后可以自问：测试同学能否据此判断通过与否？需求评审的核心价值是尽早发现歧义与遗漏——修复需求缺陷的成本远低于上线后修复。',
+        src: ['Week03_需求工程.pdf · P4–P6'] },
+      { kw: ['依赖倒置', 'SOLID', '耦合', '内聚', '微服务', '架构'], topicId: 'design',
+        a: '依赖倒置（DIP）：高层与低层都应依赖抽象，抽象不依赖细节。选型上，单体简单、部署容易；微服务自治性强但引入分布式复杂度。判断标准是「当前约束」而非流行度。追求高内聚、低耦合：改一处要连带改多少处，就是耦合度的信号。',
+        src: ['Week05_软件设计与架构.pdf · P11–P14'] },
+      { kw: ['测试金字塔', '单元测试', '覆盖率', 'TDD', '变异'], topicId: 'test',
+        a: '测试金字塔：底层大量快速的单元测试，中层集成测试，顶层少量 E2E 覆盖关键链路。覆盖率只衡量「哪些代码被执行」，不等于验证正确；可结合变异测试评估断言强度。TDD 节奏是 Red → Green → Refactor，其价值在于驱动出可测试的设计。',
+        src: ['Week07_软件测试.pptx · P5–P8'] },
+      { kw: ['坏味道', '重构', '评审', 'Long Method'], topicId: 'quality',
+        a: '典型坏味道包括 Long Method、God Class、Duplicated Code，它们是「值得重构」的信号。重构不改变外部行为，前提是有自动化测试作为安全网。评审应聚焦设计合理性、边界与错误处理、可维护性，把格式化交给工具。',
+        src: ['Week09_代码质量与重构.pdf · P3–P6'] },
+      { kw: ['敏捷', 'Scrum', 'Sprint', '看板', 'WIP', '回顾'], topicId: 'agile',
+        a: 'Scrum 以固定时间盒（Sprint）组织工作，包含计划会、站会、评审、回顾四个事件；看板是流式方法，核心机制是可视化工作流 + 限制在制品（WIP）以暴露瓶颈。承诺量应基于真实速率（velocity）而非期望。',
+        src: ['课程实验指导书.md · 第 2 节'] },
+      { kw: ['CI', 'CD', '持续集成', '持续交付', '部署', '蓝绿', '流水线'], topicId: 'cicd',
+        a: '持续集成：频繁合并主干并自动构建测试；持续交付：主干始终可发布但由人工触发；持续部署：验证通过后自动发布。流水线建议按「构建 → 静态检查 → 单测 → 集成测试 → 打包 → 部署 → 冒烟」排布，越快越便宜的检查越靠前。蓝绿部署可实现秒级回滚与零停机。',
+        src: ['Week06_CI与DevOps.pdf · P2–P5'] },
+      { kw: ['git', 'rebase', 'merge', '分支', '冲突'], topicId: 'git',
+        a: 'merge 保留分支拓扑并产生合并提交，历史真实；rebase 将提交重放到目标分支，历史线性但改写历史——已推送到公共分支的提交不要 rebase。协作推荐短生命周期特性分支 + Pull Request 评审。冲突需人工判读语义，合并后必须跑测试。',
+        src: ['Week04_Git协作.pdf · P6–P10'] },
+      { kw: ['Agent', '编排', '工具调用', 'Re-plan', '循环'], topicId: 'agent',
+        a: 'Agent 的循环是 Plan → Act → Observe → Update & Re-plan，与「一问一答」的本质区别在于拥有状态与闭环。工具调用让模型突破静态知识限制去执行真实动作；可靠性则来自编排层的约束——最大步数、成本预算与终止条件。',
+        src: ['Week10_AI_Agent编排.pdf · P1–P4'] },
     ],
+    noHit: '我在已索引的资料中没有找到直接依据。建议：① 换用资料中的原词再问；② 上传包含该内容的资料后重试；③ 到学习主页完成该知识点的讲解。请注意：我不会凭空编造答案。',
   },
 
-  /* ---------- 交互仿真：编排 AI Agent 工作流 ---------- */
-  simulation: {
-    title: '为「自动答疑助手」编排一个 Agent 工作流',
-    desc: '点击步骤，按你认为正确的顺序把它们串起来。',
-    steps: [
-      { id: 's1', text: '接收学生问题（User Query）' },
-      { id: 's2', text: '检索课程知识库（RAG Retrieval）' },
-      { id: 's3', text: '判断是否需要生成练习题（Planner 决策）' },
-      { id: 's4', text: '调用 LLM 生成讲解内容' },
-      { id: 's5', text: '评估学生作答并记录掌握度（Evaluation）' },
-      { id: 's6', text: '更新 Student Knowledge Model' },
-      { id: 's7', text: '重新规划下一步活动（Re-plan）' },
-    ],
-    correct: ['s1', 's2', 's3', 's4', 's5', 's6', 's7'],
-  },
-
-  /* ---------- 在线编程练习 ---------- */
+  /* ---------- 在线编程实践任务（并入「实践练习」第二阶段） ---------- */
   coding: {
-    title: '实现：判断括号是否匹配',
-    topic: 'quality',
+    title: '编程实践任务',
     prompt: '实现一个函数 isBalanced(s)，判断字符串中的 ()、[]、{} 是否成对且嵌套正确。返回 true / false。',
     starter: 'function isBalanced(s) {\n  // 在这里实现\n  \n}',
     tests: [

@@ -1,5 +1,8 @@
 /* ============================================================
    views-student.js — 学生端视图
+   规则：学习路径与知识点由教师发布（学生只读）
+        学生可做的活动只有三种：知识点讲解 / 实践练习 / 知识复习
+        学生自主上传课程资料，并通过 AI 问答助手提问
    ============================================================ */
 
 const Student = (() => {
@@ -17,69 +20,26 @@ const Student = (() => {
       A.i = 0; A.asked = null;
     } else if (type === 'practice') {
       A.qs = (DATA.practice[topicId] || DATA.practice.req);
-      A.i = 0; A.sel = null; A.fb = null; A.correct = 0;
-    } else if (type === 'challenge') {
-      A.q = DATA.challenge[topicId] || DATA.challenge.req;
-      A.sel = null; A.fb = null;
+      A.i = 0; A.sel = null; A.correct = 0;
+      A.phase = 'quiz';                 // quiz → code
+      A.code = DATA.coding.starter;
+      A.ran = false; A.testOut = null;
     } else if (type === 'review') {
       const src = (DATA.explain[topicId] || DATA.explain.req);
       A.cards = src.map(s => ({ q: s.t, a: s.tip }));
       A.i = 0; A.flip = false;
-    } else if (type === 'simulation') {
-      A.steps = [...DATA.simulation.steps];
-      A.order = [];
-    } else if (type === 'roleplay') {
-      A.msgs = [{ who: 'ai', text: DATA.roleplay.opening }];
-      A.turn = 0;
-    } else if (type === 'game') {
-      const lv = DATA.bugs[0];
-      A.lv = lv; A.found = []; A.time = lv.time; A.submitted = false; A.timerId = null;
-      startTimer();
-    } else if (type === 'coding') {
-      A.code = DATA.coding.starter; A.ran = false;
     }
 
     Engine.setStage('act');
     App.go(`#/student/activity/${type}/${topicId}`);
   }
 
-  /* Bug Hunter 倒计时 */
-  function startTimer() {
-    if (A && A.timerId) clearInterval(A.timerId);
-    A.timerId = setInterval(() => {
-      if (!A || A.type !== 'game' || A.submitted) { clearInterval(A.timerId); return; }
-      A.time--;
-      const el = document.getElementById('hud-time');
-      if (el) el.textContent = A.time + 's';
-      if (A.time <= 0) { clearInterval(A.timerId); submitGame(); }
-    }, 1000);
-  }
-
   function finish(outcome) {
     if (!A) return;
-    if (A.timerId) clearInterval(A.timerId);
     const r = Engine.applyResult(A.topicId, A.type, outcome || {});
     A.result = r;
     Engine.setStage('replan');
     App.render();
-  }
-
-  /* ================= 语法高亮（简易） ================= */
-  function hl(line) {
-    let s = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    let ci = s.indexOf('#');
-    let cj = s.indexOf('//');
-    let cs = [ci, cj].filter(x => x >= 0);
-    let cut = cs.length ? Math.min(...cs) : -1;
-    let code = s, com = '';
-    if (cut >= 0) {
-      code = s.slice(0, cut);
-      com = `<span class="code-com">${s.slice(cut)}</span>`;
-    }
-    code = code.replace(/\b(def|function|return|if|else|while|for|break|const|let|var|True|False|None|MAX_STEPS)\b/g,
-                        '<span class="code-kw">$1</span>');
-    code = code.replace(/'([^']*)'/g, '<span class="code-str">\'$1\'</span>');
-    return code + com;
   }
 
   /* ================= 仪表盘 ================= */
@@ -87,169 +47,142 @@ const Student = (() => {
     const overall = Engine.overallMastery();
     const plan = Engine.nextPlan();
     const tp = plan.topic, act = plan.activity;
+    const pub = Engine.published();
 
-    // 未做 Pre-test → 提示横幅
-    const preBanner = !Engine.state.hasPreTest ? `
-      <div class="card card-pad" style="border-color:#c7d2fe;background:var(--grad-soft);margin-bottom:18px">
-        <div class="row row-wrap">
-          <div style="font-size:20px">📝</div>
-          <div style="flex:1;min-width:220px">
-            <div style="font-weight:700">先完成一次 Pre-test，让 Agent 了解你的起点</div>
-            <div class="text-sm" style="color:var(--text-2)">系统会根据答题结果为 8 个知识点建立初始掌握度，再据此规划学习路径。</div>
-          </div>
-          <button class="btn btn-grad" onclick="Student.pretest()">开始 Pre-test ${I('arrowRight',15)}</button>
+    /* ① 使用流程：让用户一眼知道平台怎么用 */
+    const hasPre = Engine.state.hasPreTest;
+    const cur = !hasPre ? 0 : (Engine.state.completed === 0 ? 1 : 2);
+    const STEPS = [
+      ['完成 Pre-test', '建立初始掌握度'],
+      ['完成推荐活动', '讲解 / 实践 / 复习'],
+      ['查看学习进度', '掌握度持续更新'],
+    ];
+    const steps = STEPS.map((s, i) => `
+      <div class="step ${i < cur ? 'done' : (i === cur ? 'active' : '')}">
+        <span class="step-n">${i + 1}</span>
+        <div>
+          <div class="step-t">${s[0]}</div>
+          <div class="step-d">${s[1]}</div>
         </div>
+      </div>`).join('<span class="step-arrow">›</span>');
+
+    /* ② 教师发布的学习路径（学生只读） */
+    const published = `
+      <div class="card pub-card">
+        <div class="row">
+          <span class="badge badge-primary">${I('book', 13)} 教师发布</span>
+          <div style="min-width:0">
+            <div style="font-weight:700;font-size:14px">${pub.course}</div>
+            <div class="text-xs" style="color:var(--text-3)">
+              ${pub.instructor} · ${pub.term} · 更新于 ${pub.updated} · ${pub.order.length} 个知识点
+            </div>
+          </div>
+          <span class="spacer"></span>
+          <button class="btn btn-ghost btn-sm" onclick="App.go('#/student/materials')">${I('upload',14)} 课程资料 · AI 问答</button>
+        </div>
+        <div class="pub-note">${pub.note}如需补充资料，可在「课程资料 · AI 问答」中自行上传，AI 问答将一并检索。</div>
+      </div>`;
+
+    /* ③ 未做 Pre-test 时的提示 */
+    const notice = !hasPre ? `
+      <div class="notice">
+        <span class="notice-ico">📝</span>
+        <div style="flex:1">
+          <div class="notice-t">先完成 Pre-test，让 Agent 了解你的起点</div>
+          <div class="notice-d">共 ${DATA.topics.length} 道题，约 3 分钟，用于建立各知识点的初始掌握度。</div>
+        </div>
+        <button class="btn btn-primary" onclick="Student.pretest()">开始 Pre-test ${I('arrowRight',15)}</button>
       </div>` : '';
 
-    // 规划闭环轨迹
-    const stage = Engine.stage();
-    const steps = [
-      ['plan', 'Plan'],
-      ['act', 'Act'],
-      ['observe', 'Observe'],
-      ['update', 'Update'],
-      ['replan', 'Re-plan'],
-    ];
-    const activeIdx = steps.findIndex(s => s[0] === stage);
-    const trace = steps.map((s, i) => {
-      const cls = i < activeIdx ? 'done' : (i === activeIdx ? 'active' : '');
-      return `<span class="trace-step ${cls}">${s[1]}</span>`;
-    }).join('<span class="trace-arrow">›</span>');
+    /* ④ 主行动卡：一次只推一件事 */
+    const focus = `
+      <div class="focus-card">
+        <div class="focus-top">
+          <div class="focus-ico">${act.icon}</div>
+          <div class="focus-main">
+            <div class="focus-label">ADAPTIVE PLANNING AGENT · 推荐下一步</div>
+            <div class="focus-title">${act.name}</div>
+            <div class="focus-meta">${tp.icon} ${tp.name} · 当前掌握度 ${tp.mastery}%</div>
+          </div>
+          ${UI.ring(tp.mastery, 68)}
+        </div>
+        <div class="focus-body">
+          <div class="reason-line">${plan.reason}　规则 <span class="reason-rule">${plan.rule}</span></div>
+          <div class="row mt-16">
+            <button class="btn btn-primary" onclick="Student.start('${act.id}','${tp.id}')">${I('play',15)} 开始学习</button>
+            <button class="btn btn-ghost" onclick="Student.openTopic('${tp.id}')">选择其他活动</button>
+            <span class="spacer"></span>
+            <span class="text-xs" style="color:var(--text-3)">完成后自动更新掌握度并重新规划</span>
+          </div>
+        </div>
+      </div>`;
 
-    // 知识点列表
-    const topicRows = Engine.topics().map(t => {
+    /* ⑤ 知识状态（按教师发布顺序） */
+    const topicRows = Engine.pathTopics().map((t, idx) => {
       const lv = UI.level(t.mastery);
+      const col = lv.key === 'ok' ? 'var(--success)' : lv.key === 'mid' ? 'var(--warning)' : 'var(--danger)';
       return `
         <div class="topic-row">
+          <span class="path-idx">${idx + 1}</span>
           <div class="topic-emoji">${t.icon}</div>
           <div class="topic-main">
             <div class="topic-name">${t.name}</div>
-            <div class="topic-meta">${t.desc} · 练习 ${t.attempts} 次${t.errors ? ` · <span style="color:var(--danger)">${t.errors} 次错误</span>` : ''}</div>
+            <div class="topic-meta">练习 ${t.attempts} 次${t.errors ? ` · <span style="color:var(--danger)">${t.errors} 次错误</span>` : ''}</div>
           </div>
           <div class="topic-bar-wrap">${UI.bar(t.mastery)}</div>
-          <div class="topic-pct" style="color:var(--${lv.key === 'ok' ? 'success' : lv.key === 'mid' ? 'warning' : 'danger'})">${t.mastery}%</div>
+          <div class="topic-pct" style="color:${col}">${t.mastery}%</div>
           <button class="btn btn-ghost btn-sm" onclick="Student.openTopic('${t.id}')">学习</button>
         </div>`;
     }).join('');
 
-    // 最近轨迹
-    const traceRows = Engine.state.trace.slice(0, 5).map(x => `
+    /* ⑥ 最近记录 */
+    const recent = Engine.state.trace.slice(0, 4).map(x => `
       <div class="topic-row">
-        <div class="topic-emoji" style="background:var(--surface-3)">${DATA.topics.find(t => t.id === x.topicId)?.icon || '📘'}</div>
+        <div class="topic-emoji">${(DATA.topics.find(t => t.id === x.topicId) || {}).icon || '📘'}</div>
         <div class="topic-main">
           <div class="topic-name">${x.topicName} · ${x.actName}</div>
           <div class="topic-meta">掌握度 ${x.before}% → ${x.after}%</div>
         </div>
-        <span class="badge ${x.delta > 0 ? 'badge-success' : 'badge-muted'}">+${x.delta}%</span>
-      </div>`).join('') || UI.empty('还没有学习记录，先完成一个活动试试', '🌱');
+        <span class="badge badge-success">+${x.delta}%</span>
+      </div>`).join('') || UI.empty('还没有学习记录，完成一个活动试试', '🌱');
 
     return `
-      ${preBanner}
+      <div class="steps">${steps}</div>
+      ${published}
+      ${notice}
 
-      <div class="hero mb-16">
-        <div class="hero-inner">
-          <div class="row" style="gap:9px;opacity:.9;font-size:12.5px;font-weight:600">
-            ${I('sparkles', 14)} Adaptive Study Assistant
-          </div>
-          <div class="hero-title" style="margin-top:8px">${greet()}，${Engine.state.studentName}</div>
-          <div class="hero-sub">
-            你的整体掌握度 <b>${overall}%</b>。Agent 已分析 ${Engine.topics().length} 个知识点，
-            为你规划了下一步学习活动 —— 它会随着你的每次作答持续调整。
-          </div>
-          <div class="hero-actions">
-            <button class="btn-on-hero" onclick="Student.start('${act.id}','${tp.id}')">
-              ${I('play', 15)} 开始「${act.name}」
-            </button>
-            <button class="btn-on-hero outline" onclick="App.go('#/student/explore')">
-              ${I('sparkles', 15)} 自定义学习主题
-            </button>
-          </div>
+      <div class="dash-top">
+        ${focus}
+        <div class="card dash-side">
+          ${UI.ring(overall, 84)}
+          <div class="text-xs mt-8" style="color:var(--text-3)">整体掌握度</div>
+          <div class="divider"></div>
+          <div class="text-sm">已完成 <b>${Engine.state.completed}</b> 个活动</div>
+          <div class="text-sm">连续学习 <b>${Engine.state.streak}</b> 天</div>
+          <div class="text-sm">薄弱知识点 <b>${Engine.topics().filter(t => t.mastery < 45).length}</b> 个</div>
         </div>
       </div>
 
-      <div class="grid g-main mb-16">
-        <!-- 下一步活动 -->
-        <div class="next-card">
-          <div class="next-top">
-            <div class="next-ico">${act.icon}</div>
-            <div style="flex:1">
-              <div class="text-xs" style="color:var(--primary-600);font-weight:700;letter-spacing:.04em">ADAPTIVE PLANNING AGENT · 推荐下一步</div>
-              <div style="font-size:17px;font-weight:800;margin-top:2px">${act.name}</div>
-              <div class="text-sm" style="color:var(--text-2)">${tp.icon} ${tp.name} · ${act.desc}</div>
-            </div>
-            <div style="text-align:center">${UI.ring(tp.mastery, 76)}</div>
-          </div>
-          <div class="next-body">
-            <div class="h-section mb-8" style="font-size:13.5px">决策依据</div>
-            <div class="reason-box">
-              ${plan.reason}
-              <div class="mt-8">命中规则：<span class="reason-rule">${plan.rule}</span></div>
-            </div>
-            <div class="row mt-16">
-              <button class="btn btn-grad" onclick="Student.start('${act.id}','${tp.id}')">${I('play',15)} 开始这个活动</button>
-              <button class="btn btn-ghost" onclick="Student.openTopic('${tp.id}')">查看全部活动</button>
-            </div>
+      <div class="card mb-16">
+        <div class="card-head">
+          <span class="h-section">教师发布的学习路径（${Engine.pathTopics().length} 个知识点）</span>
+          <span class="spacer"></span>
+          <div class="mastery-legend">
+            <span><i style="background:#16a34a"></i>已掌握</span>
+            <span><i style="background:#d97706"></i>学习中</span>
+            <span><i style="background:#dc2626"></i>薄弱</span>
           </div>
         </div>
-
-        <!-- 闭环 + 总览 -->
-        <div class="col">
-          <div class="card">
-            <div class="card-head"><span class="h-section">自适应闭环</span></div>
-            <div class="card-body">
-              <div class="trace">${trace}</div>
-              <div class="text-sm mt-16" style="color:var(--text-3)">
-                完成活动后 Agent 会 <b>Observe</b> 你的作答、<b>Update</b> 掌握度，并 <b>Re-plan</b> 下一步。
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-body">
-              <div class="row">
-                <div style="text-align:center">${UI.ring(overall, 92, '整体掌握度')}</div>
-                <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                  ${stat('已完成活动', Engine.state.completed, 'flame', '')}
-                  ${stat('连续学习', Engine.state.streak + ' 天', 'clock', '')}
-                  ${stat('薄弱知识点', Engine.topics().filter(t => t.mastery < 45).length, 'bug', 'amber')}
-                  ${stat('已掌握', Engine.topics().filter(t => t.mastery >= 75).length, 'check', 'green')}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        ${topicRows}
       </div>
 
-      <div class="grid g-main">
-        <div class="card">
-          <div class="card-head">
-            <span class="h-section">知识状态模型</span>
-            <span class="spacer"></span>
-            <div class="mastery-legend">
-              <span><i style="background:#22c55e"></i>已掌握</span>
-              <span><i style="background:#f59e0b"></i>学习中</span>
-              <span><i style="background:#f87171"></i>薄弱</span>
-            </div>
-          </div>
-          ${topicRows}
+      <div class="card">
+        <div class="card-head">
+          <span class="h-section">最近学习记录</span>
+          <span class="spacer"></span>
+          <button class="btn btn-ghost btn-sm" onclick="App.go('#/student/progress')">查看全部</button>
         </div>
-
-        <div class="card">
-          <div class="card-head"><span class="h-section">最近学习轨迹</span><span class="spacer"></span>
-            <button class="btn btn-ghost btn-sm" onclick="App.go('#/student/progress')">全部</button>
-          </div>
-          ${traceRows}
-        </div>
-      </div>
-    `;
-  }
-
-  function stat(label, val, ic, tone) {
-    return `
-      <div>
-        <div class="stat-icon ${tone}" style="width:30px;height:30px;border-radius:9px">${I(ic, 15)}</div>
-        <div class="stat-value" style="font-size:20px;margin-top:6px">${val}</div>
-        <div class="text-xs" style="color:var(--text-3)">${label}</div>
+        ${recent}
       </div>`;
   }
 
@@ -258,7 +191,7 @@ const Student = (() => {
     return h < 6 ? '夜深了' : h < 11 ? '早上好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好';
   }
 
-  /* ================= 知识点详情（可选活动） ================= */
+  /* ================= 知识点详情（三种活动可选） ================= */
   function openTopic(topicId) {
     A = null;
     App.go('#/student/topic/' + topicId);
@@ -285,25 +218,24 @@ const Student = (() => {
           <div class="runner-title">${t.icon} ${t.name}</div>
           <div class="runner-topic">${t.desc}</div>
         </div>
-        <div class="spacer"></div>
-        <div style="text-align:center">${UI.ring(t.mastery, 72)}</div>
+        <span class="spacer"></span>
+        ${UI.ring(t.mastery, 56)}
       </div>
 
-      <div class="card card-pad mb-16">
-        <div class="row" style="gap:12px">
-          ${I('brain', 20)}
-          <div style="flex:1">
-            <div style="font-weight:700">Agent 推荐：${p.activity.icon} ${p.activity.name}</div>
-            <div class="text-sm" style="color:var(--text-2)">${p.reason} · 规则 <span class="reason-rule">${p.rule}</span></div>
-          </div>
+      <div class="notice">
+        <span class="notice-ico">${I('brain',17)}</span>
+        <div style="flex:1">
+          <div class="notice-t">Agent 推荐：${p.activity.icon} ${p.activity.name}</div>
+          <div class="notice-d">${p.reason}</div>
         </div>
       </div>
 
-      <div class="section-head"><span class="h-section">选择学习活动</span>
-        <span class="spacer"></span><span class="text-sm" style="color:var(--text-3)">共 ${Object.keys(DATA.activities).length} 种形式</span>
+      <div class="section-head">
+        <span class="h-section">选择学习活动（${Object.keys(DATA.activities).length} 种）</span>
+        <span class="spacer"></span>
+        <span class="text-xs" style="color:var(--text-3)">知识点来自教师发布的学习路径</span>
       </div>
-      <div class="act-grid">${acts}</div>
-    `;
+      <div class="act-grid">${acts}</div>`;
   }
 
   /* ================= Pre-test ================= */
@@ -325,10 +257,10 @@ const Student = (() => {
             <div style="font-size:40px">🎉</div>
             <div class="h-section mt-8" style="font-size:18px">Pre-test 完成</div>
             <div class="text-sm mt-8" style="color:var(--text-2)">
-              答对 ${correct} / ${DATA.topics.length} 题。Agent 已据此为各知识点建立初始掌握度，并生成第一条学习路径。
+              答对 ${correct} / ${DATA.topics.length} 题。Agent 已据此为教师发布的各知识点建立初始掌握度。
             </div>
             <div class="row mt-16" style="justify-content:center">
-              <button class="btn btn-grad" onclick="Student.commitPretest()">生成我的学习路径</button>
+              <button class="btn btn-primary" onclick="Student.commitPretest()">查看我的学习路径</button>
             </div>
           </div>
         </div>`;
@@ -356,7 +288,7 @@ const Student = (() => {
         <div class="runner-head">
           <div>
             <div class="runner-title">Pre-test · 起点评估</div>
-            <div class="runner-topic">第 ${P.i + 1} / ${DATA.topics.length} 题 · ${t.icon} ${t.name}</div>
+            <div class="runner-topic">第 ${P.i + 1} / ${DATA.topics.length} 题 · ${t.icon} ${t.name}（教师发布）</div>
           </div>
         </div>
         <div class="card card-pad">
@@ -381,7 +313,7 @@ const Student = (() => {
   function commitPretest() {
     Engine.applyPreTest(P.answers);
     P = null;
-    UI.toast('已生成个性化学习路径', 'ok');
+    UI.toast('已建立初始掌握度，开始学习', 'ok');
     App.go('#/student/dashboard');
   }
 
@@ -390,21 +322,21 @@ const Student = (() => {
     if (!A || A.type !== type || A.topicId !== topicId) {
       // 直接进入 URL 时初始化
       A = { type, topicId, result: null };
-      if (type === 'explain') { A.slides = DATA.explain[topicId] || DATA.explain.req; A.i = 0; A.asked = null; }
-      else if (type === 'practice') { A.qs = DATA.practice[topicId] || DATA.practice.req; A.i = 0; A.sel = null; A.fb = null; A.correct = 0; }
-      else if (type === 'challenge') { A.q = DATA.challenge[topicId] || DATA.challenge.req; A.sel = null; A.fb = null; }
-      else if (type === 'review') { A.cards = (DATA.explain[topicId] || DATA.explain.req).map(s => ({ q: s.t, a: s.tip })); A.i = 0; A.flip = false; }
-      else if (type === 'simulation') { A.steps = [...DATA.simulation.steps]; A.order = []; }
-      else if (type === 'roleplay') { A.msgs = [{ who: 'ai', text: DATA.roleplay.opening }]; A.turn = 0; }
-      else if (type === 'game') {
-        A.lv = DATA.bugs[0]; A.found = []; A.time = A.lv.time; A.submitted = false; A.timerId = null;
-        startTimer();
+      if (type === 'explain') {
+        A.slides = DATA.explain[topicId] || DATA.explain.req; A.i = 0; A.asked = null;
+      } else if (type === 'practice') {
+        A.qs = DATA.practice[topicId] || DATA.practice.req;
+        A.i = 0; A.sel = null; A.correct = 0;
+        A.phase = 'quiz'; A.code = DATA.coding.starter; A.ran = false; A.testOut = null;
+      } else if (type === 'review') {
+        A.cards = (DATA.explain[topicId] || DATA.explain.req).map(s => ({ q: s.t, a: s.tip }));
+        A.i = 0; A.flip = false;
       }
-      else if (type === 'coding') { A.code = DATA.coding.starter; A.ran = false; }
     }
 
     const t = Engine.topic(topicId);
     const act = DATA.activities[type];
+    if (!act) { A = null; return UI.empty('该活动已下线', '🚧'); }
 
     // ---- 已完成 → 结果面板（含 Re-plan） ----
     if (A.result) {
@@ -424,7 +356,7 @@ const Student = (() => {
             <div class="mt-16"></div>
           </div>
 
-          <div class="card card-pad mt-16" style="background:var(--grad-soft);border-color:#c7d2fe">
+          <div class="card card-pad mt-16" style="background:var(--primary-soft);border-color:#c7d2fe">
             <div class="row" style="gap:10px">
               ${I('refresh', 18)}
               <div style="font-weight:700">Re-plan · Agent 的下一步决策</div>
@@ -435,7 +367,7 @@ const Student = (() => {
               <b>${r.re.activity.icon} ${r.re.activity.name}</b>
             </div>
             <div class="row mt-16">
-              <button class="btn btn-grad" onclick="Student.start('${r.re.activity.id}','${r.topic.id}')">
+              <button class="btn btn-primary" onclick="Student.start('${r.re.activity.id}','${r.topic.id}')">
                 继续：${r.re.activity.name} ${I('arrowRight',15)}
               </button>
               <button class="btn btn-ghost" onclick="App.go('#/student/dashboard')">回到主页</button>
@@ -447,13 +379,12 @@ const Student = (() => {
     // ---- 活动主体 ----
     let body = '';
     if (type === 'explain')       body = vExplain();
-    else if (type === 'practice') body = vPractice();
-    else if (type === 'challenge')body = vChallenge();
+    else if (type === 'practice') body = A.phase === 'code' ? vPracticeCode() : vPracticeQuiz();
     else if (type === 'review')   body = vReview();
-    else if (type === 'simulation') body = vSim();
-    else if (type === 'roleplay') body = vRoleplay();
-    else if (type === 'game')     body = vGame();
-    else if (type === 'coding')   body = vCoding();
+
+    const stage = type === 'practice'
+      ? `<span class="badge ${A.phase === 'code' ? 'badge-primary' : 'badge-muted'}">${A.phase === 'code' ? '阶段 2 · 编程实践' : '阶段 1 · 针对性练习'}</span>`
+      : '';
 
     return `
       <div class="runner">
@@ -463,18 +394,19 @@ const Student = (() => {
             <div class="runner-title">${act.icon} ${act.name}</div>
             <div class="runner-topic">${t.icon} ${t.name} · 训练：${act.ability}</div>
           </div>
+          <span class="spacer"></span>
+          ${stage}
         </div>
         ${body}
       </div>`;
   }
 
   function quit() {
-    if (A && A.timerId) clearInterval(A.timerId);
     A = null;
     App.go('#/student/dashboard');
   }
 
-  /* ---- 交互式讲解 ---- */
+  /* ---- 知识点讲解 ---- */
   function vExplain() {
     const s = A.slides[A.i];
     const items = s.items.map(x => `<div class="slide-item"><span class="slide-bullet"></span><div>${x}</div></div>`).join('');
@@ -482,7 +414,7 @@ const Student = (() => {
 
     const askAns = A.asked ? `
       <div class="ask-answer gen-anim">
-        <b>AI 助教：</b>关于「${A.asked}」——${s.tip} 如需更深入，我可以从课程资料中检索 ${Engine.topic(A.topicId).name} 的相关章节为你展开。
+        <b>AI 助教：</b>关于「${A.asked}」——${s.tip} 该内容来自教师发布的课程资料；如需沿其他方向展开，可到「课程资料 · AI 问答」继续追问。
       </div>` : '';
 
     return `
@@ -505,7 +437,7 @@ const Student = (() => {
           <button class="btn btn-ghost" ${A.i === 0 ? 'disabled' : ''} onclick="Student.slide(-1)">上一页</button>
           <span class="spacer"></span>
           ${last
-            ? `<button class="btn btn-grad" onclick="Student.finish({})">完成讲解 ${I('check',15)}</button>`
+            ? `<button class="btn btn-primary" onclick="Student.finish({})">完成讲解 ${I('check',15)}</button>`
             : `<button class="btn btn-primary" onclick="Student.slide(1)">下一页 ${I('arrowRight',15)}</button>`}
         </div>
       </div>`;
@@ -522,15 +454,15 @@ const Student = (() => {
     App.render();
   }
 
-  /* ---- 针对性练习 ---- */
-  function vPractice() {
+  /* ---- 实践练习：阶段 1 针对性练习 ---- */
+  function vPracticeQuiz() {
     const q = A.qs[A.i];
     const opts = q.opts.map((o, i) => {
       let cls = '';
       if (A.sel !== null) {
         if (i === q.a) cls = 'correct';
         else if (A.sel === i) cls = 'wrong';
-      } else if (A.sel === i) cls = 'selected';
+      }
       return `<button class="opt ${cls}" ${A.sel !== null ? 'disabled' : `onclick="Student.pick(${i})"`}>
                 <span class="opt-key">${'ABCD'[i]}</span><span class="opt-label">${o}</span>
               </button>`;
@@ -543,7 +475,7 @@ const Student = (() => {
       </div>
       <div class="row mt-16">
         ${A.i === A.qs.length - 1
-          ? `<button class="btn btn-grad" onclick="Student.finishPractice()">完成练习 ${I('check',15)}</button>`
+          ? `<button class="btn btn-primary" onclick="Student.toCode()">进入编程实践 ${I('arrowRight',15)}</button>`
           : `<button class="btn btn-primary" onclick="Student.nextQ()">下一题 ${I('arrowRight',15)}</button>`}
       </div>` : '';
 
@@ -551,7 +483,7 @@ const Student = (() => {
       <div class="card card-pad">
         <div class="bar mb-16"><div class="bar-fill" style="width:${(A.i / A.qs.length) * 100}%"></div></div>
         <div class="row mb-8"><span class="badge badge-primary">第 ${A.i + 1} / ${A.qs.length} 题</span>
-          <span class="text-xs" style="color:var(--text-3)">题目由 Agent 依据你的掌握度动态生成</span></div>
+          <span class="text-xs" style="color:var(--text-3)">题目依据你的掌握度动态抽取</span></div>
         <div class="q-text">${q.q}</div>
         ${opts}
         ${fb}
@@ -564,47 +496,93 @@ const Student = (() => {
     App.render();
   }
   function nextQ() { A.i++; A.sel = null; App.render(); }
-  function finishPractice() {
-    finish({ correct: A.correct >= Math.ceil(A.qs.length / 2) });
-  }
+  function toCode() { A.phase = 'code'; App.render(); }
 
-  /* ---- 挑战 ---- */
-  function vChallenge() {
-    const q = A.q;
-    const opts = q.opts.map((o, i) => {
-      let cls = '';
-      if (A.sel !== null) {
-        if (i === q.a) cls = 'correct';
-        else if (A.sel === i) cls = 'wrong';
-      }
-      return `<button class="opt ${cls}" ${A.sel !== null ? 'disabled' : `onclick="Student.pickC(${i})"`}>
-                <span class="opt-key">${'ABCD'[i]}</span><span class="opt-label">${o}</span>
-              </button>`;
-    }).join('');
-    const fb = A.sel !== null ? `
-      <div class="feedback ${A.sel === q.a ? 'ok' : 'bad'}">
-        <div class="feedback-title">${A.sel === q.a ? I('check',15) + ' 挑战成功' : I('bug',15) + ' 挑战失败'}</div>
-        ${q.why}
-      </div>
-      <div class="row mt-16"><button class="btn btn-grad" onclick="Student.finish({correct:${A.sel === q.a}})">完成挑战 ${I('check',15)}</button></div>` : '';
+  /* ---- 实践练习：阶段 2 编程实践 ---- */
+  function vPracticeCode() {
+    const c = DATA.coding;
+    const out = A.testOut;
+
+    const tests = out && !out.error ? c.tests.map(t => {
+      const r = out.results[t.input];
+      return `<div><span class="${r.ok ? 'ok' : 'fail'}">${r.ok ? '✓ PASS' : '✗ FAIL'}</span>
+        <span class="dim"> isBalanced(${t.input}) → 期望 ${t.expect}${r.ok ? '' : '，实际 ' + r.actual}</span></div>`;
+    }).join('') : '';
+
+    const afterRun = out ? `
+      ${out.error
+        ? `<div class="feedback bad mt-16"><div class="feedback-title">${I('bug',15)} 运行出错</div>${out.error}</div>`
+        : `<div class="terminal"><span class="dim">$ node test.js</span>\n${tests}\n<span class="dim">${c.tests.length} tests · ${out.passed} passed · ${c.tests.length - out.passed} failed</span></div>
+           <div class="feedback ${out.passed === c.tests.length ? 'ok' : 'bad'} mt-16">
+             <div class="feedback-title">${I('sparkles',15)} AI 实时反馈</div>
+             ${out.passed === c.tests.length
+               ? '全部测试用例通过。' + c.aiFeedback[0]
+               : c.aiFeedback.slice(1).join('<br>')}
+           </div>`}
+      <div class="row mt-16">
+        <button class="btn btn-ghost" onclick="Student.runCode()">${I('refresh',14)} 重新运行</button>
+        <span class="spacer"></span>
+        <button class="btn btn-primary" onclick="Student.finishPractice()">完成实践练习 ${I('check',15)}</button>
+      </div>` : `
+      <div class="row mt-16">
+        <span class="text-xs" style="color:var(--text-3)">代码在浏览器内真实执行（沙盒），运行后即可看到测试结果</span>
+        <span class="spacer"></span>
+        <button class="btn btn-primary" onclick="Student.runCode()">${I('play',15)} 运行测试</button>
+      </div>`;
 
     return `
       <div class="card card-pad">
         <div class="row mb-8">
-          <span class="badge badge-danger">难度提升</span>
-          <span class="text-xs" style="color:var(--text-3)">综合场景题 · 检验知识迁移</span>
+          <span class="badge badge-primary">${I('code',12)} ${c.title}</span>
+          <span class="text-xs" style="color:var(--text-3)">练习已答对 ${A.correct} / ${A.qs.length} 题，接着动手实现</span>
         </div>
-        <div class="q-text">${q.q}</div>
-        ${opts}${fb}
+        <div class="q-text">${c.prompt}</div>
+        <textarea class="code-editor" id="code-area" spellcheck="false">${A.code}</textarea>
+        ${afterRun}
       </div>`;
   }
-  function pickC(i) {
-    if (A.sel !== null) return;
-    A.sel = i;
+
+  function runCode() {
+    const el = document.getElementById('code-area');
+    if (el) A.code = el.value;
+    A.testOut = evalCode(A.code);
+    A.ran = true;
     App.render();
   }
 
-  /* ---- 复习闪卡 ---- */
+  /* 在浏览器中真实执行学生代码并跑测试 */
+  function evalCode(code) {
+    let fn;
+    try {
+      fn = new Function(code + '\n;return typeof isBalanced === "function" ? isBalanced : null;')();
+    } catch (e) {
+      return { error: '代码无法编译：' + e.message };
+    }
+    if (!fn) return { error: '未找到 isBalanced(s) 函数，请检查函数签名。' };
+
+    const results = {};
+    let passed = 0;
+    DATA.coding.tests.forEach(t => {
+      let actual, ok = false;
+      try {
+        actual = String(fn(JSON.parse(t.input)));
+        ok = actual === t.expect;
+      } catch (e) {
+        actual = '运行异常：' + e.message;
+      }
+      if (ok) passed++;
+      results[t.input] = { ok, actual };
+    });
+    return { results, passed };
+  }
+
+  function finishPractice() {
+    const quizOk = A.correct >= Math.ceil(A.qs.length / 2);
+    const codeOk = !!(A.testOut && !A.testOut.error && A.testOut.passed === DATA.coding.tests.length);
+    finish({ quizCorrect: quizOk, codePass: codeOk });
+  }
+
+  /* ---- 知识复习（闪卡） ---- */
   function vReview() {
     const c = A.cards[A.i];
     const last = A.i === A.cards.length - 1;
@@ -618,334 +596,208 @@ const Student = (() => {
         <button class="btn btn-ghost" ${A.i === 0 ? 'disabled' : ''} onclick="Student.card(-1)">上一张</button>
         <div class="spacer"></div>
         <span class="text-sm" style="color:var(--text-3)">${A.i + 1} / ${A.cards.length}</span>
-        ${last ? `<button class="btn btn-grad" onclick="Student.finish({})">完成复习 ${I('check',15)}</button>`
+        ${last ? `<button class="btn btn-primary" onclick="Student.finish({})">完成复习 ${I('check',15)}</button>`
                : `<button class="btn btn-primary" onclick="Student.card(1)">下一张 ${I('arrowRight',15)}</button>`}
       </div>`;
   }
   function flip() { A.flip = !A.flip; App.render(); }
   function card(d) { A.i = Math.max(0, Math.min(A.cards.length - 1, A.i + d)); A.flip = false; App.render(); }
 
-  /* ---- 交互仿真 ---- */
-  function vSim() {
-    const locked = A.order;
-    const items = A.steps.map(s => {
-      const pos = locked.indexOf(s.id);
-      const isLocked = pos >= 0;
-      return `<button class="sim-item ${isLocked ? 'locked' : ''}" ${isLocked ? 'disabled' : `onclick="Student.order('${s.id}')"`}>
-                <span class="sim-order">${isLocked ? pos + 1 : I('plus', 12)}</span>
-                <span class="sim-text">${s.text}</span>
-              </button>`;
-    }).join('');
+  /* ================= 课程资料上传 + AI 问答助手 ================= */
+  let M = null;
 
-    const done = locked.length === A.steps.length;
-    const ok = done && A.order.join() === DATA.simulation.correct.join();
+  function materials() {
+    if (!M) M = { msgs: [] };
+    App.go('#/student/materials');
+  }
 
-    const result = done ? `
-      <div class="feedback ${ok ? 'ok' : 'bad'} mt-16">
-        <div class="feedback-title">${ok ? I('check',15) + ' 编排正确！' : I('bug',15) + ' 顺序有误'}</div>
-        ${ok ? '你已经完整搭建出「接收 → 检索 → 决策 → 生成 → 评估 → 更新 → 重规划」的 Agent 闭环。'
-             : `正确顺序应为：${DATA.simulation.correct.map(id => A.steps.find(s => s.id === id).text).join(' → ')}`}
-      </div>
-      <div class="row mt-16">
-        ${ok ? `<button class="btn btn-grad" onclick="Student.finish({correct:true})">完成仿真 ${I('check',15)}</button>`
-             : `<button class="btn btn-ghost" onclick="Student.resetSim()">重新编排</button>
-                <button class="btn btn-primary" onclick="Student.finish({correct:false})">仍要提交</button>`}
-      </div>` : '';
+  function materialsView() {
+    if (!M) M = { msgs: [] };
 
-    return `
-      <div class="card card-pad">
-        <div class="row mb-8"><span class="badge badge-info">可视化沙盒</span>
-          <span class="text-sm" style="color:var(--text-3)">${DATA.simulation.desc}</span></div>
-        <div class="q-text">${DATA.simulation.title}</div>
-        <div class="sim-list">${items}</div>
-        <div class="mt-16 text-sm" style="color:var(--text-3)">已编排 ${locked.length} / ${A.steps.length} 步</div>
-        ${result}
+    const mine = Engine.uploads();
+    const teacher = DATA.materials;
+    const indexed = teacher.length + mine.filter(m => m.status === 'indexed').length;
+
+    /* 资料列表 */
+    const rowOf = (m, removable) => `
+      <div class="topic-row">
+        <div class="topic-emoji">${m.kind === 'PDF' ? '📕' : m.kind === 'PPT' ? '📊' : m.kind === 'MD' ? '📝' : '📄'}</div>
+        <div class="topic-main">
+          <div class="topic-name">${m.name}</div>
+          <div class="topic-meta">${m.kind} · ${m.size}${m.pages ? ' · ' + m.pages + ' 页' : ''} · ${m.from}</div>
+        </div>
+        ${m.status === 'indexing'
+          ? `<span class="badge badge-warning">${I('refresh',12)} 解析中…</span>`
+          : `<span class="badge badge-success">${I('check',12)} 已索引</span>`}
+        ${removable ? `<button class="btn btn-ghost btn-sm" onclick="Student.rmUpload('${m.id}')">移除</button>` : ''}
       </div>`;
-  }
-  function order(id) {
-    if (A.order.includes(id)) return;
-    A.order.push(id);
-    App.render();
-  }
-  function resetSim() { A.order = []; App.render(); }
 
-  /* ---- 角色扮演 ---- */
-  function vRoleplay() {
-    const rp = DATA.roleplay;
-    const msgs = A.msgs.map(m => `
+    const fileRows = teacher.map(m => rowOf(m, false)).join('')
+      + (mine.length ? mine.map(m => rowOf(m, true)).join('')
+        : `<div class="empty" style="padding:22px">还没有上传资料 · 上传后 AI 问答会一并检索</div>`);
+
+    /* 问答消息 */
+    const msgs = M.msgs.map(m => `
       <div class="msg ${m.who === 'ai' ? 'ai' : 'me'}">
-        <div class="msg-who">${m.who === 'ai' ? rp.persona.name : '我'}</div>
-        ${m.text}
-      </div>`).join('');
-
-    const tip = A.turn > 0 && A.turn <= rp.coach.length
-      ? `<div class="reason-box mt-8"><b>AI 教练提示：</b>${rp.coach[A.turn - 1]}</div>` : '';
+        ${m.who === 'ai' ? `<div class="msg-who">${I('sparkles',12)} AI 问答助手</div>` : ''}
+        ${m.text.replace(/\n/g, '<br>')}
+        ${m.sources && m.sources.length ? `
+          <div class="qa-src">
+            <span class="text-xs" style="color:var(--text-3)">引用出处：</span>
+            ${m.sources.map(s => `<span class="chip">${s}</span>`).join('')}
+          </div>` : ''}
+      </div>`).join('')
+      || `<div class="msg ai">
+            <div class="msg-who">${I('sparkles',12)} AI 问答助手</div>
+            ${DATA.assistant.welcome}
+            <div class="qa-src"><span class="chip">${I('database',12)} 已索引 ${indexed} 份资料</span></div>
+          </div>`;
 
     return `
-      <div class="card" style="overflow:hidden">
-        <div class="card-head">
-          <span class="avatar" style="width:28px;height:28px;font-size:11px">${rp.persona.avatar}</span>
-          <div>
-            <div style="font-weight:700;font-size:13.5px">${rp.persona.name}</div>
-            <div class="text-xs" style="color:var(--text-3)">模拟面试 / 需求沟通</div>
+      <div class="grid g-main" style="align-items:start">
+        <div class="card">
+          <div class="card-head">
+            <span class="h-section">AI 问答助手</span>
+            <span class="badge badge-info">${indexed} 份资料可检索</span>
+            <span class="spacer"></span>
+            <span class="text-xs" style="color:var(--text-3)">只依据资料作答，并给出引用</span>
           </div>
-          <span class="spacer"></span>
-          <span class="badge badge-primary">第 ${A.turn} 轮</span>
-        </div>
-        <div class="reason-box" style="margin:14px 16px 0"><b>场景：</b>${rp.scenario}</div>
-        <div class="chat-wrap">
-          <div class="chat-scroll" id="chat-scroll">${msgs}</div>
-          <div class="chat-input">
-            <input id="chat-in" placeholder="向客户提问，例如：活动有名额上限吗？"
-                   onkeydown="if(event.key==='Enter')Student.send()">
-            <button class="btn btn-grad" onclick="Student.send()">${I('arrowRight',15)}</button>
-          </div>
-        </div>
-      </div>
-      ${tip}
-      <div class="row mt-16">
-        <span class="text-sm" style="color:var(--text-3)">沟通 ${A.turn} 轮 · 建议至少 3 轮以充分澄清需求</span>
-        <span class="spacer"></span>
-        <button class="btn btn-grad" ${A.turn < 1 ? 'disabled' : ''} onclick="Student.finish({})">结束对话并复盘 ${I('check',15)}</button>
-      </div>`;
-  }
-  function send() {
-    const el = document.getElementById('chat-in');
-    if (!el || !el.value.trim()) return;
-    const text = el.value.trim();
-    A.msgs.push({ who: 'me', text });
-    A.turn++;
-
-    // 关键词匹配生成回复
-    const rp = DATA.roleplay;
-    const hit = rp.replies.find(r => r.kw.some(k => text.includes(k)));
-    const reply = hit ? hit.text : rp.fallback;
-
-    setTimeout(() => {
-      A.msgs.push({ who: 'ai', text: reply });
-      App.render();
-      const sc = document.getElementById('chat-scroll');
-      if (sc) sc.scrollTop = sc.scrollHeight;
-    }, 650);
-
-    App.render();
-  }
-
-  /* ---- Bug Hunter ---- */
-  function vGame() {
-    const lv = A.lv;
-    const lines = lv.lines.map((l, i) => {
-      let cls = '';
-      if (A.submitted) {
-        if (lv.bugLines.includes(i) && A.found.includes(i)) cls = 'found';
-        else if (lv.bugLines.includes(i)) cls = 'missed';
-        else if (A.found.includes(i)) cls = 'missed';
-      } else if (A.found.includes(i)) cls = 'found';
-      return `<div class="code-line ${cls}" ${A.submitted ? '' : `onclick="Student.toggleLine(${i})"`}>
-                <span class="code-num">${i + 1}</span><span class="code-src">${hl(l) || '&nbsp;'}</span>
-              </div>`;
-    }).join('');
-
-    const score = A.submitted
-      ? `已找到 ${A.found.filter(f => lv.bugLines.includes(f)).length} / ${lv.bugLines.length} 处问题`
-      : `已标记 ${A.found.length} 处`;
-
-    const after = A.submitted ? `
-      <div class="feedback ${A.found.filter(f => lv.bugLines.includes(f)).length === lv.bugLines.length ? 'ok' : 'bad'} mt-16">
-        <div class="feedback-title">${I('bug',15)} 结果</div>
-        ${lv.hints.join('<br>')}
-      </div>
-      <div class="row mt-16">
-        <button class="btn btn-grad" onclick="Student.finish({score:${A.found.filter(f => lv.bugLines.includes(f)).length * 20}})">
-          结束游戏 ${I('check',15)}
-        </button>
-      </div>` : `
-      <div class="row mt-16">
-        <span class="text-sm" style="color:var(--text-3)">${lv.hints.length > 0 ? '提示：先找语法与边界问题' : ''}</span>
-        <span class="spacer"></span>
-        <button class="btn btn-grad" onclick="Student.submitGame()">提交答案 ${I('check',15)}</button>
-      </div>`;
-
-    return `
-      <div class="game-hud">
-        <div class="hud-item">${I('clock',15)} <span class="hud-timer ${A.time <= 10 ? 'urgent' : ''}" id="hud-time">${A.time}s</span></div>
-        <div class="hud-item">${I('bug',15)} ${score}</div>
-        <div class="spacer"></div>
-        <span class="badge badge-warning">${I('sparkles',12)} 训练 Discernment</span>
-      </div>
-      <div class="card card-pad">
-        <div class="row mb-8">
-          <span class="badge badge-danger">AI 生成的代码</span>
-          <span class="text-sm" style="color:var(--text-3)">点击你认为有问题的行 · ${lv.title}</span>
-        </div>
-        <div class="code-box">${lines}</div>
-        ${after}
-      </div>`;
-  }
-  function toggleLine(i) {
-    if (A.submitted) return;
-    const k = A.found.indexOf(i);
-    if (k >= 0) A.found.splice(k, 1); else A.found.push(i);
-    App.render();
-  }
-  function submitGame() {
-    if (A.submitted) return;
-    A.submitted = true;
-    if (A.timerId) clearInterval(A.timerId);
-    App.render();
-  }
-
-  /* ---- 在线编程 ---- */
-  function vCoding() {
-    const c = DATA.coding;
-    const tests = A.ran ? c.tests.map(t => `
-      <div><span class="${t.pass ? 'ok' : 'fail'}">${t.pass ? '✓ PASS' : '✗ FAIL'}</span>
-        <span class="dim"> isBalanced(${t.input}) → 期望 ${t.expect}</span></div>`).join('') : '';
-
-    const ai = A.ran ? `
-      <div class="feedback ok mt-16">
-        <div class="feedback-title">${I('sparkles',15)} AI 实时反馈</div>
-        ${c.aiFeedback.map(f => '· ' + f).join('<br>')}
-      </div>
-      <div class="row mt-16">
-        <button class="btn btn-grad" onclick="Student.finish({correct:true})">完成练习 ${I('check',15)}</button>
-      </div>` : `
-      <div class="row mt-16">
-        <span class="spacer"></span>
-        <button class="btn btn-grad" onclick="Student.runCode()">${I('play',15)} 运行测试</button>
-      </div>`;
-
-    return `
-      <div class="card card-pad">
-        <div class="row mb-8"><span class="badge badge-primary">${I('code',12)} 在线编程</span>
-          <span class="text-sm" style="color:var(--text-3)">浏览器内运行 · AI 实时反馈</span></div>
-        <div class="q-text">${c.prompt}</div>
-        <textarea class="code-editor" id="code-area" spellcheck="false">${A.code}</textarea>
-        ${A.ran ? `<div class="terminal"><span class="dim">$ node test.js</span>\n${tests}\n<span class="dim">5 tests · ${c.tests.filter(t=>t.pass).length} passed · ${c.tests.filter(t=>!t.pass).length} failed</span></div>` : ''}
-        ${ai}
-      </div>`;
-  }
-  function runCode() {
-    const el = document.getElementById('code-area');
-    if (el) A.code = el.value;
-    A.ran = true;
-    App.render();
-  }
-
-  /* ================= 自生成学习路径 ================= */
-  let G = null;
-  function explore() { G = null; App.go('#/student/explore'); }
-
-  function exploreView() {
-    const gen = G ? `
-      <div class="card card-pad mt-16 gen-anim">
-        <div class="row" style="gap:10px">
-          ${I('sparkles', 18)}
-          <div style="font-weight:700;font-size:16px">${G.title}</div>
-          <span class="badge badge-primary">AI 生成</span>
-          <span class="spacer"></span>
-          <span class="chip">${I('clock',13)} 约 ${G.estMins} 分钟</span>
-        </div>
-        <div class="text-sm mt-8" style="color:var(--text-2)">${G.desc}</div>
-        <div class="divider"></div>
-        ${G.outline.map((o, i) => `
-          <div class="outline-item">
-            <span class="outline-idx">${i + 1}</span>
-            <div style="flex:1">
-              <div class="outline-title">${o.title}</div>
-              <div class="outline-meta">${o.acts.join(' · ')} · 约 ${o.mins} 分钟</div>
+          <div class="chat-wrap" style="height:460px">
+            <div class="chat-scroll" id="qa-scroll">${msgs}</div>
+            <div class="chat-input">
+              <input id="qa-in" placeholder="就课程资料提问，例如：非功能性需求包含哪些内容？"
+                     onkeydown="if(event.key==='Enter')Student.askAI()">
+              <button class="btn btn-primary" onclick="Student.askAI()">${I('arrowRight',15)}</button>
             </div>
-            <button class="btn btn-soft btn-sm" onclick="Student.enroll('${o.title}')">加入路径</button>
-          </div>`).join('')}
-        <div class="row mt-16">
-          <button class="btn btn-grad" onclick="Student.enrollAll()">${I('play',15)} 全部加入我的学习路径</button>
-          <button class="btn btn-ghost" onclick="Student.explore()">重新生成</button>
-        </div>
-      </div>` : '';
-
-    return `
-      <div class="section-head">
-        <div>
-          <div class="h-section" style="font-size:18px">自定义学习主题</div>
-          <div class="text-sm" style="color:var(--text-3)">输入任何你想学的主题，AI 会基于课程资料生成 mini-course 与学习路径</div>
-        </div>
-      </div>
-
-      <div class="card card-pad">
-        <div class="gen-input">
-          <input id="gen-topic" placeholder="例如：Docker 容器化部署 / 领域驱动设计 / 前端性能优化"
-                 onkeydown="if(event.key==='Enter')Student.gen()">
-          <button class="btn btn-grad" onclick="Student.gen()">${I('sparkles',15)} 生成课程</button>
-        </div>
-        <div class="row row-wrap">
-          ${['代码重构实战', 'RESTful API 设计', '单元测试入门', 'Scrum 实战'].map(t =>
-            `<button class="chip" onclick="Student.setTopic('${t}')">${t}</button>`).join('')}
-        </div>
-      </div>
-
-      ${gen || `
-        <div class="card mt-16">
-          <div class="card-head"><span class="h-section">我当前的自适应学习路径</span></div>
-          <div class="card-body">
-            ${Engine.topics().slice().sort((a,b)=>a.mastery-b.mastery).slice(0,4).map(t => {
-              const p = Engine.plan(t.id);
-              return `<div class="outline-item">
-                <span class="outline-idx">${t.icon}</span>
-                <div style="flex:1">
-                  <div class="outline-title">${t.name}</div>
-                  <div class="outline-meta">下一步：${p.activity.icon} ${p.activity.name} · 掌握度 ${t.mastery}%</div>
-                </div>
-                <button class="btn btn-soft btn-sm" onclick="Student.start('${p.activity.id}','${t.id}')">开始</button>
-              </div>`;
-            }).join('')}
           </div>
-        </div>`}
-    `;
-  }
-  function setTopic(t) {
-    const el = document.getElementById('gen-topic');
-    if (el) { el.value = t; el.focus(); }
-  }
-  function gen() {
-    const el = document.getElementById('gen-topic');
-    const v = el ? el.value : '';
-    if (!v.trim()) { UI.toast('请先输入一个学习主题', 'warn'); return; }
-    UI.toast('正在基于课程资料生成 mini-course…');
-    setTimeout(() => {
-      G = Engine.generateCourse(v);
-      App.render();
-      UI.toast('已生成 5 个学习单元', 'ok');
-    }, 900);
-  }
-  function enroll(title) { UI.toast(`已加入：${title}`, 'ok'); }
-  function enrollAll() {
-    UI.toast('已加入学习路径，Agent 将据此调整规划', 'ok');
-    setTimeout(() => App.go('#/student/dashboard'), 600);
+          <div class="card-body" style="border-top:1px solid var(--border)">
+            <div class="text-xs mb-8" style="color:var(--text-3)">试试这些问题：</div>
+            <div class="row row-wrap">
+              ${DATA.assistant.examples.map(q =>
+                `<button class="chip" onclick="Student.askExample('${q}')">${q}</button>`).join('')}
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span class="h-section">我的课程资料</span>
+            <span class="spacer"></span>
+            <span class="badge badge-muted">${teacher.length} 份教师发布 + ${mine.length} 份我的上传</span>
+          </div>
+
+          <div class="card-body">
+            <div class="dropzone"
+                 onclick="document.getElementById('file-input').click()"
+                 ondragover="event.preventDefault();this.classList.add('over')"
+                 ondragleave="this.classList.remove('over')"
+                 ondrop="Student.drop(event)">
+              ${I('upload', 22)}
+              <div style="font-weight:700;font-size:13.5px;margin-top:6px">上传课程资料</div>
+              <div class="text-xs" style="color:var(--text-3)">点击选择，或把文件拖到这里 · 支持 PDF / PPT / MD / TXT</div>
+            </div>
+            <input type="file" id="file-input" multiple hidden onchange="Student.onFiles(this)">
+          </div>
+
+          ${fileRows}
+
+          <div class="card-body" style="border-top:1px solid var(--border)">
+            <div class="text-xs" style="color:var(--text-3)">
+              ${I('shield',12)} 上传资料仅用于你个人的 AI 问答检索；AI 回答均为生成内容，请对照引用出处自行判断（Diligence）。
+            </div>
+          </div>
+        </div>
+      </div>`;
   }
 
-  /* ================= 进度 ================= */
+  function onFiles(input) {
+    const files = Array.from(input.files || []);
+    input.value = '';
+    if (!files.length) return;
+    files.slice(0, 5).forEach(f => Engine.addUpload(f));
+    UI.toast(`已接收 ${Math.min(files.length, 5)} 个文件，正在解析入库…`, 'ok');
+    App.render();
+  }
+
+  function drop(e) {
+    e.preventDefault();
+    const dt = e.dataTransfer;
+    if (!dt || !dt.files) return;
+    Array.from(dt.files).slice(0, 5).forEach(f => Engine.addUpload(f));
+    UI.toast('已接收拖放的文件，正在解析入库…', 'ok');
+    App.render();
+  }
+
+  function rmUpload(id) {
+    Engine.removeUpload(id);
+    UI.toast('已移除该资料', 'warn');
+    App.render();
+  }
+
+  function askAI() {
+    const el = document.getElementById('qa-in');
+    if (!el || !el.value.trim()) return;
+    const q = el.value.trim();
+    el.value = '';
+    M.msgs.push({ who: 'me', text: q });
+    App.render();
+
+    setTimeout(() => {
+      const r = Engine.ask(q);
+      M.msgs.push({ who: 'ai', text: r.answer, sources: r.sources });
+      App.render();
+      const sc = document.getElementById('qa-scroll');
+      if (sc) sc.scrollTop = sc.scrollHeight;
+    }, 700);
+  }
+
+  function askExample(q) {
+    if (!M) M = { msgs: [] };
+    M.msgs.push({ who: 'me', text: q });
+    App.render();
+    setTimeout(() => {
+      const r = Engine.ask(q);
+      M.msgs.push({ who: 'ai', text: r.answer, sources: r.sources });
+      App.render();
+      const sc = document.getElementById('qa-scroll');
+      if (sc) sc.scrollTop = sc.scrollHeight;
+    }, 700);
+  }
+
+  /* ================= 学习进度 ================= */
   function progress() {
-    const ts = Engine.topics().slice().sort((a, b) => b.mastery - a.mastery);
+    const ts = Engine.pathTopics();
+    const trace = Engine.state.trace.length ? Engine.state.trace.map(x => `
+      <div class="topic-row">
+        <div class="topic-emoji">${(DATA.topics.find(t => t.id === x.topicId) || {}).icon || '📘'}</div>
+        <div class="topic-main">
+          <div class="topic-name">${x.actName}</div>
+          <div class="topic-meta">${x.topicName} · ${x.before}% → ${x.after}%</div>
+        </div>
+        <span class="badge badge-success">+${x.delta}%</span>
+      </div>`).join('') : UI.empty('暂无学习记录', '📊');
+
     return `
       <div class="section-head">
-        <div>
-          <div class="h-section" style="font-size:18px">学习进度与掌握度</div>
-          <div class="text-sm" style="color:var(--text-3)">Pre-test → Learning Session → Post-test 的过程数据</div>
-        </div>
+        <span class="h-section">学习进度与掌握度</span>
         <span class="spacer"></span>
         <button class="btn btn-ghost btn-sm" onclick="Student.reset()">${I('refresh',14)} 重置演示数据</button>
       </div>
 
       <div class="grid g-4 mb-16">
-        ${kpi('整体掌握度', Engine.overallMastery() + '%', 'target', '', '较初始 +18%')}
-        ${kpi('已完成活动', Engine.state.completed, 'flame', '', '本周 +7')}
+        ${kpi('整体掌握度', Engine.overallMastery() + '%', 'target', '', '教师发布路径平均')}
+        ${kpi('已完成活动', Engine.state.completed, 'flame', '', '累计完成数')}
         ${kpi('薄弱知识点', Engine.topics().filter(t => t.mastery < 45).length, 'bug', 'amber', '需优先关注')}
-        ${kpi('已掌握', Engine.topics().filter(t => t.mastery >= 75).length, 'check', 'green', '共 8 个知识点')}
+        ${kpi('已掌握', Engine.topics().filter(t => t.mastery >= 75).length, 'check', 'green', `共 ${Engine.topics().length} 个知识点`)}
       </div>
 
       <div class="grid g-main">
         <div class="card">
-          <div class="card-head"><span class="h-section">各知识点掌握度</span></div>
+          <div class="card-head">
+            <span class="h-section">各知识点掌握度</span>
+            <span class="spacer"></span>
+            <span class="badge badge-primary">${Engine.published().course}</span>
+          </div>
           <div class="card-body">
             ${ts.map(t => `
               <div class="mb-16">
@@ -956,25 +808,18 @@ const Student = (() => {
                   <span class="badge ${UI.level(t.mastery).badge}">${UI.level(t.mastery).label}</span>
                 </div>
                 ${UI.bar(t.mastery)}
-                <div class="text-xs mt-8" style="color:var(--text-3)">练习 ${t.attempts} 次 · 错误 ${t.errors} 次${t.lastActivity ? ` · 最近：${t.lastActivity}` : ''}</div>
+                <div class="text-xs mt-8" style="color:var(--text-3)">练习 ${t.attempts} 次 · 错误 ${t.errors} 次${t.lastActivity ? ' · 最近：' + t.lastActivity : ''}</div>
               </div>`).join('')}
           </div>
         </div>
 
         <div class="card">
           <div class="card-head"><span class="h-section">全部学习轨迹</span></div>
-          ${Engine.state.trace.length ? Engine.state.trace.map(x => `
-            <div class="topic-row">
-              <div class="topic-emoji">${DATA.topics.find(t => t.id === x.topicId)?.icon || '📘'}</div>
-              <div class="topic-main">
-                <div class="topic-name">${x.actName}</div>
-                <div class="topic-meta">${x.topicName} · ${x.before}% → ${x.after}%</div>
-              </div>
-              <span class="badge badge-success">+${x.delta}%</span>
-            </div>`).join('') : UI.empty('暂无记录', '📊')}
+          ${trace}
         </div>
       </div>`;
   }
+
   function kpi(label, val, ic, tone, delta) {
     return `
       <div class="card stat">
@@ -989,6 +834,7 @@ const Student = (() => {
   }
   function reset() {
     Engine.reset();
+    M = null; A = null; P = null;
     UI.toast('演示数据已重置', 'ok');
     App.go('#/student/dashboard');
   }
@@ -1004,9 +850,8 @@ const Student = (() => {
   return {
     dashboard, topicDetail, openTopic, activity, start, quit,
     pretest, pretestView, pickPretest, nextPretest, commitPretest,
-    slide, ask, pick, nextQ, finishPractice, pickC, flip, card,
-    order, resetSim, send, toggleLine, submitGame, runCode, finish,
-    explore, exploreView, setTopic, gen, enroll, enrollAll,
+    slide, ask, pick, nextQ, toCode, runCode, finishPractice, flip, card, finish,
+    materials, materialsView, onFiles, drop, rmUpload, askAI, askExample,
     progress, reset,
   };
 })();
