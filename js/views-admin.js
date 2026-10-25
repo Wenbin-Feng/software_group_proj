@@ -57,11 +57,31 @@ const Admin = (() => {
           </div>
 
           <div class="card">
+            <div class="card-head">
+              <span class="h-section">最近课程动态</span>
+              <span class="spacer"></span>
+              <button class="btn btn-ghost btn-sm" onclick="App.go('#/admin/courses')">全部</button>
+            </div>
+            ${Engine.courses().slice(0, 4).map(c => `
+              <div class="topic-row">
+                <div class="topic-emoji">📘</div>
+                <div class="topic-main">
+                  <div class="topic-name">${escapeHtml(c.title)}</div>
+                  <div class="topic-meta">${c.topics.length} 个知识点 · ${escapeHtml(c.source)} · ${c.updated}</div>
+                </div>
+                <span class="badge ${c.status === '已发布' ? 'badge-success' : c.status === '待审核' ? 'badge-warning' : c.status === '已驳回' ? 'badge-danger' : 'badge-muted'}">${c.status}</span>
+              </div>`).join('')}
+          </div>
+
+          <div class="card">
             <div class="card-head"><span class="h-section">快速操作</span></div>
             <div class="card-body col">
               <button class="btn btn-ghost btn-block" onclick="Admin.act('重建向量索引')">${I('refresh',15)} 重建 RAG 索引</button>
               <button class="btn btn-ghost btn-block" onclick="Admin.act('导出平台报表')">${I('download',15)} 导出平台报表</button>
               <button class="btn btn-ghost btn-block" onclick="Admin.act('配置 LLM 供应商')">${I('settings',15)} 配置 LLM 供应商</button>
+              <div class="text-xs" style="color:var(--text-3)">
+                ${I('shield',12)} 内容「审核 / 驳回」属于教师职责，此处不提供审核入口，管理员仅查看记录。
+              </div>
             </div>
           </div>
         </div>
@@ -96,7 +116,7 @@ const Admin = (() => {
   function users() {
     const all = [
       ...DATA.students.map(s => ({ ...s, role: 'Student' })),
-      { id: 't01', name: 'Dr. Chan',   sid: 'staff', cls: '—', role: 'Instructor', eng: 100, active: true },
+      { id: 't01', name: 'Teacher',    sid: 'staff', cls: '—', role: 'Instructor', eng: 100, active: true },
       { id: 't02', name: 'Prof. Lee',  sid: 'staff', cls: '—', role: 'Instructor', eng: 100, active: true },
       { id: 'a01', name: 'System Admin', sid: 'admin', cls: '—', role: 'Admin', eng: 100, active: true },
     ];
@@ -105,7 +125,7 @@ const Admin = (() => {
       <tr>
         <td>
           <div class="cell-user">
-            <span class="avatar">${u.name[0]}</span>
+            <span class="avatar">${u.name[0].toUpperCase()}</span>
             <div><div class="u-name">${u.name}</div><div class="u-sub">${u.sid}${u.cls !== '—' ? ' · ' + u.cls : ''}</div></div>
           </div>
         </td>
@@ -148,55 +168,106 @@ const Admin = (() => {
 
   /* ================= 课程管理 ================= */
   function courses() {
-    const rows = DATA.courses.map(c => `
+    const cs = Engine.courses();          // 与教师端共用同一份课程仓库，新增课程自动同步
+    const aiCount = cs.filter(c => c.source.indexOf('AI') >= 0).length;
+    const pub = Engine.publishedCourses();
+
+    const statusBadge = (s) => s === '已发布' ? 'badge-success'
+                            : s === '待审核' ? 'badge-warning'
+                            : s === '已驳回' ? 'badge-danger' : 'badge-muted';
+
+    const rows = cs.map((c, i) => `
       <tr>
-        <td><div class="u-name">${c.title}</div><div class="u-sub">${c.author}</div></td>
-        <td class="num">${c.topics}</td>
-        <td class="num">${c.students}</td>
-        <td><span class="badge ${c.status === '已发布' ? 'badge-success' : 'badge-muted'}">${c.status}</span></td>
-        <td>${c.updated}</td>
         <td>
-          <button class="btn btn-ghost btn-sm" onclick="Admin.act('编辑课程')">${I('edit',13)}</button>
+          <div class="u-name">${escapeHtml(c.title)}</div>
+          <div class="u-sub">${escapeHtml(c.source)} · ${escapeHtml(c.instructor)}</div>
         </td>
+        <td class="num">${c.topics.length}</td>
+        <td class="num">${c.students}</td>
+        <td><span class="badge ${statusBadge(c.status)}">${c.status}</span></td>
+        <td>${c.updated}</td>
+        <td><span class="badge ${c.source.indexOf('AI') >= 0 ? 'badge-primary' : 'badge-muted'}">
+              ${c.source.indexOf('AI') >= 0 ? '含 AI 内容' : '人工创建'}</span></td>
       </tr>`).join('');
 
     return `
       <div class="section-head">
         <div>
           <div class="h-section" style="font-size:18px">课程与内容管理</div>
-          <div class="text-sm" style="color:var(--text-3)">平台级课程审批、归档与内容治理</div>
+          <div class="text-sm" style="color:var(--text-3)">查看全部课程与教师审核留痕 · 管理员不参与内容审核</div>
         </div>
+      </div>
+
+      <div class="grid g-4 mb-16">
+        ${kpi('课程总数', cs.length, 'book', '', `${aiCount} 门含 AI 生成内容`)}
+        ${kpi('已发布', pub.length, 'check', 'green', '按发布时间依次追加')}
+        ${kpi('学生学习路径', Engine.pathTopics().length + ' 个', 'target', '', `来自 ${pub.length} 门已发布课程`)}
+        ${kpi('审核记录', Engine.auditLog().length, 'shield', '', '全部操作留痕')}
       </div>
 
       <div class="card">
         <div class="card-head"><span class="h-section">全部课程</span><span class="spacer"></span>
-          <span class="text-sm" style="color:var(--text-3)">共 ${DATA.courses.length} 门</span>
+          <span class="text-sm" style="color:var(--text-3)">共 ${cs.length} 门 · 知识点数量各不相同 · 只有「已发布」计入学生路径</span>
         </div>
         <table class="tbl">
-          <thead><tr><th>课程</th><th>知识点</th><th>学生</th><th>状态</th><th>更新</th><th></th></tr></thead>
+          <thead><tr><th>课程</th><th>知识点</th><th>学生</th><th>状态</th><th>更新</th><th>内容来源</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
 
+      ${auditPanel()}`;
+  }
+
+  /* 教师审核操作记录（只读，管理员不做审核决策） */
+  function auditPanel() {
+    const log = Engine.auditLog();
+    const rows = log.map(a => `
+      <div class="topic-row">
+        <span class="avatar">${escapeHtml((a.actor || '?')[0])}</span>
+        <div class="topic-main">
+          <div class="topic-name">${escapeHtml(a.action)} · ${escapeHtml(a.courseTitle)}</div>
+          <div class="topic-meta">
+            ${timeAgo(a.ts)} · ${escapeHtml(a.actor)} · ${a.topicCount} 个知识点
+            ${a.note ? ' · ' + escapeHtml(a.note) : ''}
+          </div>
+        </div>
+        <span class="badge ${a.action.indexOf('驳回') >= 0 ? 'badge-danger'
+                              : a.action.indexOf('发布') >= 0 ? 'badge-success'
+                              : a.action.indexOf('修改') >= 0 ? 'badge-primary' : 'badge-muted'}">
+          ${a.action.indexOf('驳回') >= 0 ? '驳回'
+            : a.action.indexOf('审核') >= 0 ? '审核通过'
+            : a.action.indexOf('修改') >= 0 ? '发布后修改' : '生成'}
+        </span>
+      </div>`).join('') || UI.empty('暂无审核记录', '📋');
+
+    return `
       <div class="card mt-16">
-        <div class="card-head"><span class="h-section">AI 内容审核队列（Diligence）</span></div>
-        <div class="card-body">
-          ${[
-            ['AI 生成', '需求工程工作坊 · 单元 3「用户故事拆分」', '待审核', 'badge-warning'],
-            ['AI 生成', '软件测试实战 · 单元 2「边界值分析」', '待审核', 'badge-warning'],
-            ['人工创建', 'Git 与团队协作 · 单元 4「冲突处理」', '已通过', 'badge-success'],
-          ].map(([src, t, st, cls]) => `
-            <div class="topic-row">
-              <span class="badge ${src === 'AI 生成' ? 'badge-primary' : 'badge-muted'}">${src}</span>
-              <div class="topic-main"><div class="topic-name">${t}</div></div>
-              <span class="badge ${cls}">${st}</span>
-              <button class="btn btn-ghost btn-sm" onclick="Admin.act('审核')">审核</button>
-            </div>`).join('')}
-          <div class="text-xs mt-16" style="color:var(--text-3)">
-            ${I('shield',12)} 所有 AI 生成内容在发布前必须经过人工审核并留痕，符合 Diligence 要求。
+        <div class="card-head">
+          <span class="h-section">教师审核记录（只读）</span>
+          <span class="spacer"></span>
+          <span class="badge badge-muted">${log.length} 条</span>
+        </div>
+        ${rows}
+        <div class="card-body" style="border-top:1px solid var(--border)">
+          <div class="text-xs" style="color:var(--text-3)">
+            ${I('shield',12)} 内容审核由<b>授课教师</b>执行，管理员不参与审核决策，仅留存上述记录用于审计：
+            谁在什么时间审核了哪门课、当时包含多少个知识点、追加到学生路径后共有多少个知识点，以及驳回或发布后的修改原因。
           </div>
         </div>
       </div>`;
+  }
+
+  function timeAgo(ts) {
+    const d = Math.floor((Date.now() - ts) / 1000);
+    if (d < 60) return '刚刚';
+    if (d < 3600) return Math.floor(d / 60) + ' 分钟前';
+    if (d < 86400) return Math.floor(d / 3600) + ' 小时前';
+    return Math.floor(d / 86400) + ' 天前';
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
   return { overview, users, courses, act, toggleUser };

@@ -532,7 +532,7 @@ input, textarea, select { font: inherit; color: inherit; }
 .flash-q { font-size: 17px; font-weight: 700; }
 .flash-a { font-size: 14px; color: var(--text-2); margin-top: 12px; line-height: 1.65; }
 
-/* ============================ 课程生成 ============================ */
+/* ============================ 教师：AI 生成 / 知识点编辑 ============================ */
 
 .gen-input { display: flex; gap: 10px; margin-bottom: 14px; }
 .gen-input input, .gen-input textarea {
@@ -555,6 +555,26 @@ input, textarea, select { font: inherit; color: inherit; }
 }
 .outline-title { font-weight: 650; font-size: 13.5px; }
 .outline-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+/* 知识点编辑：三栏（基本信息 / 讲解 / 练习） */
+.g-edit { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+@media (max-width: 1080px) { .g-edit { grid-template-columns: minmax(0,1fr); } }
+
+.edit-block {
+  border: 1px solid var(--border); border-radius: var(--r);
+  padding: 13px 14px; margin-bottom: 12px;
+  background: var(--surface-2);
+}
+.inp {
+  width: 100%; padding: 9px 12px;
+  border: 1px solid var(--border-2); border-radius: 9px;
+  background: var(--surface); font-size: 13.5px; font-family: inherit;
+  resize: vertical; line-height: 1.6;
+}
+.inp:focus { outline: none; border-color: var(--primary); }
+
+/* 步骤序号（生成流程） */
+.step-n.done { background: var(--success); color: #fff; }
 
 /* ============================ 表格 ============================ */
 

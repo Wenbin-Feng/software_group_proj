@@ -16,8 +16,10 @@ const App = (() => {
     ],
     instructor: [
       { hash: '#/instructor/dashboard', label: '班级总览',   icon: 'dashboard' },
-      { hash: '#/instructor/heatmap',   label: '知识热力图', icon: 'chart' },
+      { hash: '#/instructor/generate',  label: 'AI 生成课程', icon: 'sparkles' },
       { hash: '#/instructor/courses',   label: '课程管理',   icon: 'book' },
+      { hash: '#/instructor/heatmap',   label: '知识热力图', icon: 'chart' },
+      { hash: '#/instructor/audit',     label: '审核记录',   icon: 'shield' },
       { hash: '#/instructor/students',  label: '学生管理',   icon: 'users' },
     ],
     admin: [
@@ -33,8 +35,10 @@ const App = (() => {
     '#/student/materials': ['课程资料 · AI 问答', '上传资料，向 AI 助手提问'],
     '#/student/pretest':   ['Pre-test', '建立你的初始知识状态'],
     '#/instructor/dashboard': ['班级总览', '参与度与知识状态概览'],
+    '#/instructor/generate':  ['AI 生成课程', '上传课件 → AI 抽取知识点 → 查看修改 → 审核发布'],
+    '#/instructor/courses':   ['课程管理', '查看 / 修改已发布与待审核课程'],
+    '#/instructor/audit':     ['审核记录', '我的审核与驳回操作留痕'],
     '#/instructor/heatmap':   ['知识热力图', '学生 × 知识点掌握度'],
-    '#/instructor/courses':   ['课程管理', '定制课程 / AI 生成 mini-course'],
     '#/instructor/students':  ['学生管理', '导入学生并追踪参与度'],
     '#/admin/overview': ['平台总览', '系统健康、资源与成本'],
     '#/admin/users':    ['用户管理', 'Student / Instructor / Admin'],
@@ -48,8 +52,8 @@ const App = (() => {
   ];
 
   const USER = {
-    student:    { name: '陈家明',       initial: '陈' },
-    instructor: { name: 'Dr. Chan',     initial: 'DC' },
+    student:    { name: 'student1',      initial: 'S' },
+    instructor: { name: 'Teacher',      initial: 'T' },
     admin:      { name: 'System Admin', initial: 'A'  },
   };
 
@@ -74,8 +78,11 @@ const App = (() => {
     }
     if (seg[0] === 'instructor') {
       if (seg[1] === 'heatmap')  return Instructor.heatmap();
+      if (seg[1] === 'generate') return Instructor.generateView();
       if (seg[1] === 'courses')  return Instructor.courses();
+      if (seg[1] === 'audit')    return Instructor.audit();
       if (seg[1] === 'students') return Instructor.students();
+      if (seg[1] === 'topic')    return Instructor.topicEdit(seg[2], Number(seg[3]));
       return Instructor.dashboard();
     }
     if (seg[0] === 'admin') {
@@ -165,5 +172,5 @@ const App = (() => {
 
   document.addEventListener('DOMContentLoaded', boot);
 
-  return { render, go, switchRole, tip };
+  return { render, go, switchRole, tip, view };
 })();
