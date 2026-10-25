@@ -2,6 +2,8 @@
 
 > 一个由生成式 AI 驱动的自适应学习平台，把 AI Tutor 从"被动问答"升级为能根据学生学习状态动态规划学习路径的 Agent。
 
+> **当前仓库状态**：本仓库包含一个**可直接运行的纯前端原型**（无后端依赖）。自适应规划引擎已在 [`js/engine.js`](js/engine.js) 中以客户端逻辑实现，可完整演示 Plan–Act–Observe–Update–Re-plan 闭环。完整后端（LangGraph + ChromaDB + SQLite）为项目愿景，见[开发路线图](#开发路线图)。
+
 [![Course](https://img.shields.io/badge/Course-COMP5241%20(Software%20Engineering)-blue)](#)
 [![License](https://img.shields.io/badge/License-MIT-green)](#license)
 [![Status](https://img.shields.io/badge/Status-In%20Development-yellow)](#)
@@ -162,43 +164,67 @@ Instructor Input (topic / requirements / materials)
 
 ## 项目结构
 
+当前仓库为**纯前端原型**，目录如下：
+
 ```
 polyu-se-hongzhi/
-├── README.md
-├── frontend/                 # Next.js 前端（Student / Instructor / Admin）
-│   ├── app/
-│   ├── components/
-│   └── public/
-├── backend/                  # LangGraph Agent + API 服务
-│   ├── agent/                # Adaptive Planning Agent
-│   ├── rag/                  # RAG Knowledge Base (ChromaDB)
-│   ├── models/               # Student Knowledge Model (SQLite)
-│   └── activities/           # 多形式学习活动逻辑
-├── data/                     # 课程材料（Lecture Slides / Tutorial Materials）
-├── scripts/                  # PDF 处理、知识库构建、数据导入
-└── docs/                     # 设计文档、用户手册、报告
+├── index.html              # 原型入口（双击或经本地服务运行）
+├── styles.css              # 设计系统与全局样式
+├── js/
+│   ├── ui.js               # 图标与通用 UI 组件
+│   ├── data.js             # 原型 mock 数据（知识点 / 题库 / 讲解等）
+│   ├── engine.js           # ★ 自适应规划引擎（Student Knowledge Model + Planner）
+│   ├── views-student.js    # 学生端视图（仪表盘 / 8 类学习活动）
+│   ├── views-instructor.js # 教师端视图（班级热力图 / AI 课程生成）
+│   ├── views-admin.js      # 管理员端视图（平台监控 / 用户 / 内容）
+│   └── app.js              # 应用外壳 + hash 路由 + 角色切换
+├── server.js               # 零依赖本地静态服务器（npm start）
+├── package.json            # 脚本与项目元信息
+├── .gitignore
+├── LICENSE
+└── README.md
 ```
 
-> 注：目录为规划结构，将随开发阶段逐步落地。
+> 注：完整的后端结构（`backend/` LangGraph Agent + RAG + SQLite、`frontend/` Next.js、`data/`、`scripts/`、`docs/`）将在后续阶段落地，见[开发路线图](#开发路线图)。
 
 ---
 
 ## 快速开始
 
-### 先决条件
+### 运行前端原型（当前仓库内容）
 
-- Node.js ≥ 18
-- Python ≥ 3.10
-- 一个 LLM API Key（OpenAI / Anthropic）
+本仓库当前包含一个**纯前端原型**，无需安装依赖、无需后端即可运行。
 
-### 1. 克隆仓库
+**方式一：本地静态服务（推荐）**
+
+```bash
+# 任选其一
+npm start                      # 使用仓库内置的零依赖 Node 静态服务器（node server.js）
+python -m http.server 8080     # 或使用 Python
+```
+
+然后浏览器打开 http://localhost:8080 。
+
+**方式二：直接双击**
+
+直接双击 `index.html` 即可在浏览器打开。注意：部分浏览器在 `file://` 协议下会禁用 `localStorage`，学习进度可能无法保存，建议用方式一。
+
+---
+
+### 完整技术栈（规划中）
+
+> 以下为项目愿景中的完整运行方式，后端代码尚未实现，仅作后续开发参考。
+
+**先决条件**：Node.js ≥ 18 · Python ≥ 3.10 · 一个 LLM API Key（OpenAI / Anthropic）
+
+**1. 克隆仓库**
 
 ```bash
 git clone <repo-url>
 cd polyu-se-hongzhi
 ```
 
-### 2. 后端（Agent + RAG + 状态存储）
+**2. 后端（Agent + RAG + 状态存储）**
 
 ```bash
 cd backend
@@ -213,7 +239,7 @@ python scripts/build_knowledge_base.py
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 3. 前端
+**3. 前端**
 
 ```bash
 cd frontend
@@ -226,6 +252,8 @@ npm run dev
 ---
 
 ## 配置说明
+
+> 本节对应规划中的后端服务；当前纯前端原型无需任何配置即可运行。
 
 在 `backend/` 下创建 `.env`：
 
