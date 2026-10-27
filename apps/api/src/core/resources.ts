@@ -322,8 +322,16 @@ export async function registerResources(
         if (existing?.wikiRoot) {
           record.wikiRoot = true;
           record.title = title.parse(input.title || existing.title);
+        } else if (!existing && input.wikiRoot === true && !input.wikiId) {
+          // A new wiki is an empty container owned by the student; pages and ledgers come from the server.
+          record.wikiRoot = true;
         }
         if (existing?.wikiId) record.wikiId = existing.wikiId;
+        else if (!existing && typeof input.wikiId === "string" && input.wikiId) {
+          const root = get("notes", input.wikiId);
+          if (root?.wikiRoot && root.studentId === user.id)
+            record.wikiId = root.id;
+        }
         if (existing?.ledger) {
           record.ledger = existing.ledger;
           record.title = existing.title;

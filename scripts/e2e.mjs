@@ -352,6 +352,44 @@ try {
   const frame = student.frameLocator('iframe[title="Visual explanation"]');
   await frame.getByRole("button", { name: "Next step" }).click();
   await frame.getByRole("heading", { name: "Commit", exact: true }).waitFor();
+  // /capture into a chosen wiki, then /query answers only from that wiki.
+  const wikiRootId = "wiki-e2e-query";
+  await api(student, `/api/notes/${wikiRootId}`, {
+    method: "PUT",
+    body: {
+      record: {
+        id: wikiRootId,
+        wikiRoot: true,
+        courseId: course.id,
+        studentId: (await api(student, "/api/auth/me")).user.id,
+        title: "E2E wiki",
+        category: "Wiki",
+        content: "# E2E wiki",
+      },
+    },
+  });
+  await student.reload();
+  const box = student.getByLabel("Ask about your course materials");
+  await box.waitFor();
+  await student
+    .getByRole("button", { name: "Visualize", exact: true })
+    .first()
+    .waitFor();
+  await box.fill("/capture");
+  await student.locator(".studio-slash button", { hasText: "E2E wiki" }).click();
+  await student.getByText(/Saved to:/).waitFor({ timeout: 20000 });
+  await student.goto(
+    `${origin}/#/courses/${course.id}?session=${savedSession.id}`,
+  );
+  await box.waitFor();
+  await box.fill("/query atomic inventory update");
+  await student.locator(".studio-slash button", { hasText: "E2E wiki" }).click();
+  await student
+    .locator(".studio-message-sources button", {
+      hasText: "Atomic inventory update",
+    })
+    .first()
+    .waitFor({ timeout: 15000 });
   const state = await api(student, "/api/workspace");
   const savedPage = state.notes.find(
     (note) => note.title === "Atomic inventory update",

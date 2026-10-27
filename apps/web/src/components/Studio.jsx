@@ -162,6 +162,7 @@ export default function Studio({
   const [compiling, setCompiling] = useState(false);
   const [slashOpen, setSlashOpen] = useState(false);
   const pendingWiki = useRef(null);
+  const queryWiki = useRef(null);
   const requestAbort = useRef(null);
   useEffect(() => () => requestAbort.current?.abort(), []);
   const [sourcePicker, setSourcePicker] = useState(false);
@@ -188,6 +189,11 @@ export default function Studio({
   const lastAnswer = [...messages]
     .reverse()
     .find((m) => m.role === "assistant");
+  const isQuery = /^\/query(\s|$)/i.test(input) || /^\/q$/i.test(input);
+  const slashText = input
+    .replace(/^\/(capture|query|q)\b\s*/i, "")
+    .replace(/^\/\s*/, "")
+    .trim();
 
   useEffect(() => {
     if (session && session.id !== activeSessionId)
@@ -259,6 +265,10 @@ export default function Studio({
       !isEnrolled(data, courseId, user.id)
     )
       return;
+    const captureWiki = pendingWiki.current;
+    const queryWikiId = queryWiki.current;
+    pendingWiki.current = null;
+    queryWiki.current = null;
     setAsking(true);
     setStreaming("");
     setInput("");
@@ -289,7 +299,8 @@ export default function Studio({
           sessionId: targetId,
           courseId,
           message: question,
-          materialIds: selected.map((m) => m.id),
+          materialIds: queryWikiId ? [] : selected.map((m) => m.id),
+          ...(queryWikiId ? { wikiId: queryWikiId } : {}),
         },
         (type, event) => {
           if (type === "delta")
@@ -318,8 +329,7 @@ export default function Studio({
       if (failed) throw failed;
       setActiveSessionId(targetId);
       await refreshWorkspace();
-      const wikiId = pendingWiki.current;
-      pendingWiki.current = null;
+      const wikiId = captureWiki;
       const answer = [...(finished?.messages || [])]
         .reverse()
         .find((message) => message.role === "assistant");
@@ -824,9 +834,18 @@ export default function Studio({
                       {message.sources.map((source, i) => (
                         <button
                           key={`${source.materialId}-${source.page}-${i}`}
-                          onClick={() =>
-                            openMaterial(source.materialId, source.page)
-                          }
+                          onClick={() => {
+                            const page = data.notes.find(
+                              (note) => note.id === source.materialId,
+                            );
+                            if (page)
+                              navigate("wiki", {
+                                wikiId: page.wikiId,
+                                noteId: page.id,
+                                courseId: page.courseId,
+                              });
+                            else openMaterial(source.materialId, source.page);
+                          }}
                         >
                           <FileText size={12} />
                           <span>{source.name}</span>
@@ -881,10 +900,16 @@ export default function Studio({
             </div>
           )}
           {!isTeacher ? (
-            <div className="studio-composer-area">
-              {slashOpen && (
-                <div className="studio-slash" role="listbox" aria-label="Choose a wiki to update">
-                  <p>Update a wiki with {input.replace(/^\/\w*\s*/, "").trim() ? "this question" : "the latest answer"}</p>
+            <div className="studio-composer-area">              {slashOpen && (
+                <div className="studio-slash" role="listbox" aria-label={isQuery ? "Choose a wiki to ask" : "Choose a wiki to update"}>
+                  <p>
+                    {isQuery
+                      ? "Answer from this wiki only"
+                      : `Update a wiki with ${slashText ? "this question" : "the latest answer"}`}
+                  </p>
+                  {!isQuery && !slashText && (
+                    <p>Tip: type /query your question to ask your own wiki.</p>
+                  )}
                   {(data.notes || [])
                     .filter((note) => note.wikiRoot && note.studentId === user.id)
                     .map((wiki) => (
@@ -892,8 +917,18 @@ export default function Studio({
                         type="button"
                         key={wiki.id}
                         onClick={() => {
-                          const question = input.replace(/^\/capture\s*/i, "").replace(/^\//, "").trim();
+                          const question = slashText;
                           setSlashOpen(false);
+                          if (isQuery) {
+                            if (!question) {
+                              toast("Type your question after /query, then choose a wiki.");
+                              return;
+                            }
+                            setInput("");
+                            queryWiki.current = wiki.id;
+                            ask(question);
+                            return;
+                          }
                           setInput("");
                           if (question) {
                             pendingWiki.current = wiki.id;
@@ -938,8 +973,8 @@ export default function Studio({
                   }}
                   placeholder={
                     embedded
-                      ? "Ask about this course, or /capture"
-                      : "Ask anything about your course, or /capture"
+                      ? "Ask about this course, /capture or /query"
+                      : "Ask anything about your course, /capture or /query"
                   }
                   rows={2}
                   onKeyDown={(event) => {
