@@ -167,6 +167,8 @@ export default function Studio({
   const queryWiki = useRef(null);
   const [task, setTask] = useState(null);
   const [chatStage, setChatStage] = useState("Searching your sources");
+  const [pendingQuestion, setPendingQuestion] = useState("");
+  const [streamDone, setStreamDone] = useState(false);
   const requestAbort = useRef(null);
   useEffect(() => () => requestAbort.current?.abort(), []);
   const [sourcePicker, setSourcePicker] = useState(false);
@@ -212,6 +214,13 @@ export default function Studio({
     const feed = feedRef.current;
     if (feed) feed.scrollTop = feed.scrollHeight;
   }, [messages.length]);
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return;
+    const nearBottom =
+      feed.scrollHeight - feed.scrollTop - feed.clientHeight < 160;
+    if (nearBottom) feed.scrollTop = feed.scrollHeight;
+  }, [streaming, chatStage, asking, pendingQuestion]);
   useEffect(() => {
     if (!pendingAnimation || !onOpenAnimation) return;
     const savedSession = data.sessions.find(
@@ -278,6 +287,8 @@ export default function Studio({
     setChatStage(
       queryWikiId ? "Searching your wiki" : "Searching your sources",
     );
+    setPendingQuestion(question);
+    setStreamDone(false);
     setInput("");
     const targetId = session?.id || uid("session");
     if (!session)
@@ -328,6 +339,7 @@ export default function Studio({
                 event.error ||
                 "The tutor response was interrupted.",
             );
+          if (type === "done") setStreamDone(true);
           if (type === "done" && event.session) {
             finished = event.session;
             patchLocal((previous) => ({
@@ -359,6 +371,8 @@ export default function Studio({
       }
     } finally {
       setAsking(false);
+      setPendingQuestion("");
+      setStreamDone(false);
       setStreaming("");
       requestAbort.current = null;
     }
@@ -915,21 +929,43 @@ export default function Studio({
                 )}
               </div>
             ))}
+            {asking && !streamDone && pendingQuestion && (
+              <div className="studio-message from-user">
+                <div className="studio-message-body">
+                  <div className="studio-message-content">
+                    <p>{pendingQuestion}</p>
+                  </div>
+                </div>
+                <span className="studio-user-avatar">
+                  {sessionStudent.initials || sessionStudent.name?.[0]}
+                </span>
+              </div>
+            )}
+            {asking && !streamDone && (
+              <div className="studio-message from-assistant" role="status" aria-live="polite">
+                <span className="studio-message-avatar">
+                  <Sparkles size={16} />
+                </span>
+                <div className="studio-message-body">
+                  <div className="studio-message-author">
+                    Folio <span>COURSE COMPANION</span>
+                  </div>
+                  <div className="studio-message-content">
+                    {streaming ? (
+                      <ChatMarkdown text={streaming} />
+                    ) : (
+                      <span className="studio-stage">{chatStage}</span>
+                    )}
+                    <span className="task-typing" aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          {asking && (
-            <div className="chat-streaming" role="status" aria-live="polite">
-              {streaming ? (
-                <ChatMarkdown text={streaming} />
-              ) : (
-                <span>{chatStage}</span>
-              )}{" "}
-              <span className="task-typing" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-              </span>
-            </div>
-          )}
           {task && (
             <div className="studio-task">
               <TaskProgress

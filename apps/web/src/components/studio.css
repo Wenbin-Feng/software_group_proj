@@ -2440,3 +2440,11 @@
 .studio-welcome {
   padding-top: 48px;
 }
+
+.studio-stage {
+  color: var(--studio-muted);
+  font-size: 13px;
+}
+.studio-message.from-assistant .studio-message-content {
+  min-height: 1.75em;
+}
