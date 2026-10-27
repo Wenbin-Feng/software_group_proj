@@ -340,6 +340,11 @@ try {
     .first()
     .click();
   await student.getByText(/Saved to:/).waitFor({ timeout: 20000 });
+  const savedSession = (await api(student, "/api/workspace")).sessions[0];
+  await student.goto(
+    `${origin}/#/courses/${course.id}?session=${savedSession.id}`,
+  );
+  await student.getByLabel("Ask about your course materials").waitFor();
   await student.getByRole("button", { name: "Visualize", exact: true }).click();
   await student
     .locator('iframe[title="Visual explanation"]')
