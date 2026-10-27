@@ -12,6 +12,13 @@ import {
 } from "./visualization.js";
 import { complete, streamCompletion, type ChatMessage } from "./provider.js";
 import {
+  compileWiki,
+  validateWikiPlan,
+  wikiCapturePrompt,
+  wikiCaptureSchema,
+  wikiSourceKey,
+} from "./wiki.js";
+import {
   citedSources,
   evidenceContext,
   retrieveEvidence,
@@ -119,6 +126,7 @@ export async function registerAiRoutes(app: FastifyInstance) {
         note.courseId === session.courseId &&
         note.sourceSessionId === session.id &&
         note.sourceMessageId === visual.messageId &&
+        !note.ledger &&
         core.canReadNote(user, note)
       ) {
         core.put("notes", {
@@ -135,10 +143,12 @@ export async function registerAiRoutes(app: FastifyInstance) {
     withObservation(
       job.type === "courseware"
         ? "Courseware Generation"
-        : "Visual Explanation",
+        : job.type === "wiki"
+          ? "Wiki Capture"
+          : "Visual Explanation",
       {
         userId: job.userId,
-        ...(job.type === "visualization"
+        ...(job.type === "visualization" || job.type === "wiki"
           ? { sessionId: job.payload.sessionId }
           : {}),
         metadata: {
@@ -153,6 +163,262 @@ export async function registerAiRoutes(app: FastifyInstance) {
         const input = job.payload;
         if (job.type === "courseware" && !core.canTeach(user, job.courseId))
           fail(403, "You cannot generate courseware for this course.");
+        if (job.type === "wiki" && input.mode === "ingest") {
+          const wiki = core.get("notes", input.wikiId);
+          if (
+            !wiki?.wikiRoot ||
+            wiki.studentId !== user.id ||
+            wiki.courseId !== job.courseId ||
+            !core.canReadNote(user, wiki)
+          )
+            fail(404, "Wiki not found.");
+          const notes = core.all("notes").filter(
+            (note) =>
+              note.studentId === user.id &&
+              note.wikiId === wiki.id &&
+              core.canReadNote(user, note),
+          );
+          const key = wikiSourceKey("ingest", wiki.id);
+          const captured = notes.find((note) => note.ledger === "manifest")
+            ?.manifest?.sources?.[key];
+          if (captured) {
+            const page = notes.find(
+              (note) => note.path === captured.pages_produced?.[0],
+            );
+            workflow.update({ metadata: { outputReused: true } });
+            return {
+              saved: true,
+              already: true,
+              noteId: page?.id || wiki.id,
+              title: page?.title || wiki.title,
+              path: captured.pages_produced?.[0] || "",
+              type: page?.wiki?.pageType || "concept",
+              created: 0,
+              updated: 0,
+              wikiId: wiki.id,
+            };
+          }
+          const materials = core
+            .all("materials")
+            .filter(
+              (material) =>
+                material.courseId === wiki.courseId &&
+                !material.ownerId &&
+                !material.archivedAt &&
+                core.canReadMaterial(user, material),
+            )
+            .slice(0, 6);
+          const cited = materials.map((material) => {
+            const page = material.pages?.[0];
+            return {
+              id: material.id,
+              name: material.name,
+              page: Number(page?.page) || 1,
+              text: String(page?.text || material.text || "").slice(0, 1200),
+            };
+          });
+          if (!cited.length)
+            return {
+              saved: false,
+              already: false,
+              reason: "This course has no materials to generate from.",
+              noteId: wiki.id,
+              title: wiki.title,
+              path: "",
+              type: "",
+              created: 0,
+              updated: 0,
+              wikiId: wiki.id,
+            };
+          progress(20);
+          const output = await complete(
+            [
+              {
+                role: "system",
+                content: wikiCapturePrompt(
+                  notes
+                    .filter((note) => !note.ledger)
+                    .map((note) => ({
+                      title: note.title,
+                      path: note.path,
+                      summary: note.summary || "",
+                    })),
+                ),
+              },
+              {
+                role: "user",
+                content: `Create the wiki from these course materials. One page per distinct concept.\n\n${cited
+                  .map((item) => `[${item.name}, page ${item.page}]\n${item.text}`)
+                  .join("\n\n")}`,
+              },
+            ],
+            wikiCaptureSchema,
+          );
+          progress(75);
+          const plan = validateWikiPlan(jsonParse(output));
+          const compiled = compileWiki({
+            now: new Date().toISOString(),
+            courseId: wiki.courseId,
+            studentId: user.id,
+            sessionId: "ingest",
+            messageId: wiki.id,
+            messageText: cited.map((item) => item.text).join("\n"),
+            sessionTitle: wiki.title,
+            materials: cited.map(
+              ({
+                text,
+                ...item
+              }: {
+                text: string;
+                id: string;
+                name: string;
+                page: number;
+              }) => item,
+            ),
+            existing: notes,
+            plan,
+            wikiId: wiki.id,
+          });
+          for (const record of compiled.records) core.put("notes", record);
+          return { ...compiled.result, wikiId: wiki.id };
+        }
+        if (job.type === "wiki") {
+          const session = ownedSession(user, input.sessionId, job.courseId);
+          if (user.role !== "student" || session.studentId !== user.id)
+            fail(403, "Only the session owner can compile a wiki.");
+          const message = session.messages?.find(
+            (item: any) =>
+              item.id === input.messageId && item.role === "assistant",
+          );
+          if (!message)
+            fail(400, "Select an assistant message from this session.");
+          const wiki = input.wikiId
+            ? core.get("notes", input.wikiId)
+            : null;
+          if (
+            input.wikiId &&
+            (!wiki?.wikiRoot ||
+              wiki.studentId !== user.id ||
+              !core.canReadNote(user, wiki))
+          )
+            fail(404, "Wiki not found.");
+          const noteCourseId = wiki?.courseId || job.courseId;
+          const notes = core
+            .all("notes")
+            .filter(
+              (note) =>
+                note.studentId === user.id &&
+                note.courseId === noteCourseId &&
+                (!wiki || note.wikiId === wiki.id) &&
+                core.canReadNote(user, note),
+            );
+          const captured =
+            notes.find((note) => note.ledger === "manifest")?.manifest
+              ?.sources?.[wikiSourceKey(session.id, message.id)];
+          if (captured) {
+            const page = notes.find(
+              (note) => note.path === captured.pages_produced?.[0],
+            );
+            workflow.update({ metadata: { outputReused: true } });
+            return {
+              saved: true,
+              already: true,
+              noteId: page?.id || wiki?.id || null,
+              title: page?.title || "",
+              path: captured.pages_produced?.[0] || "",
+              type: page?.wiki?.pageType || "concept",
+              created: 0,
+              updated: 0,
+              wikiId: wiki?.id || null,
+            };
+          }
+          const cited = (message.sources || []).flatMap((source: any) => {
+            const material = core.get("materials", source.materialId);
+            if (
+              !material ||
+              material.courseId !== job.courseId ||
+              !core.canReadMaterial(user, material)
+            )
+              return [];
+            const page =
+              material.pages?.find((item: any) => item.page === source.page) ||
+              material.pages?.[0];
+            return [
+              {
+                id: material.id,
+                name: material.name,
+                page: Number(source.page) || page?.page || 1,
+                text: String(page?.text || "").slice(0, 2000),
+              },
+            ];
+          });
+          progress(20);
+          const catalog = notes
+            .filter((note) => !note.ledger)
+            .map((note) => ({
+              title: note.title,
+              path: note.path,
+              summary: note.summary || note.wiki?.summary || "",
+            }));
+          const output = await complete(
+            [
+              { role: "system", content: wikiCapturePrompt(catalog) },
+              {
+                role: "user",
+                content: `Explanation:\n${String(message.content || "").slice(0, 12000)}\n\nCourse excerpts:\n${
+                  cited
+                    .map(
+                      (item: {
+                        name: string;
+                        page: number;
+                        text: string;
+                      }) => `[${item.name}, page ${item.page}]\n${item.text}`,
+                    )
+                    .join("\n\n") || "No course excerpt was cited."
+                }`,
+              },
+            ],
+            wikiCaptureSchema,
+          );
+          progress(75);
+          const plan = await withObservation("Validate Wiki", {}, () =>
+            validateWikiPlan(jsonParse(output)),
+          );
+          if (!core.canReadCourse(user, job.courseId))
+            fail(403, "Course access changed while compiling the wiki.");
+          const compiled = compileWiki({
+            now: new Date().toISOString(),
+            courseId: noteCourseId,
+            studentId: user.id,
+            sessionId: session.id,
+            messageId: message.id,
+            messageText: String(message.content || ""),
+            sessionTitle: session.title || "Learning session",
+            materials: cited.map(
+              ({
+                text,
+                ...item
+              }: {
+                text: string;
+                id: string;
+                name: string;
+                page: number;
+              }) => item,
+            ),
+            existing: notes,
+            plan,
+            wikiId: wiki?.id,
+          });
+          for (const record of compiled.records) core.put("notes", record);
+          workflow.update({
+            metadata: {
+              pagesCreated: compiled.result.created,
+              pagesUpdated: compiled.result.updated,
+              saved: compiled.result.saved,
+            },
+          });
+          return compiled.result;
+        }
         // If the process stopped after persisting an output, finish the task without charging another generation.
         const prior = core.get(
           job.type === "courseware" ? "courseware" : "visualizations",
@@ -562,6 +828,100 @@ export async function registerAiRoutes(app: FastifyInstance) {
           "visualization",
           payload,
         );
+      })
+      .immediate();
+    return reply.code(202).send({ jobId: job.id });
+  });
+  app.post("/api/wiki/capture", async (request, reply) => {
+    const user = core.requireUser(request),
+      input = request.body as any;
+    const session = ownedSession(
+      user,
+      requiredText(input?.sessionId, 120),
+      requiredText(input?.courseId, 120),
+    );
+    if (user.role !== "student" || session.studentId !== user.id)
+      fail(403, "Only the session owner can compile a wiki.");
+    const messageId = requiredText(input?.messageId, 120);
+    if (
+      !session.messages?.some(
+        (item: any) => item.id === messageId && item.role === "assistant",
+      )
+    )
+      fail(400, "Select an assistant message from this session.");
+    const wikiId =
+      typeof input?.wikiId === "string" && input.wikiId
+        ? requiredText(input.wikiId, 160)
+        : "";
+    const wiki = wikiId ? core.get("notes", wikiId) : null;
+    if (
+      wikiId &&
+      (!wiki?.wikiRoot ||
+        wiki.studentId !== user.id ||
+        !core.canReadNote(user, wiki))
+    )
+      fail(404, "Wiki not found.");
+    const key = wikiSourceKey(session.id, messageId);
+    const notes = core
+      .all("notes")
+      .filter(
+        (note) =>
+          note.studentId === user.id &&
+          note.courseId === (wiki?.courseId || session.courseId) &&
+          (!wiki || note.wikiId === wiki.id) &&
+          core.canReadNote(user, note),
+      );
+    const prior = notes.find((note) => note.ledger === "manifest")?.manifest
+      ?.sources?.[key];
+    if (prior) {
+      const page = notes.find((note) => note.path === prior.pages_produced?.[0]);
+      return {
+        saved: true,
+        already: true,
+        noteId: page?.id || null,
+        title: page?.title || "",
+        path: prior.pages_produced?.[0] || "",
+        type: page?.wiki?.pageType || "concept",
+      };
+    }
+    if (!process.env.H2A_LLM_API_KEY)
+      fail(503, "AI generation is not configured on this server.");
+    const job = core.db
+      .transaction(() => {
+        usage.consume(user.id, "generation");
+        return queue.enqueue(user.id, session.courseId, "wiki", {
+          sessionId: session.id,
+          messageId,
+          ...(wiki ? { wikiId: wiki.id } : {}),
+        });
+      })
+      .immediate();
+    return reply.code(202).send({ jobId: job.id });
+  });
+  app.post("/api/wiki/ingest", async (request, reply) => {
+    const user = core.requireUser(request),
+      input = request.body as any;
+    const courseId = requiredText(input?.courseId, 120);
+    const wikiId = requiredText(input?.wikiId, 160);
+    if (user.role !== "student" || !core.canReadCourse(user, courseId))
+      fail(403, "Only an enrolled student can generate a wiki.");
+    const wiki = core.get("notes", wikiId);
+    if (
+      !wiki?.wikiRoot ||
+      wiki.studentId !== user.id ||
+      wiki.courseId !== courseId ||
+      !core.canReadNote(user, wiki)
+    )
+      fail(404, "Wiki not found.");
+    if (!process.env.H2A_LLM_API_KEY)
+      fail(503, "AI generation is not configured on this server.");
+    const job = core.db
+      .transaction(() => {
+        usage.consume(user.id, "generation");
+        return queue.enqueue(user.id, courseId, "wiki", {
+          mode: "ingest",
+          wikiId,
+        });
       })
       .immediate();
     return reply.code(202).send({ jobId: job.id });

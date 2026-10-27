@@ -319,6 +319,24 @@ export async function registerResources(
               }
             : {}),
         };
+        if (existing?.wikiRoot) {
+          record.wikiRoot = true;
+          record.title = title.parse(input.title || existing.title);
+        }
+        if (existing?.wikiId) record.wikiId = existing.wikiId;
+        if (existing?.ledger) {
+          record.ledger = existing.ledger;
+          record.title = existing.title;
+          record.category = existing.category || record.category;
+          record.path = existing.path;
+          if (existing.manifest) record.manifest = existing.manifest;
+          if (existing.wiki) record.wiki = existing.wiki;
+          if (existing.summary) record.summary = existing.summary;
+        } else if (existing?.wiki || existing?.path) {
+          record.path = existing.path;
+          record.summary = existing.summary;
+          record.wiki = existing.wiki;
+        }
         for (const linkId of record.links) {
           const link = get("notes", linkId);
           if (link) deny(canReadNote(user, link));
@@ -338,6 +356,11 @@ export async function registerResources(
             ),
             "You can only publish your own notes from this course.",
           );
+          if (notes.some((note) => note?.ledger))
+            throw new HttpError(
+              400,
+              "Index, log, and manifest pages stay in your vault.",
+            );
           const pages = notes.map((n) => {
             const m = n!.source && get("materials", n!.source.materialId);
             return {

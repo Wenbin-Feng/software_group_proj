@@ -2673,3 +2673,18 @@
     gap: 4px;
   }
 }
+
+.wiki-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.wiki-mode-switch button {
+  border: 1px solid var(--line, #d9d3c7);
+  border-radius: 10px;
+  padding: 10px;
+  background: transparent;
+}
+.wiki-mode-switch button.active {
+  border-color: currentColor;
+}

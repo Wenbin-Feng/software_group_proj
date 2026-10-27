@@ -38,6 +38,63 @@ const uid = (prefix) =>
 const cleanTitle = (text) =>
   text.length > 48 ? `${text.slice(0, 45)}…` : text;
 
+function chatInline(text, key) {
+  return String(text)
+    .split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
+    .map((part, index) => {
+      if (part.startsWith("**") && part.endsWith("**"))
+        return <strong key={`${key}-${index}`}>{part.slice(2, -2)}</strong>;
+      if (part.startsWith("`") && part.endsWith("`"))
+        return <code key={`${key}-${index}`}>{part.slice(1, -1)}</code>;
+      return part;
+    });
+}
+function ChatMarkdown({ text = "" }) {
+  const blocks = [];
+  let list = [];
+  let ordered = false;
+  const flush = () => {
+    if (!list.length) return;
+    const items = list;
+    blocks.push(
+      ordered ? (
+        <ol key={`list-${blocks.length}`}>
+          {items.map((item, index) => (
+            <li key={index}>{chatInline(item, `ol-${blocks.length}-${index}`)}</li>
+          ))}
+        </ol>
+      ) : (
+        <ul key={`list-${blocks.length}`}>
+          {items.map((item, index) => (
+            <li key={index}>{chatInline(item, `ul-${blocks.length}-${index}`)}</li>
+          ))}
+        </ul>
+      ),
+    );
+    list = [];
+  };
+  text.split("\n").forEach((line) => {
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    const bullet = line.match(/^\s*[-*]\s+(.+)$/);
+    const number = line.match(/^\s*\d+\.\s+(.+)$/);
+    if (heading) {
+      flush();
+      blocks.push(
+        <h4 key={`h-${blocks.length}`}>{chatInline(heading[2], `h-${blocks.length}`)}</h4>,
+      );
+    } else if (bullet || number) {
+      if (!list.length) ordered = Boolean(number);
+      list.push((bullet || number)[1]);
+    } else if (!line.trim()) flush();
+    else {
+      flush();
+      blocks.push(<p key={`p-${blocks.length}`}>{chatInline(line, `p-${blocks.length}`)}</p>);
+    }
+  });
+  flush();
+  return blocks;
+}
+
 function messageAnimation(message) {
   if (!message || message.role !== "assistant") return null;
   if (Object.prototype.hasOwnProperty.call(message, "animation"))
@@ -102,6 +159,9 @@ export default function Studio({
   const [asking, setAsking] = useState(false),
     [streaming, setStreaming] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [compiling, setCompiling] = useState(false);
+  const [slashOpen, setSlashOpen] = useState(false);
+  const pendingWiki = useRef(null);
   const requestAbort = useRef(null);
   useEffect(() => () => requestAbort.current?.abort(), []);
   const [sourcePicker, setSourcePicker] = useState(false);
@@ -163,6 +223,7 @@ export default function Studio({
       if (event.key === "Escape") {
         setSourcePicker(false);
         setSessionPicker(false);
+        setSlashOpen(false);
       }
     };
     document.addEventListener("keydown", dismiss);
@@ -220,6 +281,7 @@ export default function Studio({
       }));
     const controller = new AbortController();
     requestAbort.current = controller;
+    let finished = null;
     try {
       let failed = null;
       await streamChat(
@@ -238,7 +300,8 @@ export default function Studio({
                 event.error ||
                 "The tutor response was interrupted.",
             );
-          if (type === "done" && event.session)
+          if (type === "done" && event.session) {
+            finished = event.session;
             patchLocal((previous) => ({
               ...previous,
               sessions: [
@@ -248,12 +311,19 @@ export default function Studio({
                 ),
               ],
             }));
+          }
         },
         controller.signal,
       );
       if (failed) throw failed;
       setActiveSessionId(targetId);
       await refreshWorkspace();
+      const wikiId = pendingWiki.current;
+      pendingWiki.current = null;
+      const answer = [...(finished?.messages || [])]
+        .reverse()
+        .find((message) => message.role === "assistant");
+      if (wikiId && answer) await saveNote(answer, wikiId);
     } catch (error) {
       if (error.name !== "AbortError") {
         toast(error.message);
@@ -267,62 +337,92 @@ export default function Studio({
     }
   }
 
-  function saveNote(message = lastAnswer) {
-    if (!message || isTeacher || !isEnrolled(data, courseId, user.id)) return;
-    if (isMessageSaved(message.id)) {
-      toast("This explanation is already in your Wiki.");
+  function captureKey(messageId) {
+    return session ? `agent:folio/${session.id}/${messageId}` : "";
+  }
+  async function saveNote(message = lastAnswer, wikiId = "") {
+    if (!message || isTeacher || compiling || !session) return;
+    if (!isEnrolled(data, courseId, user.id)) return;
+    if (isMessageSaved(message.id, wikiId)) {
+      const key = captureKey(message.id);
+      const manifest = data.notes.find((note) => note.ledger === "manifest");
+      const path = manifest?.manifest?.sources?.[key]?.pages_produced?.[0];
+      const existing = data.notes.find(
+        (note) => note.path === path || note.sourceMessageId === message.id,
+      );
+      toast(
+        existing
+          ? `Already in your Wiki: ${existing.path || existing.title}`
+          : "This explanation is already in your Wiki.",
+      );
+      if (existing) navigate("wiki", { noteId: existing.id, courseId });
       return;
     }
-    const id = uid("note");
-    const isConcurrency =
-      /concurr|stock|lock|transaction|并发|库存|事务|锁/.test(
-        message.content.toLowerCase(),
-      );
-    const topic = isConcurrency
-      ? "Concurrency & database locks"
-      : session?.title || "Learning note";
-    const sources = (message.sources || [])
-      .map((s) => `- ${s.name}, page ${s.page}`)
-      .join("\n");
-    const sourceIds = (message.sources || []).map((s) => s.materialId);
-    const relatedNotes = data.notes
-      .filter(
-        (n) =>
-          n.courseId === courseId &&
-          n.studentId === user.id &&
-          (sourceIds.includes(n.source?.materialId) ||
-            (isConcurrency &&
-              /race|isolation|atomic|transaction|concurr/i.test(n.title))),
-      )
-      .slice(0, 3);
-    const note = {
-      id,
-      courseId,
-      studentId: user.id,
-      title: topic,
-      category: isConcurrency ? "Database systems" : "Concepts",
-      content: `# ${topic}\n\n${message.content}${relatedNotes.length ? `\n\n## Connections\n\n${relatedNotes.map((n) => `[[${n.title}]]`).join(" · ")}` : ""}\n\n## Sources\n\n${sources || "Saved from a learning session."}`,
-      tags: ["learning", "session"],
-      links: relatedNotes.map((n) => n.id),
-      hasAnimation: Boolean(message.visualizationHtml),
-      animation: message.visualizationHtml ? "html" : null,
-      visualizationHtml: message.visualizationHtml || null,
-      source: message.sources?.[0],
-      sourceSessionId: session?.id,
-      sourceMessageId: message.id,
-      updatedAt: new Date().toISOString(),
-    };
-    setData((d) => ({ ...d, notes: [note, ...d.notes] }));
-    setSavedMessageIds((ids) => [...ids, message.id]);
-    toast("Explanation saved to your personal Wiki.");
+    setCompiling(true);
+    try {
+      await flushChanges();
+      const queued = await api("/api/wiki/capture", {
+        method: "POST",
+        body: {
+          sessionId: session.id,
+          messageId: message.id,
+          courseId,
+          ...(wikiId ? { wikiId } : {}),
+        },
+      });
+      if (queued.already) {
+        await refreshWorkspace();
+        toast(`Already in your Wiki: ${queued.path || queued.title}`);
+        if (queued.noteId)
+          navigate("wiki", { noteId: queued.noteId, courseId });
+        return;
+      }
+      let result = null;
+      for (let attempt = 0; attempt < 180; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        const { job } = await api(`/api/jobs/${queued.jobId}`);
+        if (job.status === "failed")
+          throw new Error(job.error || "The wiki could not be compiled.");
+        if (job.status === "succeeded") {
+          result = job.result;
+          break;
+        }
+      }
+      if (!result) {
+        toast("The wiki is still being compiled. Open My wiki again shortly.");
+        return;
+      }
+      await refreshWorkspace();
+      if (!result.saved) {
+        toast(result.reason || "Nothing in this explanation was worth keeping.");
+        return;
+      }
+      const verb = result.updated && !result.created ? "Updated" : "Saved to";
+      toast(`${verb}: ${result.path} · ${result.title}`);
+      setSavedMessageIds((ids) => [...ids, message.id]);
+      if (result.noteId) navigate("wiki", { noteId: result.noteId, courseId });
+    } catch (error) {
+      toast(error.message);
+    } finally {
+      setCompiling(false);
+    }
   }
 
-  function isMessageSaved(messageId) {
+  function isMessageSaved(messageId, wikiId = "") {
+    const key = captureKey(messageId);
     return (
-      savedMessageIds.includes(messageId) ||
+      (!wikiId && savedMessageIds.includes(messageId)) ||
       data.notes.some(
-        (n) => n.studentId === user.id && n.sourceMessageId === messageId,
-      )
+        (note) =>
+          note.ledger === "manifest" &&
+          (!wikiId || note.wikiId === wikiId) &&
+          note.manifest?.sources?.[key],
+      ) ||
+      (!wikiId &&
+        data.notes.some(
+          (note) =>
+            note.studentId === user.id && note.sourceMessageId === messageId,
+        ))
     );
   }
 
@@ -711,9 +811,13 @@ export default function Studio({
                     </div>
                   )}
                   <div className="studio-message-content">
-                    {message.content.split("\n\n").map((paragraph, i) => (
-                      <p key={i}>{paragraph}</p>
-                    ))}
+                    {message.role === "assistant" ? (
+                      <ChatMarkdown text={message.content} />
+                    ) : (
+                      message.content.split("\n\n").map((paragraph, i) => (
+                        <p key={i}>{paragraph}</p>
+                      ))
+                    )}
                   </div>
                   {!!message.sources?.length && (
                     <div className="studio-message-sources">
@@ -744,15 +848,20 @@ export default function Studio({
                         </button>
                       )}
                       {!isTeacher && (
-                        <button onClick={() => saveNote(message)}>
+                        <button
+                          onClick={() => saveNote(message)}
+                          disabled={compiling}
+                        >
                           {isMessageSaved(message.id) ? (
                             <Check size={13} />
                           ) : (
                             <BookOpen size={13} />
                           )}{" "}
-                          {isMessageSaved(message.id)
-                            ? "Saved to Wiki"
-                            : "Save to Wiki"}
+                          {compiling
+                            ? "Compiling…"
+                            : isMessageSaved(message.id)
+                              ? "Saved to Wiki"
+                              : "Save to Wiki"}
                         </button>
                       )}
                     </div>
@@ -773,10 +882,45 @@ export default function Studio({
           )}
           {!isTeacher ? (
             <div className="studio-composer-area">
+              {slashOpen && (
+                <div className="studio-slash" role="listbox" aria-label="Choose a wiki to update">
+                  <p>Update a wiki with {input.replace(/^\/\w*\s*/, "").trim() ? "this question" : "the latest answer"}</p>
+                  {(data.notes || [])
+                    .filter((note) => note.wikiRoot && note.studentId === user.id)
+                    .map((wiki) => (
+                      <button
+                        type="button"
+                        key={wiki.id}
+                        onClick={() => {
+                          const question = input.replace(/^\/capture\s*/i, "").replace(/^\//, "").trim();
+                          setSlashOpen(false);
+                          setInput("");
+                          if (question) {
+                            pendingWiki.current = wiki.id;
+                            ask(question);
+                          } else if (lastAnswer) saveNote(lastAnswer, wiki.id);
+                          else toast("Ask something after /capture, or get an answer first.");
+                        }}
+                      >
+                        <BookOpen size={14} />
+                        <span>
+                          {wiki.title}
+                          <small>
+                            {data.courses.find((course) => course.id === wiki.courseId)?.code || "Wiki"}
+                          </small>
+                        </span>
+                      </button>
+                    ))}
+                  {!(data.notes || []).some((note) => note.wikiRoot && note.studentId === user.id) && (
+                    <p>Create a wiki from My wiki first.</p>
+                  )}
+                </div>
+              )}
               <form
                 className="studio-composer"
-                onSubmit={(e) => {
-                  e.preventDefault();
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (input.trim().startsWith("/")) return;
                   ask();
                 }}
               >
@@ -787,17 +931,21 @@ export default function Studio({
                   id="studio-question"
                   ref={inputRef}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setInput(next);
+                    setSlashOpen(next.startsWith("/"));
+                  }}
                   placeholder={
                     embedded
-                      ? "Ask about this course…"
-                      : "Ask anything about your course…"
+                      ? "Ask about this course, or /capture"
+                      : "Ask anything about your course, or /capture"
                   }
                   rows={2}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      ask();
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      if (!input.trim().startsWith("/")) ask();
                     }
                   }}
                 />
@@ -908,12 +1056,14 @@ export default function Studio({
                     Keep the explanation. Connect it to what you already know.
                   </p>
                   <button
-                    disabled={isTeacher || !lastAnswer}
+                    disabled={isTeacher || !lastAnswer || compiling}
                     onClick={() => saveNote()}
                   >
                     {isTeacher
                       ? "Student Wiki is read-only"
-                      : "Add this insight to my Wiki"}
+                      : compiling
+                        ? "Compiling…"
+                        : "Add this insight to my Wiki"}
                     <ArrowUpRight size={13} />
                   </button>
                 </div>

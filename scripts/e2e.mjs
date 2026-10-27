@@ -28,10 +28,40 @@ const server = createServer(async (req, res) => {
     return;
   }
   const visual = body.response_format?.json_schema.schema.properties.steps;
+  const wiki = body.response_format?.json_schema.schema.properties.worthSaving;
   const count = Number(
     body.messages.at(-1).content.match(/Exactly (\d+) slides/)?.[1] || 3,
   );
-  const content = visual
+  const content = wiki
+    ? {
+        worthSaving: true,
+        reason: "The explanation defines an atomic inventory update.",
+        takeaways: "An atomic update protects the inventory check.",
+        pages: [
+          {
+            action: "create",
+            matchTitle: "",
+            type: "concept",
+            title: "Atomic inventory update",
+            summary: "An atomic update protects the check and the write.",
+            tags: ["database", "concurrency"],
+            claims: [
+              {
+                text: "An atomic update protects the check and the write.",
+                provenance: "extracted",
+              },
+              {
+                text: "A transaction alone does not define isolation.",
+                provenance: "inferred",
+              },
+            ],
+            openQuestions: [],
+            links: [],
+            relationships: [],
+          },
+        ],
+      }
+    : visual
     ? {
         title: "Atomic inventory updates",
         summary: "Follow a protected inventory change.",
@@ -309,6 +339,7 @@ try {
     .getByRole("button", { name: "Save to Wiki", exact: true })
     .first()
     .click();
+  await student.getByText(/Saved to:/).waitFor({ timeout: 20000 });
   await student.getByRole("button", { name: "Visualize", exact: true }).click();
   await student
     .locator('iframe[title="Visual explanation"]')
@@ -317,13 +348,19 @@ try {
   await frame.getByRole("button", { name: "Next step" }).click();
   await frame.getByRole("heading", { name: "Commit", exact: true }).waitFor();
   const state = await api(student, "/api/workspace");
-  assert.equal(state.notes.length, 1);
+  const savedPage = state.notes.find(
+    (note) => note.title === "Atomic inventory update",
+  );
+  assert.ok(savedPage);
   assert.equal(state.sessions.length, 1);
   assert.ok(state.sessions[0].messages[1].visualizationHtml);
   await student.reload();
   await student.getByLabel("Ask about your course materials").waitFor();
   const persisted = await api(student, "/api/workspace");
-  assert.equal(persisted.notes[0].id, state.notes[0].id);
+  assert.equal(
+    persisted.notes.find((note) => note.id === savedPage.id)?.id,
+    savedPage.id,
+  );
   assert.equal(persisted.materials.filter((m) => m.ownerId).length, 1);
   const studentAccount = (await api(student, "/api/auth/me")).user;
   assert.equal((await switchRole(student, "teacher")).id, studentAccount.id);
@@ -335,7 +372,10 @@ try {
     .last()
     .waitFor();
   const afterRoleSwitch = await api(student, "/api/workspace");
-  assert.equal(afterRoleSwitch.notes[0].id, state.notes[0].id);
+  assert.equal(
+    afterRoleSwitch.notes.find((note) => note.id === savedPage.id)?.id,
+    savedPage.id,
+  );
   assert.equal(afterRoleSwitch.sessions[0].id, state.sessions[0].id);
   assert.ok(afterRoleSwitch.sessions[0].messages[1].visualizationHtml);
   assert.equal(afterRoleSwitch.materials.filter((m) => m.ownerId).length, 1);

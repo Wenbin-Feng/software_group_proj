@@ -360,6 +360,16 @@ export function openApiDocument(publicUrl: string) {
       "Queue a visualization for an owned assistant message",
     ],
     [
+      "/api/wiki/capture",
+      "post",
+      "Compile an owned assistant explanation into the personal wiki",
+    ],
+    [
+      "/api/wiki/ingest",
+      "post",
+      "Generate a personal wiki from one course's materials",
+    ],
+    [
       "/api/visualizations/{id}",
       "get",
       "Read an authorized session visualization",

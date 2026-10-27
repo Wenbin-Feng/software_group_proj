@@ -1,10 +1,8 @@
 import { useMemo, useState } from "react";
 import {
-  ArrowUpRight,
   BookOpen,
   ChevronDown,
   FileText,
-  Link2,
   Network,
   Plus,
   Search,
@@ -13,29 +11,7 @@ import {
 } from "lucide-react";
 import { useApp } from "../context";
 import { canReadPrivateNote, visibleCourses } from "../lib/access";
-import { outgoingLinks } from "../lib/wikiLinks";
 import "./wiki-library.css";
-
-const plainExcerpt = (content = "") =>
-  content
-    .replace(/^---\n[\s\S]*?\n---\n/, "")
-    .replace(/```[\s\S]*?```/g, "")
-    .replace(/^#{1,6}\s+.*$/gm, "")
-    .replace(
-      /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
-      (_, target, alias) => alias || target,
-    )
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/[*_`>#]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-function formatDate(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "Recently edited"
-    : date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-}
 
 function NoteCover({ index, course }) {
   const variant = index % 3;
@@ -136,7 +112,7 @@ export default function WikiLibrary({ onCreate }) {
     () =>
       (data.notes || [])
         .filter(
-          (note) => role === "student" && canReadPrivateNote(data, actor, note),
+          (note) => role === "student" && canReadPrivateNote(data, actor, note) && !note.ledger,
         )
         .sort(
           (a, b) =>
@@ -144,22 +120,54 @@ export default function WikiLibrary({ onCreate }) {
         ),
     [data, role, actor],
   );
-  const courseIds = new Set(notes.map((note) => note.courseId));
+  const wikis = useMemo(() => {
+    const roots = notes.filter((note) => note.wikiRoot);
+    const made = roots.map((root) => ({
+      id: root.id,
+      title: root.title,
+      courseId: root.courseId,
+      updatedAt: root.updatedAt,
+      pages: notes.filter(
+        (note) => note.wikiId === root.id && !note.ledger && !note.wikiRoot,
+      ),
+    }));
+    const legacy = [];
+    for (const note of notes) {
+      if (note.wikiRoot || note.wikiId || note.ledger) continue;
+      const existing = legacy.find((item) => item.courseId === note.courseId);
+      if (existing) existing.pages.push(note);
+      else
+        legacy.push({
+          id: `legacy:${note.courseId}`,
+          title:
+            data.courses.find((course) => course.id === note.courseId)?.name ||
+            "Course notes",
+          courseId: note.courseId,
+          updatedAt: note.updatedAt,
+          pages: [note],
+          legacy: true,
+        });
+    }
+    return [...made, ...legacy].sort(
+      (a, b) => (Date.parse(b.updatedAt) || 0) - (Date.parse(a.updatedAt) || 0),
+    );
+  }, [notes, data.courses]);
+  const courseIds = new Set(wikis.map((wiki) => wiki.courseId));
   const courses = visibleCourses(data, actor).filter((course) =>
     courseIds.has(course.id),
   );
   const shown = useMemo(() => {
     const search = query.trim().toLocaleLowerCase();
-    return notes.filter((note) => {
-      const course = data.courses.find((item) => item.id === note.courseId);
+    return wikis.filter((wiki) => {
+      const course = data.courses.find((item) => item.id === wiki.courseId);
       const text =
-        `${note.title} ${note.content || ""} ${note.category || ""} ${(note.tags || []).join(" ")} ${course?.name || ""} ${course?.code || ""}`.toLocaleLowerCase();
+        `${wiki.title} ${course?.name || ""} ${course?.code || ""} ${wiki.pages.map((page) => page.title).join(" ")}`.toLocaleLowerCase();
       return (
-        (courseFilter === "all" || note.courseId === courseFilter) &&
+        (courseFilter === "all" || wiki.courseId === courseFilter) &&
         (!search || text.includes(search))
       );
     });
-  }, [notes, query, courseFilter, data.courses]);
+  }, [wikis, query, courseFilter, data.courses]);
 
   const clearFilters = () => {
     setQuery("");
@@ -187,13 +195,13 @@ export default function WikiLibrary({ onCreate }) {
           <p>
             {isTeacher
               ? "A read-only view of student notes, across your courses."
-              : "Every small insight, connected. Your notes from every course."}
+              : "Each wiki is one subject. Generate it from a course, or start empty."}
           </p>
           <div className="wiki-library-summary">
             <span>
               <FileText size={14} aria-hidden="true" />
-              <strong>{notes.length}</strong>{" "}
-              {notes.length === 1 ? "note" : "notes"}
+              <strong>{wikis.length}</strong>{" "}
+              {wikis.length === 1 ? "wiki" : "wikis"}
             </span>
             <span className="wiki-library-summary-dot" aria-hidden="true" />
             <span>
@@ -210,7 +218,7 @@ export default function WikiLibrary({ onCreate }) {
             onClick={onCreate}
           >
             <Plus size={16} aria-hidden="true" />
-            New note
+            New wiki
           </button>
         )}
       </header>
@@ -218,7 +226,7 @@ export default function WikiLibrary({ onCreate }) {
       <div className="wiki-library-toolbar">
         <p className="wiki-library-list-label">
           {courseFilter === "all"
-            ? "All notes"
+            ? "All wikis"
             : data.courses.find((course) => course.id === courseFilter)?.code ||
               "Notes"}
           <span aria-label={`${shown.length} matching notes`}>
@@ -229,8 +237,8 @@ export default function WikiLibrary({ onCreate }) {
           <div className="wiki-library-search">
             <Search size={16} aria-hidden="true" />
             <input
-              aria-label="Search all wiki notes"
-              placeholder="Search your notes…"
+              aria-label="Search wikis"
+              placeholder="Search your wikis…"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
@@ -246,7 +254,7 @@ export default function WikiLibrary({ onCreate }) {
           </div>
           <label className="wiki-library-filter">
             <select
-              aria-label="Filter wiki notes by course"
+              aria-label="Filter wikis by course"
               value={courseFilter}
               onChange={(event) => setCourseFilter(event.target.value)}
             >
@@ -263,23 +271,16 @@ export default function WikiLibrary({ onCreate }) {
       </div>
 
       {shown.length ? (
-        <div className="wiki-library-grid" aria-label="Wiki notes">
-          {shown.map((note, index) => {
-            const course = data.courses.find(
-              (item) => item.id === note.courseId,
-            );
-            const owner = data.students.find(
-              (student) =>
-                student.id === note.studentId ||
-                student.studentId === note.studentId,
-            );
-            const linkCount = outgoingLinks(note, notes).length;
+        <div className="wiki-library-grid" aria-label="Wikis">
+          {shown.map((wiki, index) => {
+            const course = data.courses.find((item) => item.id === wiki.courseId);
+            const openId = wiki.pages[0]?.id || wiki.id;
             return (
-              <article className="wiki-library-card" key={note.id}>
+              <article className="wiki-library-card" key={wiki.id}>
                 <a
                   className="wiki-library-card-link"
-                  href={`#/wiki?note=${encodeURIComponent(note.id)}&course=${encodeURIComponent(note.courseId)}`}
-                  aria-label={`Open wiki note ${note.title}`}
+                  href={`#/wiki?wiki=${encodeURIComponent(wiki.id)}&note=${encodeURIComponent(openId)}&course=${encodeURIComponent(wiki.courseId)}`}
+                  aria-label={`Open wiki ${wiki.title}`}
                   onClick={(event) => {
                     if (
                       event.metaKey ||
@@ -289,44 +290,24 @@ export default function WikiLibrary({ onCreate }) {
                     )
                       return;
                     event.preventDefault();
-                    navigate("wiki", { noteId: note.id });
+                    navigate("wiki", {
+                      wikiId: wiki.id,
+                      noteId: openId,
+                      courseId: wiki.courseId,
+                    });
                   }}
                 >
                   <NoteCover index={index} course={course} />
                   <div className="wiki-library-card-body">
                     <span className="wiki-library-category">
-                      {note.category || "Notes & ideas"}
+                      {wiki.legacy ? "Earlier notes" : wiki.pages.length ? "Generated wiki" : "Empty wiki"}
                     </span>
-                    <h2>{note.title}</h2>
-                    <p className="wiki-library-excerpt">
-                      {plainExcerpt(note.content) ||
-                        "A new thought, ready to grow. Open this note to start writing."}
+                    <h2>{wiki.title}</h2>
+                    <p>
+                      {wiki.pages.length
+                        ? `${wiki.pages.length} ${wiki.pages.length === 1 ? "page" : "pages"}`
+                        : "No pages yet"}
                     </p>
-                    <div className="wiki-library-tags">
-                      {(note.tags || []).slice(0, 2).map((tag) => (
-                        <span key={tag}>#{tag}</span>
-                      ))}
-                    </div>
-                    {isTeacher && (
-                      <p className="wiki-library-owner">
-                        {owner?.name || "Student"}
-                        <span>Read only</span>
-                      </p>
-                    )}
-                    <div className="wiki-library-card-footer">
-                      <span className="wiki-library-links">
-                        <Link2 size={13} aria-hidden="true" />
-                        {linkCount} {linkCount === 1 ? "link" : "links"}
-                      </span>
-                      <span className="wiki-library-updated">
-                        {formatDate(note.updatedAt)}
-                      </span>
-                      <ArrowUpRight
-                        size={17}
-                        className="wiki-library-open-arrow"
-                        aria-hidden="true"
-                      />
-                    </div>
                   </div>
                 </a>
               </article>
@@ -335,20 +316,20 @@ export default function WikiLibrary({ onCreate }) {
         </div>
       ) : (
         <div className="wiki-library-empty">
-          {notes.length ? (
+          {wikis.length ? (
             <Search size={27} aria-hidden="true" />
           ) : (
             <Network size={29} aria-hidden="true" />
           )}
           <h2>
-            {notes.length ? "No matching notes" : "Your knowledge starts here"}
+            {wikis.length ? "No matching wikis" : "Your knowledge starts here"}
           </h2>
           <p>
-            {notes.length
-              ? "Try a different search, or explore another course."
-              : "Save an insight from a course conversation, or create your first note."}
+            {wikis.length
+              ? "Try a different search, or look in another course."
+              : "Generate a wiki from a course, or start an empty one."}
           </p>
-          {notes.length ? (
+          {wikis.length ? (
             <button
               className="btn btn-outline"
               onClick={clearFilters}
@@ -365,7 +346,7 @@ export default function WikiLibrary({ onCreate }) {
                 type="button"
               >
                 <Plus size={15} />
-                Create a note
+                Create a wiki
               </button>
             )
           )}

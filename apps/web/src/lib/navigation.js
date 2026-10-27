@@ -11,6 +11,7 @@ export function parseRoute(hash, data, fallbackCourseId = "se") {
   const parts = path.split("/").filter(Boolean);
   const sessionId = params.get("session");
   const noteId = params.get("note");
+  const wikiId = params.get("wiki");
   const noteCourseId = data.notes.find((note) => note.id === noteId)?.courseId;
   const inferred =
     data.sessions.find((session) => session.id === sessionId)?.courseId ||
@@ -19,6 +20,7 @@ export function parseRoute(hash, data, fallbackCourseId = "se") {
     courseId: params.get("course") || inferred || fallbackCourseId,
     sessionId,
     noteId,
+    wikiId,
     threadId: params.get("thread"),
     status: params.get("status") || "all",
     query: params.get("q") || "",
@@ -121,9 +123,10 @@ export function buildRoute(next, params = {}, data, currentCourseId) {
     return `#/inbox${suffix()}`;
   }
   if (next === "courses" || next === "overview") return "#/courses";
-  if (next === "wiki" && !params.noteId) return "#/wiki";
+  if (next === "wiki" && !params.noteId && !params.wikiId) return "#/wiki";
   if (params.sessionId) query.set("session", params.sessionId);
   if (params.noteId) query.set("note", params.noteId);
+  if (params.wikiId) query.set("wiki", params.wikiId);
   if (["course", "studio", "materials"].includes(next)) {
     if (next === "materials") query.set("panel", "files");
     return `#/courses/${encodeURIComponent(courseId)}${suffix()}`;

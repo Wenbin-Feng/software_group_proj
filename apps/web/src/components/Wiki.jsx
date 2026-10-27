@@ -29,6 +29,7 @@ import {
   X,
 } from "lucide-react";
 import { useApp } from "../context";
+import { api, flushChanges } from "../lib/api";
 import {
   canReadCourse,
   canReadPrivateNote,
@@ -249,6 +250,8 @@ export default function Wiki() {
     navigate,
     toast,
     openMaterial,
+    route,
+    refreshWorkspace,
   } = useApp();
   const allowedNotes = useMemo(
     () =>
@@ -259,13 +262,24 @@ export default function Wiki() {
   );
   const availableCourses = visibleCourses(data, actor);
   const active = allowedNotes.find((note) => note.id === activeNoteId);
-  const notes = useMemo(
-    () =>
+  const notes = useMemo(() => {
+    const owned =
       role === "teacher" && active
         ? allowedNotes.filter((note) => note.studentId === active.studentId)
-        : allowedNotes,
-    [allowedNotes, role, active?.studentId],
-  );
+        : allowedNotes;
+    if (!route.wikiId) return owned;
+    if (route.wikiId.startsWith("legacy:")) {
+      const courseId = route.wikiId.slice(7);
+      return owned.filter(
+        (note) => !note.wikiRoot && !note.wikiId && note.courseId === courseId,
+      );
+    }
+    const scoped = owned.filter(
+      (note) => note.wikiId === route.wikiId || note.id === route.wikiId,
+    );
+    const pages = scoped.filter((note) => !note.wikiRoot);
+    return pages.length ? pages : scoped;
+  }, [allowedNotes, role, active?.studentId, route.wikiId]);
   const noteCourseId = active?.courseId || contextCourseId;
   const noteCourse = data.courses.find((item) => item.id === noteCourseId);
   const owner =
@@ -289,8 +303,9 @@ export default function Wiki() {
   const [editing, setEditing] = useState(false);
   const [drafts, setDrafts] = useState({});
   const [newOpen, setNewOpen] = useState(false);
+  const [newMode, setNewMode] = useState("ingest");
+  const [creatingWiki, setCreatingWiki] = useState(false);
   const [newTitle, setNewTitle] = useState("");
-  const [newCategory, setNewCategory] = useState("My notes");
   const [newCourseId, setNewCourseId] = useState(contextCourseId);
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishTitle, setPublishTitle] = useState("");
@@ -319,14 +334,18 @@ export default function Wiki() {
   const categories = [
     ...new Set(notes.map((note) => note.category || "My notes")),
   ];
-  const outgoing = active ? outgoingLinks(active, notes) : [];
-  const backlinks = active ? incomingLinks(active, notes) : [];
+  const knowledgeNotes = useMemo(
+    () => notes.filter((note) => !note.ledger),
+    [notes],
+  );
+  const outgoing = active ? outgoingLinks(active, knowledgeNotes) : [];
+  const backlinks = active ? incomingLinks(active, knowledgeNotes) : [];
   const localIds = new Set([
     active?.id,
     ...outgoing.map((link) => link.note?.id),
     ...backlinks.map((link) => link.note.id),
   ]);
-  const localNotes = notes.filter((note) => localIds.has(note.id));
+  const localNotes = knowledgeNotes.filter((note) => localIds.has(note.id));
   const renderedContent = (active?.content || "").replace(/^# [^\n]+\n*/, "");
   const headings = renderedContent
     .split("\n")
@@ -366,7 +385,11 @@ export default function Wiki() {
       return;
     setEditing(false);
     setGraphActive(false);
-    navigate("wiki", { noteId: id });
+    navigate("wiki", {
+      noteId: id,
+      wikiId: route.wikiId,
+      courseId: notes.find((note) => note.id === id)?.courseId,
+    });
     setMobilePanel("note");
   };
   const followLink = (note, target, heading) => {
@@ -374,7 +397,7 @@ export default function Wiki() {
       setPendingHeading(heading || "");
       selectNote(note.id);
     } else
-      toast(`“${target}” does not have a note yet. Create it with New note.`);
+      toast(`“${target}” does not have a note yet. Create it with New wiki.`);
   };
   useEffect(() => {
     if (!pendingHeading || editing) return;
@@ -461,43 +484,99 @@ export default function Wiki() {
   }
   function startNew() {
     if (role !== "student" || !availableCourses.length) return;
+    setNewMode("ingest");
     setNewCourseId(
       availableCourses.some((item) => item.id === noteCourseId)
         ? noteCourseId
         : availableCourses[0].id,
     );
+    setNewTitle("");
     setNewOpen(true);
   }
-  function addNote(event) {
+  async function createWiki(event) {
     event.preventDefault();
     if (
-      !newTitle.trim() ||
+      creatingWiki ||
       role !== "student" ||
       !canReadCourse(data, actor, newCourseId)
     )
       return;
-    const note = {
-      id: `note-${crypto.randomUUID()}`,
+    const course = availableCourses.find((item) => item.id === newCourseId);
+    const title =
+      newTitle.trim() ||
+      (newMode === "ingest" ? course?.name || "Course wiki" : "");
+    if (!title) return toast("Give the wiki a name first.");
+    const wiki = {
+      id: `wiki-${crypto.randomUUID()}`,
       courseId: newCourseId,
       studentId: user.id,
-      title: newTitle.trim(),
-      category: newCategory.trim() || "My notes",
-      content: `# ${newTitle.trim()}\n\n`,
+      title,
+      category: "Wiki",
+      content: `# ${title}\n\n`,
       tags: [],
       links: [],
+      wikiRoot: true,
       updatedAt: new Date().toISOString(),
     };
+    setCreatingWiki(true);
     setData((previous) =>
       canReadCourse(previous, actor, newCourseId)
-        ? { ...previous, notes: [...previous.notes, note] }
+        ? { ...previous, notes: [...previous.notes, wiki] }
         : previous,
     );
-    setNewOpen(false);
-    setNewTitle("");
-    navigate("wiki", { noteId: note.id, courseId: note.courseId });
-    setEditing(true);
-    setGraphActive(false);
-    toast("New wiki note created.");
+    try {
+      if (newMode === "empty") {
+        setNewOpen(false);
+        navigate("wiki", {
+          wikiId: wiki.id,
+          noteId: wiki.id,
+          courseId: wiki.courseId,
+        });
+        toast("Empty wiki created.");
+        return;
+      }
+      await flushChanges();
+      const queued = await api("/api/wiki/ingest", {
+        method: "POST",
+        body: { courseId: newCourseId, wikiId: wiki.id },
+      });
+      let result = null;
+      for (let attempt = 0; attempt < 180; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        const { job } = await api(`/api/jobs/${queued.jobId}`);
+        if (job.status === "failed")
+          throw new Error(job.error || "The wiki could not be generated.");
+        if (job.status === "succeeded") {
+          result = job.result;
+          break;
+        }
+      }
+      await refreshWorkspace();
+      setNewOpen(false);
+      if (!result?.saved) {
+        navigate("wiki", {
+          wikiId: wiki.id,
+          noteId: wiki.id,
+          courseId: wiki.courseId,
+        });
+        toast(result?.reason || "The wiki is still being generated.");
+        return;
+      }
+      navigate("wiki", {
+        wikiId: wiki.id,
+        noteId: result.noteId || wiki.id,
+        courseId: wiki.courseId,
+      });
+      toast(
+        result.already
+          ? `Opened ${wiki.title}`
+          : `Generated ${result.created || 0} pages in ${wiki.title}`,
+      );
+    } catch (error) {
+      toast(error.message);
+    } finally {
+      setCreatingWiki(false);
+    }
   }
   function downloadNote() {
     if (role !== "student" || !canReadPrivateNote(data, actor, active)) return;
@@ -512,6 +591,8 @@ export default function Wiki() {
   }
   const beginPublish = () => {
     if (!canEdit) return toast("Only the author can publish this wiki.");
+    if (active?.ledger)
+      return toast("Index, log, and manifest pages stay in your vault.");
     setSelectedIds(active ? [active.id] : []);
     setPublishTitle(active?.title || "");
     setPublishDescription("");
@@ -527,6 +608,7 @@ export default function Wiki() {
       (n) =>
         n.courseId === noteCourseId &&
         selectedIds.includes(n.id) &&
+        !n.ledger &&
         canReadPrivateNote(data, actor, n),
     );
     if (!pages.length || role === "teacher")
@@ -633,7 +715,7 @@ export default function Wiki() {
 
   return (
     <>
-      {!activeNoteId ? (
+      {!activeNoteId && !route.wikiId ? (
         <WikiLibrary onCreate={role !== "teacher" ? startNew : undefined} />
       ) : !active ? (
         <div className="vault-unavailable">
@@ -971,13 +1053,15 @@ export default function Wiki() {
                         an idea.
                       </p>
                     </div>
-                    <span>{notes.length} notes</span>
+                    <span>{knowledgeNotes.length} notes</span>
                   </div>
                   <WikiGraph
                     notes={
                       graphCourse === "all"
-                        ? notes
-                        : notes.filter((note) => note.courseId === graphCourse)
+                        ? knowledgeNotes
+                        : knowledgeNotes.filter(
+                            (note) => note.courseId === graphCourse,
+                          )
                     }
                     activeId={active.id}
                     onSelect={selectNote}
@@ -1253,58 +1337,71 @@ export default function Wiki() {
       )}
       {newOpen && (
         <Modal
-          title="Make room for an idea."
-          subtitle="A new page in your personal learning wiki."
-          onClose={() => setNewOpen(false)}
+          title="New wiki"
+          subtitle="Generate one from a course, or start with an empty wiki."
+          onClose={() => !creatingWiki && setNewOpen(false)}
         >
-          <form className="wiki-modal-form" onSubmit={addNote}>
+          <form className="wiki-modal-form" onSubmit={createWiki}>
+            <div className="wiki-mode-switch" role="group" aria-label="Wiki source">
+              <button
+                type="button"
+                className={newMode === "ingest" ? "active" : ""}
+                onClick={() => setNewMode("ingest")}
+              >
+                Generate from a course
+              </button>
+              <button
+                type="button"
+                className={newMode === "empty" ? "active" : ""}
+                onClick={() => setNewMode("empty")}
+              >
+                Empty wiki
+              </button>
+            </div>
             <label>
-              Note title
+              Wiki name
               <input
                 autoFocus
-                required
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="What are you thinking about?"
+                placeholder={
+                  newMode === "ingest"
+                    ? "Optional. Defaults to the course name."
+                    : "What is this wiki about?"
+                }
+                required={newMode === "empty"}
               />
             </label>
             <label>
               Course
               <select
-                aria-label="New note course"
+                aria-label="Wiki course"
                 value={newCourseId}
                 onChange={(event) => setNewCourseId(event.target.value)}
               >
                 {availableCourses.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.name}
+                    {item.code ? `${item.code} · ${item.name}` : item.name}
                   </option>
                 ))}
               </select>
-            </label>
-            <label>
-              Folder
-              <input
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                list="wiki-folders"
-              />
-              <datalist id="wiki-folders">
-                {categories.map((c) => (
-                  <option value={c} key={c} />
-                ))}
-              </datalist>
             </label>
             <div className="wiki-modal-actions">
               <button
                 type="button"
                 className="btn btn-ghost"
                 onClick={() => setNewOpen(false)}
+                disabled={creatingWiki}
               >
                 Cancel
               </button>
-              <button className="btn btn-primary" type="submit">
-                <Plus size={15} /> Create note
+              <button className="btn btn-primary" type="submit" disabled={creatingWiki}>
+                <Plus size={15} />{" "}
+                {creatingWiki
+                  ? "Generating…"
+                  : newMode === "ingest"
+                    ? "Generate wiki"
+                    : "Create empty wiki"}
               </button>
             </div>
           </form>
