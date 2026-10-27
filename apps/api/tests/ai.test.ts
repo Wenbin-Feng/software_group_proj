@@ -224,7 +224,7 @@ test("provider JSON and streaming use Qwen without exposing provider error detai
       await complete([{ role: "user", content: "test" }], { type: "object" }),
       '{"ok":true}',
     );
-    assert.equal(sent.model, process.env.H2A_LLM_MODEL || "qwen/qwen3.6-plus");
+    assert.equal(sent.model, process.env.H2A_LLM_MODEL || "deepseek/deepseek-v4.1-flash-1017");
     assert.equal(sent.provider.require_parameters, true);
     assert.equal(
       sent.reasoning.effort,

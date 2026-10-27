@@ -628,7 +628,7 @@ export default function Studio({
           </div>
           <div className="studio-heading-actions">
             <span className="studio-demo-label">
-              <span /> Qwen · Check important answers
+              <span /> DeepSeek · Check important answers
             </span>
             {!isTeacher && (
               <button
@@ -1046,7 +1046,7 @@ export default function Studio({
               </form>
               <div className="studio-composer-note">
                 <LockKeyhole size={11} /> Your teacher can view this session
-                <span>·</span> Qwen · Check important answers
+                <span>·</span> DeepSeek · Check important answers
               </div>
             </div>
           ) : (

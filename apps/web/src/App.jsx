@@ -775,7 +775,7 @@ export default function App({
                 <strong>Your learning, connected.</strong>
                 <p>
                   Materials, conversations and replies are saved to the server.
-                  Qwen helps explain your materials and generate visual learning
+                  DeepSeek helps explain your materials and generate visual learning
                   aids.
                 </p>
               </div>

@@ -13,7 +13,7 @@ npm ci
 cp .env.example .env
 ```
 
-Edit `.env` locally. For AI features, provide `H2A_LLM_API_KEY`; the default base URL is OpenRouter and the default model is `qwen/qwen3.6-plus`. Keep all `H2A_` variables on the backend. No secret should have a `VITE_` prefix or be committed.
+Edit `.env` locally. For AI features, provide `H2A_LLM_API_KEY`; the default base URL is OpenRouter and the default model is `deepseek/deepseek-v4.1-flash-1017`. Keep all `H2A_` variables on the backend. No secret should have a `VITE_` prefix or be committed.
 
 Start the API in one terminal:
 

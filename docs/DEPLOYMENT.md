@@ -14,7 +14,7 @@ The frontend uses React/Vite in `apps/web`; Fastify, the SQLite/Drizzle store, o
 
 Teachers create courses and share/reset their join codes; students join by code. Teachers may only manage their own courses and see enrolled students' sessions/uploads read-only; private student Wiki metadata and contents remain inaccessible. Sample course materials are seeded on a fresh database with student join codes `FOLIO-SE` and `FOLIO-WEB`, without copying browser prototype records into real accounts.
 
-The provider defaults to `qwen/qwen3.6-plus` and is configurable by `H2A_LLM_MODEL`. The default per-account UTC-day quotas are 60 chat requests and 10 combined courseware/visualization generations. Configure `H2A_DAILY_CHAT_LIMIT` and `H2A_DAILY_GENERATION_LIMIT` on the backend to change them. Failed provider calls and user retries consume quota. One worker runs generation jobs; an account may have two queued/running jobs, with at most three attempts per task. Existing exports can be downloaded without another model call.
+The provider defaults to `deepseek/deepseek-v4.1-flash-1017` and is configurable by `H2A_LLM_MODEL`. The default per-account UTC-day quotas are 60 chat requests and 10 combined courseware/visualization generations. Configure `H2A_DAILY_CHAT_LIMIT` and `H2A_DAILY_GENERATION_LIMIT` on the backend to change them. Failed provider calls and user retries consume quota. One worker runs generation jobs; an account may have two queued/running jobs, with at most three attempts per task. Existing exports can be downloaded without another model call.
 
 Uploads accept text-based PDF, Markdown, and UTF-8 plain text up to 10 MB, with a 500-page/2-million-character PDF extraction bound and no OCR. AI requests select at most 30 accessible active materials. Teachers generate 1–20 slides (default 10), choose English/simplified/traditional Chinese, edit the validated slide structure, then preview HTML or download native editable 16:9 PPTX text, tables, and basic shapes. Drafts stay private until published. The renderer supports Folio-generated structured decks; arbitrary external HTML and executable PowerPoint animations are outside this version.
 
@@ -55,7 +55,7 @@ APP_PUBLIC_URL=https://folio-group-project.vercel.app
 ORIGIN_SECRET=<random shared proxy secret>
 H2A_LLM_BASE_URL=https://openrouter.ai/api/v1
 H2A_LLM_API_KEY=<existing OpenRouter key>
-H2A_LLM_MODEL=qwen/qwen3.6-plus
+H2A_LLM_MODEL=deepseek/deepseek-v4.1-flash-1017
 H2A_DAILY_CHAT_LIMIT=60
 H2A_DAILY_GENERATION_LIMIT=10
 LANGFUSE_PUBLIC_KEY=<Langfuse project public key>

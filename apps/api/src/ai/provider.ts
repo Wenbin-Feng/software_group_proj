@@ -51,7 +51,7 @@ async function modelCall(
     async (observation) => {
       const report: CallReport = {
         requestedAt: Date.now(),
-        model: process.env.H2A_LLM_MODEL || "qwen/qwen3.6-plus",
+        model: process.env.H2A_LLM_MODEL || "deepseek/deepseek-v4.1-flash-1017",
       };
       // Fetch the public catalog while Qwen generates, rather than delaying streamed delivery.
       const pricingInput = {
@@ -144,7 +144,7 @@ function config() {
   return {
     key,
     base,
-    model: process.env.H2A_LLM_MODEL || "qwen/qwen3.6-plus",
+    model: process.env.H2A_LLM_MODEL || "deepseek/deepseek-v4.1-flash-1017",
     effort,
   };
 }
