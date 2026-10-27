@@ -207,14 +207,31 @@ export async function registerAiRoutes(app: FastifyInstance) {
                 !material.archivedAt &&
                 core.canReadMaterial(user, material),
             )
-            .slice(0, 6);
+            .slice(0, 8);
+          progress(10);
+          // Read every page of every material within a fixed budget, so a deck is covered end to end.
+          const budget = 24000;
+          const perMaterial = Math.floor(budget / Math.max(1, materials.length));
           const cited = materials.map((material) => {
-            const page = material.pages?.[0];
+            const pages: any[] = material.pages?.length
+              ? material.pages
+              : [{ page: 1, text: material.text || "" }];
+            const perPage = Math.max(
+              350,
+              Math.floor(perMaterial / pages.length),
+            );
+            const text = pages
+              .map(
+                (page) =>
+                  `(page ${Number(page.page) || 1}) ${String(page.text || "").replace(/\s+/g, " ").trim().slice(0, perPage)}`,
+              )
+              .join("\n")
+              .slice(0, perMaterial);
             return {
               id: material.id,
               name: material.name,
-              page: Number(page?.page) || 1,
-              text: String(page?.text || material.text || "").slice(0, 1200),
+              page: Number(pages[0]?.page) || 1,
+              text,
             };
           });
           if (!cited.length)
@@ -235,7 +252,7 @@ export async function registerAiRoutes(app: FastifyInstance) {
             [
               {
                 role: "system",
-                content: wikiCapturePrompt(
+                content: `${wikiCapturePrompt(
                   notes
                     .filter((note) => !note.ledger)
                     .map((note) => ({
@@ -243,16 +260,17 @@ export async function registerAiRoutes(app: FastifyInstance) {
                       path: note.path,
                       summary: note.summary || "",
                     })),
-                ),
+                )}\nThis is a whole-course ingest, not a single answer. Cover the material end to end: plan 6 to 10 pages, one per distinct concept, procedure or decision, and make each page substantial with 4 to 8 specific claims that carry the actual commands, definitions, steps, numbers and examples from the excerpts. Do not write generic summaries. Write in the language of the materials.`,
               },
               {
                 role: "user",
-                content: `Create the wiki from these course materials. One page per distinct concept.\n\n${cited
-                  .map((item) => `[${item.name}, page ${item.page}]\n${item.text}`)
+                content: `Create the wiki from these course materials.\n\n${cited
+                  .map((item) => `[${item.name}]\n${item.text}`)
                   .join("\n\n")}`,
               },
             ],
             wikiCaptureSchema,
+            11000,
           );
           progress(75);
           const plan = validateWikiPlan(jsonParse(output));

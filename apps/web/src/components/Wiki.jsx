@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { useApp } from "../context";
 import { api, flushChanges } from "../lib/api";
+import { waitForJob, WIKI_STEPS } from "../lib/jobs";
+import TaskProgress from "./TaskProgress";
 import {
   canReadCourse,
   canReadPrivateNote,
@@ -83,10 +85,14 @@ export function WikiMarkdown({ content = "", notes = [], onLink, sourceNote }) {
       return part;
     });
   const blocks = content.split("\n");
+  // Frontmatter is metadata for the wiki engine, not reading material. Keep line numbers stable for the outline.
+  const frontmatterEnd =
+    blocks[0] === "---" ? blocks.indexOf("---", 1) : -1;
   let inCode = false;
   return (
     <div className="wiki-markdown">
       {blocks.map((line, i) => {
+        if (i <= frontmatterEnd) return null;
         if (line.startsWith("```")) {
           inCode = !inCode;
           return null;
@@ -305,6 +311,7 @@ export default function Wiki() {
   const [newOpen, setNewOpen] = useState(false);
   const [newMode, setNewMode] = useState("ingest");
   const [creatingWiki, setCreatingWiki] = useState(false);
+  const [wikiProgress, setWikiProgress] = useState(0);
   const [newTitle, setNewTitle] = useState("");
   const [newCourseId, setNewCourseId] = useState(contextCourseId);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -540,17 +547,11 @@ export default function Wiki() {
         method: "POST",
         body: { courseId: newCourseId, wikiId: wiki.id },
       });
-      let result = null;
-      for (let attempt = 0; attempt < 180; attempt++) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        const { job } = await api(`/api/jobs/${queued.jobId}`);
-        if (job.status === "failed")
-          throw new Error(job.error || "The wiki could not be generated.");
-        if (job.status === "succeeded") {
-          result = job.result;
-          break;
-        }
-      }
+      setWikiProgress(1);
+      const result = await waitForJob(queued.jobId, {
+        onUpdate: (job) => setWikiProgress(job.progress || 1),
+        failure: "The wiki could not be generated.",
+      });
       await refreshWorkspace();
       setNewOpen(false);
       if (!result?.saved) {
@@ -1386,6 +1387,14 @@ export default function Wiki() {
                 ))}
               </select>
             </label>
+            {creatingWiki && newMode === "ingest" && (
+              <TaskProgress
+                title="Building your wiki"
+                steps={WIKI_STEPS}
+                percent={wikiProgress}
+                note="This usually takes under a minute. You can keep this window open."
+              />
+            )}
             <div className="wiki-modal-actions">
               <button
                 type="button"

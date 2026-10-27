@@ -1,0 +1,134 @@
+.task-progress {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 13px;
+}
+.task-progress-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.task-progress-head span {
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+.task-progress-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+.task-progress-bar i {
+  position: relative;
+  display: block;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transition: width 0.4s ease;
+}
+.task-progress-bar i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: task-progress-shine 1.4s ease-in-out infinite;
+}
+.task-progress ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.task-progress li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-muted);
+  opacity: 0.7;
+}
+.task-progress li.active {
+  color: inherit;
+  opacity: 1;
+  font-weight: 600;
+}
+.task-progress li.done {
+  opacity: 0.9;
+}
+.task-progress-mark {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  flex: none;
+}
+.task-progress li.done .task-progress-mark {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+.task-progress-mark b {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+}
+.task-progress li.active .task-progress-mark b {
+  opacity: 1;
+  animation: task-progress-pulse 1.1s ease-in-out infinite;
+}
+.task-progress p {
+  margin: 0;
+  color: var(--color-muted);
+}
+.task-typing {
+  display: inline-flex;
+  gap: 4px;
+  vertical-align: middle;
+}
+.task-typing i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  animation: task-progress-pulse 1s ease-in-out infinite;
+}
+.task-typing i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.task-typing i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes task-progress-shine {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes task-progress-pulse {
+  50% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .task-progress-bar i::after,
+  .task-progress li.active .task-progress-mark b,
+  .task-typing i {
+    animation: none;
+  }
+}

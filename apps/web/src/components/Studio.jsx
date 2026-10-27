@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { useApp } from "../context";
 import { api, streamChat, flushChanges } from "../lib/api";
+import { waitForJob, WIKI_STEPS, VISUAL_STEPS, CHAT_STEPS } from "../lib/jobs";
+import TaskProgress from "./TaskProgress";
 import { canReadMaterial, canReadSession, isEnrolled } from "../lib/access";
 import LearningAnimation from "./Animation";
 import "./studio.css";
@@ -163,6 +165,8 @@ export default function Studio({
   const [slashOpen, setSlashOpen] = useState(false);
   const pendingWiki = useRef(null);
   const queryWiki = useRef(null);
+  const [task, setTask] = useState(null);
+  const [chatStage, setChatStage] = useState("Searching your sources");
   const requestAbort = useRef(null);
   useEffect(() => () => requestAbort.current?.abort(), []);
   const [sourcePicker, setSourcePicker] = useState(false);
@@ -271,6 +275,9 @@ export default function Studio({
     queryWiki.current = null;
     setAsking(true);
     setStreaming("");
+    setChatStage(
+      queryWikiId ? "Searching your wiki" : "Searching your sources",
+    );
     setInput("");
     const targetId = session?.id || uid("session");
     if (!session)
@@ -303,6 +310,16 @@ export default function Studio({
           ...(queryWikiId ? { wikiId: queryWikiId } : {}),
         },
         (type, event) => {
+          if (type === "sources") {
+            const count = event.sources?.length || 0;
+            setChatStage(
+              queryWikiId
+                ? `Reading ${count} wiki ${count === 1 ? "page" : "pages"}`
+                : count
+                  ? `Found ${count} ${count === 1 ? "passage" : "passages"}, writing the answer`
+                  : "No matching passages, answering carefully",
+            );
+          }
           if (type === "delta")
             setStreaming((text) => text + (event.text || ""));
           if (type === "error")
@@ -387,17 +404,14 @@ export default function Studio({
           navigate("wiki", { noteId: queued.noteId, courseId });
         return;
       }
-      let result = null;
-      for (let attempt = 0; attempt < 180; attempt++) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        const { job } = await api(`/api/jobs/${queued.jobId}`);
-        if (job.status === "failed")
-          throw new Error(job.error || "The wiki could not be compiled.");
-        if (job.status === "succeeded") {
-          result = job.result;
-          break;
-        }
-      }
+      setTask({ title: "Saving to your wiki", steps: WIKI_STEPS, percent: 1 });
+      const result = await waitForJob(queued.jobId, {
+        onUpdate: (job) =>
+          setTask((current) =>
+            current ? { ...current, percent: job.progress || 1 } : current,
+          ),
+        failure: "The wiki could not be compiled.",
+      });
       if (!result) {
         toast("The wiki is still being compiled. Open My wiki again shortly.");
         return;
@@ -410,11 +424,17 @@ export default function Studio({
       const verb = result.updated && !result.created ? "Updated" : "Saved to";
       toast(`${verb}: ${result.path} · ${result.title}`);
       setSavedMessageIds((ids) => [...ids, message.id]);
-      if (result.noteId) navigate("wiki", { noteId: result.noteId, courseId });
+      if (result.noteId)
+        navigate("wiki", {
+          noteId: result.noteId,
+          courseId,
+          ...(wikiId ? { wikiId } : {}),
+        });
     } catch (error) {
       toast(error.message);
     } finally {
       setCompiling(false);
+      setTask(null);
     }
   }
 
@@ -475,28 +495,29 @@ export default function Studio({
           materialIds: selected.map((m) => m.id),
         },
       });
-      let completed = false;
-      for (let attempt = 0; attempt < 180; attempt++) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        const { job } = await api(`/api/jobs/${result.jobId}`);
-        if (job.status === "failed")
-          throw new Error(
-            job.error || "The visual explanation could not be generated.",
-          );
-        if (job.status === "succeeded") {
-          await refreshWorkspace();
-          onOpenAnimation?.({
-            type: "html",
-            html: job.result.html,
-            sessionId: session.id,
-            messageId: message.id,
-            title: "Visual explanation",
-          });
-          completed = true;
-          break;
-        }
+      setTask({
+        title: "Building your visual explanation",
+        steps: VISUAL_STEPS,
+        percent: 1,
+      });
+      const output = await waitForJob(result.jobId, {
+        onUpdate: (job) =>
+          setTask((current) =>
+            current ? { ...current, percent: job.progress || 1 } : current,
+          ),
+        failure: "The visual explanation could not be generated.",
+      });
+      if (output) {
+        await refreshWorkspace();
+        onOpenAnimation?.({
+          type: "html",
+          html: output.html,
+          sessionId: session.id,
+          messageId: message.id,
+          title: "Visual explanation",
+        });
       }
-      if (!completed)
+      if (!output)
         toast(
           "The explanation is still being generated. Try opening it again shortly.",
         );
@@ -504,6 +525,7 @@ export default function Studio({
       toast(error.message);
     } finally {
       setGenerating(false);
+      setTask(null);
     }
   }
   const starterEvidence =
@@ -896,11 +918,30 @@ export default function Studio({
           </div>
           {asking && (
             <div className="chat-streaming" role="status" aria-live="polite">
-              {streaming || "Reading your sources…"}
+              {streaming ? (
+                <ChatMarkdown text={streaming} />
+              ) : (
+                <span>{chatStage}</span>
+              )}{" "}
+              <span className="task-typing" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+            </div>
+          )}
+          {task && (
+            <div className="studio-task">
+              <TaskProgress
+                title={task.title}
+                steps={task.steps}
+                percent={task.percent}
+              />
             </div>
           )}
           {!isTeacher ? (
-            <div className="studio-composer-area">              {slashOpen && (
+            <div className="studio-composer-area">
+              {slashOpen && (
                 <div className="studio-slash" role="listbox" aria-label={isQuery ? "Choose a wiki to ask" : "Choose a wiki to update"}>
                   <p>
                     {isQuery

@@ -11,6 +11,7 @@ const root = process.cwd(),
 const folder = await mkdtemp(resolve(tmpdir(), "folio-e2e-"));
 const screenshots = resolve(root, "test-results/screenshots");
 await mkdir(screenshots, { recursive: true });
+let lastWikiPrompt = "";
 const server = createServer(async (req, res) => {
   let raw = "";
   for await (const part of req) raw += part;
@@ -29,6 +30,7 @@ const server = createServer(async (req, res) => {
   }
   const visual = body.response_format?.json_schema.schema.properties.steps;
   const wiki = body.response_format?.json_schema.schema.properties.worthSaving;
+  if (wiki) lastWikiPrompt = body.messages.at(-1).content;
   const count = Number(
     body.messages.at(-1).content.match(/Exactly (\d+) slides/)?.[1] || 3,
   );
@@ -390,6 +392,35 @@ try {
     })
     .first()
     .waitFor({ timeout: 15000 });
+  // Whole-course ingest reads every slide, not only the first page.
+  const ingestId = "wiki-e2e-ingest";
+  const me = (await api(student, "/api/auth/me")).user;
+  await api(student, `/api/notes/${ingestId}`, {
+    method: "PUT",
+    body: {
+      record: {
+        id: ingestId,
+        wikiRoot: true,
+        courseId: course.id,
+        studentId: me.id,
+        title: "E2E ingest",
+        category: "Wiki",
+        content: "# E2E ingest",
+      },
+    },
+  });
+  const queuedIngest = await api(student, "/api/wiki/ingest", {
+    method: "POST",
+    body: { courseId: course.id, wikiId: ingestId },
+  });
+  let ingestJob;
+  for (let i = 0; i < 40; i++) {
+    ingestJob = (await api(student, `/api/jobs/${queuedIngest.jobId}`)).job;
+    if (["succeeded", "failed"].includes(ingestJob.status)) break;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  assert.equal(ingestJob.status, "succeeded", ingestJob.error);
+  assert.match(lastWikiPrompt, /\(page 3\)/);
   const state = await api(student, "/api/workspace");
   const savedPage = state.notes.find(
     (note) => note.title === "Atomic inventory update",
