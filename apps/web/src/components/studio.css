@@ -2330,6 +2330,12 @@
 .studio-slash button small {
   display: block;
   opacity: 0.7;
+  font-weight: 400;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.studio-slash button.active {
+  background: #f1f3fc;
 }
 
 .studio-task {

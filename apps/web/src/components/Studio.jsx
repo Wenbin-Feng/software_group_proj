@@ -166,6 +166,7 @@ export default function Studio({
   const pendingWiki = useRef(null);
   const queryWiki = useRef(null);
   const [task, setTask] = useState(null);
+  const [slashIndex, setSlashIndex] = useState(0);
   const [chatStage, setChatStage] = useState("Searching your sources");
   const [pendingQuestion, setPendingQuestion] = useState("");
   const [streamDone, setStreamDone] = useState(false);
@@ -195,11 +196,33 @@ export default function Studio({
   const lastAnswer = [...messages]
     .reverse()
     .find((m) => m.role === "assistant");
-  const isQuery = /^\/query(\s|$)/i.test(input) || /^\/q$/i.test(input);
-  const slashText = input
-    .replace(/^\/(capture|query|q)\b\s*/i, "")
-    .replace(/^\/\s*/, "")
-    .trim();
+  const commandReady = /^\/(capture|query)(\s|$)/i.test(input);
+  const isQuery = /^\/query(\s|$)/i.test(input);
+  const slashText = commandReady
+    ? input.replace(/^\/(capture|query)\s*/i, "").trim()
+    : "";
+  const typedCommand = commandReady
+    ? ""
+    : (input.match(/^\/(\S*)/)?.[1] || "").toLowerCase();
+  const slashCommands = commandReady
+    ? []
+    : [
+        {
+          id: "capture",
+          title: "/capture",
+          detail:
+            "Save into a wiki. Use it alone for the latest answer, or add a question to ask first.",
+        },
+        {
+          id: "query",
+          title: "/query",
+          detail:
+            "Answer from one wiki only, not from course materials. Type the question after it.",
+        },
+      ].filter((command) => command.id.startsWith(typedCommand));
+  useEffect(() => {
+    setSlashIndex(0);
+  }, [input]);
 
   useEffect(() => {
     if (session && session.id !== activeSessionId)
@@ -978,53 +1001,95 @@ export default function Studio({
           {!isTeacher ? (
             <div className="studio-composer-area">
               {slashOpen && (
-                <div className="studio-slash" role="listbox" aria-label={isQuery ? "Choose a wiki to ask" : "Choose a wiki to update"}>
-                  <p>
-                    {isQuery
-                      ? "Answer from this wiki only"
-                      : `Update a wiki with ${slashText ? "this question" : "the latest answer"}`}
-                  </p>
-                  {!isQuery && !slashText && (
-                    <p>Tip: type /query your question to ask your own wiki.</p>
-                  )}
-                  {(data.notes || [])
-                    .filter((note) => note.wikiRoot && note.studentId === user.id)
-                    .map((wiki) => (
-                      <button
-                        type="button"
-                        key={wiki.id}
-                        onClick={() => {
-                          const question = slashText;
-                          setSlashOpen(false);
-                          if (isQuery) {
-                            if (!question) {
-                              toast("Type your question after /query, then choose a wiki.");
-                              return;
-                            }
-                            setInput("");
-                            queryWiki.current = wiki.id;
-                            ask(question);
-                            return;
-                          }
-                          setInput("");
-                          if (question) {
-                            pendingWiki.current = wiki.id;
-                            ask(question);
-                          } else if (lastAnswer) saveNote(lastAnswer, wiki.id);
-                          else toast("Ask something after /capture, or get an answer first.");
-                        }}
-                      >
-                        <BookOpen size={14} />
-                        <span>
-                          {wiki.title}
-                          <small>
-                            {data.courses.find((course) => course.id === wiki.courseId)?.code || "Wiki"}
-                          </small>
-                        </span>
-                      </button>
-                    ))}
-                  {!(data.notes || []).some((note) => note.wikiRoot && note.studentId === user.id) && (
-                    <p>Create a wiki from My wiki first.</p>
+                <div
+                  className="studio-slash"
+                  role="listbox"
+                  aria-label={commandReady ? "Choose a wiki" : "Choose a command"}
+                >
+                  {commandReady ? (
+                    <>
+                      <p>
+                        {isQuery
+                          ? slashText
+                            ? "Choose a wiki. The answer uses only that wiki."
+                            : "Type your question after /query, then choose a wiki."
+                          : slashText
+                            ? "Choose a wiki. Folio asks this first, then saves the answer as pages."
+                            : "Choose a wiki. The latest answer is rewritten into pages, not pasted as chat."}
+                      </p>
+                      {(data.notes || [])
+                        .filter((note) => note.wikiRoot && note.studentId === user.id)
+                        .map((wiki, index) => (
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={index === slashIndex}
+                            className={index === slashIndex ? "active" : ""}
+                            key={wiki.id}
+                            onMouseEnter={() => setSlashIndex(index)}
+                            onClick={() => {
+                              const question = slashText;
+                              setSlashOpen(false);
+                              if (isQuery) {
+                                if (!question) {
+                                  toast("Type your question after /query, then choose a wiki.");
+                                  setSlashOpen(true);
+                                  return;
+                                }
+                                setInput("");
+                                queryWiki.current = wiki.id;
+                                ask(question);
+                                return;
+                              }
+                              setInput("");
+                              if (question) {
+                                pendingWiki.current = wiki.id;
+                                ask(question);
+                              } else if (lastAnswer) saveNote(lastAnswer, wiki.id);
+                              else
+                                toast("Ask something after /capture, or get an answer first.");
+                            }}
+                          >
+                            <BookOpen size={14} />
+                            <span>
+                              {wiki.title}
+                              <small>
+                                {data.courses.find((course) => course.id === wiki.courseId)?.code || "Wiki"}
+                              </small>
+                            </span>
+                          </button>
+                        ))}
+                      {!(data.notes || []).some(
+                        (note) => note.wikiRoot && note.studentId === user.id,
+                      ) && <p>Create a wiki from My wiki first.</p>}
+                    </>
+                  ) : (
+                    <>
+                      <p>Commands</p>
+                      {slashCommands.map((command, index) => (
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={index === slashIndex}
+                          className={index === slashIndex ? "active" : ""}
+                          key={command.id}
+                          onMouseEnter={() => setSlashIndex(index)}
+                          onClick={() => {
+                            setInput(`/${command.id} `);
+                            setSlashOpen(true);
+                            inputRef.current?.focus();
+                          }}
+                        >
+                          <span>
+                            {command.title}
+                            <small>{command.detail}</small>
+                          </span>
+                        </button>
+                      ))}
+                      {!slashCommands.length && (
+                        <p>No matching command. Use /capture or /query.</p>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -1055,10 +1120,37 @@ export default function Studio({
                   }
                   rows={2}
                   onKeyDown={(event) => {
+                    if (slashOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+                      const count = commandReady
+                        ? (data.notes || []).filter(
+                            (note) => note.wikiRoot && note.studentId === user.id,
+                          ).length
+                        : slashCommands.length;
+                      if (!count) return;
+                      event.preventDefault();
+                      setSlashIndex((index) =>
+                        event.key === "ArrowDown"
+                          ? (index + 1) % count
+                          : (index - 1 + count) % count,
+                      );
+                      return;
+                    }
                     if (event.key === "Enter" && !event.shiftKey) {
                       event.preventDefault();
-                      if (!input.trim().startsWith("/")) ask();
+                      if (!input.trim().startsWith("/")) {
+                        ask();
+                        return;
+                      }
+                      if (!commandReady && slashCommands[slashIndex]) {
+                        setInput(`/${slashCommands[slashIndex].id} `);
+                        setSlashOpen(true);
+                        return;
+                      }
+                      document
+                        .querySelector(".studio-slash button.active")
+                        ?.click();
                     }
+                    if (event.key === "Escape") setSlashOpen(false);
                   }}
                 />
                 <div className="studio-composer-bottom">
