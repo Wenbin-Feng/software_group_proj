@@ -379,6 +379,8 @@ try {
     .waitFor();
   await box.fill("/capture");
   await student.locator(".studio-slash button", { hasText: "E2E wiki" }).click();
+  await student.getByRole("button", { name: "Remove E2E wiki" }).waitFor();
+  await student.getByRole("button", { name: "Send question" }).click();
   await student.getByText(/Saved to:/).waitFor({ timeout: 20000 });
   await student.goto(
     `${origin}/#/courses/${course.id}?session=${savedSession.id}`,
@@ -386,6 +388,7 @@ try {
   await box.waitFor();
   await box.fill("/query atomic inventory update");
   await student.locator(".studio-slash button", { hasText: "E2E wiki" }).click();
+  await student.getByRole("button", { name: "Send question" }).click();
   await student
     .locator(".studio-message-sources button", {
       hasText: "Atomic inventory update",

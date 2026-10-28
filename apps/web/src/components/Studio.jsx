@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useApp } from "../context";
 import { api, streamChat, flushChanges } from "../lib/api";
-import { waitForJob, WIKI_STEPS, VISUAL_STEPS, CHAT_STEPS } from "../lib/jobs";
+import { waitForJob, WIKI_STEPS, VISUAL_STEPS } from "../lib/jobs";
 import TaskProgress from "./TaskProgress";
 import { canReadMaterial, canReadSession, isEnrolled } from "../lib/access";
 import LearningAnimation from "./Animation";
@@ -163,10 +163,9 @@ export default function Studio({
   const [generating, setGenerating] = useState(false);
   const [compiling, setCompiling] = useState(false);
   const [slashOpen, setSlashOpen] = useState(false);
-  const pendingWiki = useRef(null);
-  const queryWiki = useRef(null);
   const [task, setTask] = useState(null);
   const [slashIndex, setSlashIndex] = useState(0);
+  const [slashPicks, setSlashPicks] = useState([]);
   const [chatStage, setChatStage] = useState("Searching your sources");
   const [pendingQuestion, setPendingQuestion] = useState("");
   const [streamDone, setStreamDone] = useState(false);
@@ -272,6 +271,17 @@ export default function Studio({
     return () => document.removeEventListener("keydown", dismiss);
   }, []);
 
+  function pickWiki(wiki) {
+    const command = isQuery ? "query" : "capture";
+    setSlashPicks((picks) => {
+      const kept = picks.filter((pick) => pick.command === command);
+      if (kept.some((pick) => pick.wikiId === wiki.id)) return kept;
+      return [...kept, { command, wikiId: wiki.id }];
+    });
+    setSlashOpen(false);
+    setInput(slashText);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
   function createSession() {
     if (isTeacher || !isEnrolled(data, courseId, user.id)) return;
     const next = {
@@ -301,14 +311,17 @@ export default function Studio({
       !isEnrolled(data, courseId, user.id)
     )
       return;
-    const captureWiki = pendingWiki.current;
-    const queryWikiId = queryWiki.current;
-    pendingWiki.current = null;
-    queryWiki.current = null;
+    const queryIds = slashPicks
+      .filter((pick) => pick.command === "query")
+      .map((pick) => pick.wikiId);
+    const captureIds = slashPicks
+      .filter((pick) => pick.command === "capture")
+      .map((pick) => pick.wikiId);
+    setSlashPicks([]);
     setAsking(true);
     setStreaming("");
     setChatStage(
-      queryWikiId ? "Searching your wiki" : "Searching your sources",
+      queryIds.length ? "Searching your wiki" : "Searching your sources",
     );
     setPendingQuestion(question);
     setStreamDone(false);
@@ -340,14 +353,14 @@ export default function Studio({
           sessionId: targetId,
           courseId,
           message: question,
-          materialIds: queryWikiId ? [] : selected.map((m) => m.id),
-          ...(queryWikiId ? { wikiId: queryWikiId } : {}),
+          materialIds: queryIds.length ? [] : selected.map((m) => m.id),
+          ...(queryIds.length ? { wikiIds: queryIds } : {}),
         },
         (type, event) => {
           if (type === "sources") {
             const count = event.sources?.length || 0;
             setChatStage(
-              queryWikiId
+              queryIds.length
                 ? `Reading ${count} wiki ${count === 1 ? "page" : "pages"}`
                 : count
                   ? `Found ${count} ${count === 1 ? "passage" : "passages"}, writing the answer`
@@ -381,15 +394,24 @@ export default function Studio({
       if (failed) throw failed;
       setActiveSessionId(targetId);
       await refreshWorkspace();
-      const wikiId = captureWiki;
       const answer = [...(finished?.messages || [])]
         .reverse()
         .find((message) => message.role === "assistant");
-      if (wikiId && answer) await saveNote(answer, wikiId);
+      for (let index = 0; index < captureIds.length; index++) {
+        if (answer)
+          await saveNote(answer, captureIds[index], {
+            navigate: index === captureIds.length - 1,
+          });
+      }
     } catch (error) {
       if (error.name !== "AbortError") {
         toast(error.message);
         setInput(question);
+        setSlashPicks(
+          queryIds
+            .map((wikiId) => ({ command: "query", wikiId }))
+            .concat(captureIds.map((wikiId) => ({ command: "capture", wikiId }))),
+        );
         await refreshWorkspace().catch(() => {});
       }
     } finally {
@@ -404,7 +426,8 @@ export default function Studio({
   function captureKey(messageId) {
     return session ? `agent:folio/${session.id}/${messageId}` : "";
   }
-  async function saveNote(message = lastAnswer, wikiId = "") {
+  async function saveNote(message = lastAnswer, wikiId = "", options = {}) {
+    const navigateAfter = options.navigate !== false;
     if (!message || isTeacher || compiling || !session) return;
     if (!isEnrolled(data, courseId, user.id)) return;
     if (isMessageSaved(message.id, wikiId)) {
@@ -437,7 +460,7 @@ export default function Studio({
       if (queued.already) {
         await refreshWorkspace();
         toast(`Already in your Wiki: ${queued.path || queued.title}`);
-        if (queued.noteId)
+        if (queued.noteId && navigateAfter)
           navigate("wiki", { noteId: queued.noteId, courseId });
         return;
       }
@@ -461,7 +484,7 @@ export default function Studio({
       const verb = result.updated && !result.created ? "Updated" : "Saved to";
       toast(`${verb}: ${result.path} · ${result.title}`);
       setSavedMessageIds((ids) => [...ids, message.id]);
-      if (result.noteId)
+      if (result.noteId && navigateAfter)
         navigate("wiki", {
           noteId: result.noteId,
           courseId,
@@ -1010,12 +1033,8 @@ export default function Studio({
                     <>
                       <p>
                         {isQuery
-                          ? slashText
-                            ? "Choose a wiki. The answer uses only that wiki."
-                            : "Type your question after /query, then choose a wiki."
-                          : slashText
-                            ? "Choose a wiki. Folio asks this first, then saves the answer as pages."
-                            : "Choose a wiki. The latest answer is rewritten into pages, not pasted as chat."}
+                          ? "Choose a wiki. It stays as a chip below, and you can choose more."
+                          : "Choose a wiki. The answer is saved into every chip below."}
                       </p>
                       {(data.notes || [])
                         .filter((note) => note.wikiRoot && note.studentId === user.id)
@@ -1027,28 +1046,7 @@ export default function Studio({
                             className={index === slashIndex ? "active" : ""}
                             key={wiki.id}
                             onMouseEnter={() => setSlashIndex(index)}
-                            onClick={() => {
-                              const question = slashText;
-                              setSlashOpen(false);
-                              if (isQuery) {
-                                if (!question) {
-                                  toast("Type your question after /query, then choose a wiki.");
-                                  setSlashOpen(true);
-                                  return;
-                                }
-                                setInput("");
-                                queryWiki.current = wiki.id;
-                                ask(question);
-                                return;
-                              }
-                              setInput("");
-                              if (question) {
-                                pendingWiki.current = wiki.id;
-                                ask(question);
-                              } else if (lastAnswer) saveNote(lastAnswer, wiki.id);
-                              else
-                                toast("Ask something after /capture, or get an answer first.");
-                            }}
+                            onClick={() => pickWiki(wiki)}
                           >
                             <BookOpen size={14} />
                             <span>
@@ -1098,6 +1096,19 @@ export default function Studio({
                 onSubmit={(event) => {
                   event.preventDefault();
                   if (input.trim().startsWith("/")) return;
+                  const captureIds = slashPicks
+                    .filter((pick) => pick.command === "capture")
+                    .map((pick) => pick.wikiId);
+                  if (!input.trim() && captureIds.length && lastAnswer) {
+                    setSlashPicks([]);
+                    (async () => {
+                      for (let index = 0; index < captureIds.length; index++)
+                        await saveNote(lastAnswer, captureIds[index], {
+                          navigate: index === captureIds.length - 1,
+                        });
+                    })();
+                    return;
+                  }
                   ask();
                 }}
               >
@@ -1114,9 +1125,13 @@ export default function Studio({
                     setSlashOpen(next.startsWith("/"));
                   }}
                   placeholder={
-                    embedded
-                      ? "Ask about this course, /capture or /query"
-                      : "Ask anything about your course, /capture or /query"
+                    slashPicks[0]?.command === "query"
+                      ? "Ask the selected wikis"
+                      : slashPicks[0]?.command === "capture"
+                        ? "Optional question, or send to save the latest answer"
+                        : embedded
+                          ? "Ask about this course, /capture or /query"
+                          : "Ask anything about your course, /capture or /query"
                   }
                   rows={2}
                   onKeyDown={(event) => {
@@ -1153,6 +1168,39 @@ export default function Studio({
                     if (event.key === "Escape") setSlashOpen(false);
                   }}
                 />
+                {!!slashPicks.length && (
+                  <div className="studio-slash-picks">
+                    {slashPicks.map((pick) => {
+                      const wiki = (data.notes || []).find(
+                        (note) => note.id === pick.wikiId,
+                      );
+                      return (
+                        <span className="studio-slash-chip" key={pick.wikiId}>
+                          <b>{pick.command === "query" ? "Query" : "Capture"}</b>
+                          {wiki?.title || "Wiki"}
+                          <button
+                            type="button"
+                            aria-label={`Remove ${wiki?.title || "wiki"}`}
+                            onClick={() =>
+                              setSlashPicks((picks) =>
+                                picks.filter((item) => item.wikiId !== pick.wikiId),
+                              )
+                            }
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      );
+                    })}
+                    <small>
+                      {slashPicks[0].command === "query"
+                        ? "Answers come only from these wikis. Type a question, then send."
+                        : input.trim()
+                          ? "Asks this first, then saves the answer into these wikis."
+                          : "Saves the latest answer into these wikis. Press send."}
+                    </small>
+                  </div>
+                )}
                 <div className="studio-composer-bottom">
                   <button
                     type="button"
@@ -1166,7 +1214,13 @@ export default function Studio({
                     type="submit"
                     className="studio-send"
                     aria-label="Send question"
-                    disabled={asking || !input.trim()}
+                    disabled={
+                      asking ||
+                      (!input.trim() &&
+                        !(
+                          slashPicks[0]?.command === "capture" && lastAnswer
+                        ))
+                    }
                   >
                     <ArrowUp size={19} />
                   </button>

@@ -2337,6 +2337,47 @@
 .studio-slash button.active {
   background: #f1f3fc;
 }
+.studio-slash-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 2px 0;
+}
+.studio-slash-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 999px;
+  background: #eef1fb;
+  color: #243056;
+  font-size: 12px;
+}
+.studio-slash-chip b {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #3156d3;
+}
+.studio-slash-chip button {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.studio-slash-picks small {
+  flex-basis: 100%;
+  color: var(--studio-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
 
 .studio-task {
   padding: 0 20px 12px;
