@@ -20,7 +20,7 @@
 .course-eyebrow {
   display: block;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 1.7px;
   color: #7b8493;
 }
@@ -312,7 +312,7 @@
 }
 .material-file-icon small {
   font-size: 6px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.5px;
 }
 .material-file-icon.md,

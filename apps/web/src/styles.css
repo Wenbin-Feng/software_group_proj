@@ -1,6 +1,6 @@
 :root {
   font-family:
-    "DM Sans",
+    "Inter",
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
@@ -357,7 +357,7 @@ input[type="checkbox"] {
   height: 40px;
   margin-bottom: 32px;
   text-align: left;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 31px;
   letter-spacing: -1.4px;
 }
@@ -410,7 +410,7 @@ input[type="checkbox"] {
   color: #5c73ae;
   border-radius: 7px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.2px;
 }
 .course-switch > span:nth-child(2) {
@@ -883,7 +883,7 @@ input[type="checkbox"] {
   background: #bc9a72;
 }
 .hero-copy h2 {
-  font-family: "Instrument Serif", Georgia, serif;
+  font-family: var(--font-ui, "Inter", sans-serif);
   font-size: 68px;
   font-weight: 400;
   letter-spacing: -1.4px;
@@ -1195,7 +1195,7 @@ input[type="checkbox"] {
   pointer-events: none;
 }
 .knowledge-card-copy h2 {
-  font-family: "Instrument Serif", Georgia, serif;
+  font-family: var(--font-ui, "Inter", sans-serif);
   font-size: 31px;
   font-weight: 400;
   line-height: 1.06;
@@ -1218,7 +1218,7 @@ input[type="checkbox"] {
   overflow: visible;
 }
 .knowledge-graph text {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 9px;
   fill: #8b96ad;
 }
@@ -1398,13 +1398,13 @@ input[type="checkbox"] {
   color: #a4adbd;
 }
 .quote-mark {
-  font-family: Georgia, serif;
+  font-family: var(--font-ui, "Inter", sans-serif);
   font-size: 28px;
   line-height: 1;
   color: #c4cbd8;
 }
 .overview-bottom-note p {
-  font-family: "Instrument Serif", Georgia, serif;
+  font-family: var(--font-ui, "Inter", sans-serif);
   font-size: 16px;
   font-style: italic;
   margin: 0;
@@ -1723,7 +1723,7 @@ input[type="checkbox"] {
   margin-bottom: 26px;
 }
 .document-paper pre {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   white-space: pre-wrap;
   line-height: 1.9;
   font-size: 14px;

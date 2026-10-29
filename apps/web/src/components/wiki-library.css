@@ -13,12 +13,12 @@
 .wiki-library-eyebrow {
   color: #7d899e;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.17em;
   margin-bottom: 13px;
 }
 .wiki-library-heading h1 {
-  font-family: "Instrument Serif", Georgia, serif;
+  font-family: var(--font-ui, "Inter", sans-serif);
   font-size: clamp(46px, 4.4vw, 62px);
   font-weight: 400;
   letter-spacing: -0.035em;

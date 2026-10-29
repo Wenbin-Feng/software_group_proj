@@ -1,0 +1,35 @@
+{
+  "errors": [],
+  "shots": [
+    {
+      "name": "login",
+      "width": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "name": "courses",
+      "width": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "name": "workspace",
+      "width": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "name": "wiki",
+      "width": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "name": "teacher",
+      "width": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "name": "inbox",
+      "width": 1440,
+      "scrollWidth": 1440
+    }
+  ]
+}

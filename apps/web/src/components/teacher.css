@@ -36,7 +36,7 @@
 .tportal-eyebrow {
   font-size: 10px !important;
   letter-spacing: 1.8px;
-  font-weight: 700;
+  font-weight: 600;
   color: #8190a8;
   margin: 0 0 10px !important;
 }
@@ -581,7 +581,7 @@ button.tportal-stat:hover {
   padding: 24px 20px 10px;
 }
 .tportal-quick h2 {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--font-ui, "Inter", sans-serif);
   font-size: 28px;
   font-weight: 400;
   line-height: 1.15;

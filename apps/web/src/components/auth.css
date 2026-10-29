@@ -34,7 +34,7 @@
   margin: 25px 0;
 }
 .auth-story h1 em {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--font-ui, "Inter", sans-serif);
   font-weight: 400;
   color: #3156d3;
 }

@@ -2,7 +2,7 @@
 
 ## Direction
 
-A calm university knowledge workspace: an editorial reading experience with clear application navigation. The work is guided by the installed `ui-ux-pro-max` skill and its Swiss Modernism guidance for knowledge workspaces. Its initial playful education match was rejected because it targeted a younger audience.
+A minimal glass workspace with a consistent sans-serif type system and clear application navigation. The work is guided by the installed `ui-ux-pro-max` skill and its Swiss Modernism guidance for knowledge workspaces. Its initial playful education match was rejected because it targeted a younger audience.
 
 The application balances warm paper-like learning moments with a precise, functional interface. Course cards use original SVG subject artwork; graphs, publication covers and interactive scenes are code-native visuals.
 
@@ -12,12 +12,12 @@ The application balances warm paper-like learning moments with a precise, functi
 | --- | --- |
 | Primary action | Cobalt `#3156d3` |
 | Main ink | Navy `#202d44` |
-| Canvas | White |
+| Canvas | Cool mist with blue, lavender and sage ambient gradients |
 | Navigation | Cool off-white `#f9fafc` |
 | Teaching surfaces | Warm paper, pale blue and muted sage |
-| Interface type | DM Sans, locally bundled |
-| Editorial type | Instrument Serif, locally bundled |
-| Shape | Fine borders, 8–14 px corners, restrained shadows |
+| Interface type | Inter, locally bundled; system CJK fallback |
+| Heading type | Inter, same family; 500–600 weight |
+| Shape | Translucent panels, 20–28 px corners, white edges and restrained shadows |
 
 ## Course-first layout
 
@@ -58,3 +58,11 @@ The application balances warm paper-like learning moments with a precise, functi
 ## Accessibility and adaptation
 
 Use semantic buttons and form labels, visible focus, keyboard-accessible SVG graph nodes, labelled icon controls, Escape and Tab support for dialogs, and reduced-motion overrides. On small screens the global sidebar becomes an explicit menu, while the course workspace provides Files, Chat, and Preview panel controls. Sources and private/teacher visibility are communicated with text as well as icons and color.
+
+## Glass refinement · 29 October 2026
+
+Built on `origin/release` at `6d30ee3` in local branch `ui/glass-refinement`. Floating frosted navigation, translucent cards and toolbars share the tokens in `apps/web/src/glass.css`. Static ambient gradients supply depth; no continuous decorative motion is used. Reading surfaces retain more opacity for legibility. The dark Wiki remains a focused knowledge workspace with the same typography. Code blocks retain monospace.
+
+Inter replaces mixed display/serif families throughout the UI. Headings use a restrained scale and mostly 600 weight, controls use 500, and reading text uses 400. Existing responsive geometry, authentication, course permissions and AI flows remain intact. Unsupported backdrop-filter falls back to solid light surfaces.
+
+Screenshots in `docs/screenshots/glass/` use isolated local fixture accounts and sample content, not production data. The strict UI audit checks 164 views across phone, tablet and desktop widths, with no geometry regressions or runtime errors. No deployment or publishing is part of this change.

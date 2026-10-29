@@ -21,12 +21,12 @@
 .courseware-kicker {
   font-size: 10px;
   letter-spacing: 0.14em;
-  font-weight: 700;
+  font-weight: 600;
   color: #748096;
   text-transform: uppercase;
 }
 .courseware-header h2 {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--font-ui, "Inter", sans-serif);
   font-size: 34px;
   font-weight: 400;
   margin: 7px 0;
@@ -90,7 +90,7 @@
   background: #fff;
   padding: 10px 11px;
   font:
-    400 12px/1.6 "DM Sans",
+    400 12px/1.6 "Inter",
     sans-serif;
   color: #202d44;
   min-height: 44px;
@@ -183,7 +183,7 @@
   padding: 22px;
 }
 .courseware-empty h3 {
-  font-family: "Instrument Serif", serif;
+  font-family: var(--font-ui, "Inter", sans-serif);
   font-weight: 400;
   font-size: 24px;
   color: #202d44;
@@ -321,7 +321,7 @@
   font-size: 11px !important;
 }
 .courseware-title-label input {
-  font-family: "Instrument Serif", serif !important;
+  font-family: var(--font-ui, "Inter", sans-serif);
   font-size: 24px !important;
   background: transparent !important;
   border-color: transparent !important;

@@ -1,0 +1,626 @@
+/* Folio Glass — one type system, translucent surfaces and quiet depth. */
+:root {
+  --font-ui:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  font-family: var(--font-ui);
+  --color-primary: #405dde;
+  --color-primary-hover: #314bc4;
+  --color-text: #222a3d;
+  --color-muted: #606c82;
+  --color-border: #ffffffb3;
+  --color-surface: #ffffff70;
+  --glass-fill: #ffffff8c;
+  --glass-edge: #ffffffce;
+  --glass-shadow: 0 12px 42px #303b6410, inset 0 1px 0 #ffffffed;
+  --radius: 20px;
+  background: #eef1f8;
+}
+body {
+  background:
+    radial-gradient(ellipse at 8% 5%, #cbdcff99, transparent 42%),
+    radial-gradient(ellipse at 95% 38%, #dfd5f399, transparent 42%),
+    radial-gradient(ellipse at 45% 95%, #dcebe599, transparent 45%), #f1f3f8;
+  background-attachment: fixed;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+}
+#root h1,
+#root h2,
+#root h3,
+#root h4,
+#root h5 {
+  font-family: var(--font-ui);
+  font-style: normal;
+  font-weight: 600;
+}
+#root h1 {
+  letter-spacing: -0.045em;
+  line-height: 1.16;
+}
+#root h2 {
+  letter-spacing: -0.025em;
+}
+#root button,
+#root input,
+#root select,
+#root textarea {
+  font-family: inherit;
+}
+#root .sidebar {
+  top: 14px;
+  bottom: 14px;
+  left: 14px;
+  width: 216px;
+  padding: 26px 14px 12px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 26px;
+  background: #ffffff73;
+  -webkit-backdrop-filter: blur(28px) saturate(155%);
+  backdrop-filter: blur(28px) saturate(155%);
+  box-shadow: var(--glass-shadow);
+}
+#root .brand {
+  font-family: var(--font-ui);
+  font-size: 30px;
+  letter-spacing: -1.5px;
+  gap: 10px;
+}
+#root .brand-mark {
+  border-radius: 12px;
+  background: linear-gradient(145deg, #7189f1, #4059cc);
+  box-shadow:
+    0 5px 13px #4059cc28,
+    inset 0 1px 0 #ffffff70;
+}
+#root .nav-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: #68738a;
+  font-weight: 500;
+}
+#root .nav-item {
+  border-radius: 13px;
+  min-height: 46px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #637087;
+  margin: 4px 0;
+}
+#root .nav-item.active {
+  background: #ffffffbd;
+  box-shadow:
+    0 3px 12px #344b8210,
+    inset 0 0 0 1px #ffffff;
+  color: #3c56c9;
+}
+#root .nav-item:hover:not(.active) {
+  background: #ffffff70;
+}
+#root .nav-count {
+  background: #e9edfc;
+  color: #5265a0;
+  border: 1px solid #ffffffc0;
+}
+#root .profile {
+  border-color: #ffffff9c;
+  border-radius: 14px;
+  background: #ffffff40;
+  padding: 12px 8px;
+}
+#root .profile strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+#root .profile small {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #69748a;
+}
+#root .help-link {
+  font-size: 11px;
+  color: #66738a;
+}
+#root .app-main:not(.course-main):not(.vault-main) {
+  margin-left: 244px;
+  background: transparent;
+}
+#root .topbar:not(.course-topbar):not(.vault-topbar) {
+  margin: 14px 22px 0;
+  height: 60px;
+  min-height: 60px;
+  padding: 0 22px;
+  border: 1px solid #ffffffbf;
+  border-radius: 20px;
+  background: #ffffff69;
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+  box-shadow:
+    0 4px 20px #303b6406,
+    inset 0 1px 0 #ffffffcc;
+}
+#root .breadcrumb,
+#root .breadcrumb strong {
+  font-size: 12px;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+#root .role-toggle {
+  border-radius: 12px;
+  font-weight: 500;
+}
+#root .page-container:not(.page-course):not(.page-wiki-vault) {
+  padding: 38px 32px 24px;
+}
+#root .app-footer {
+  color: #6a758a;
+  font-size: 10px;
+  background: transparent;
+}
+#root .btn {
+  border-radius: 12px;
+  font-weight: 500;
+  box-shadow: none;
+}
+#root .btn-primary {
+  background: linear-gradient(135deg, #526ee3, #4058c9);
+  border: 1px solid #ffffff45;
+  box-shadow:
+    0 4px 12px #4058c923,
+    inset 0 1px 0 #ffffff35;
+}
+#root .btn-outline {
+  background: #ffffff85;
+  border: 1px solid #ffffffd9;
+  box-shadow: 0 2px 8px #25335208;
+}
+#root
+  :is(
+    .courses-heading,
+    .wiki-library-heading,
+    .tportal-library-heading,
+    .inbox-page-heading,
+    .wiki-page-heading
+  )
+  h1 {
+  font-size: 38px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -1.7px;
+}
+#root
+  :is(
+    .courses-heading,
+    .wiki-library-heading,
+    .tportal-library-heading,
+    .inbox-page-heading,
+    .wiki-page-heading
+  )
+  p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #657187;
+}
+#root
+  :is(
+    .courses-eyebrow,
+    .wiki-library-eyebrow,
+    .tportal-eyebrow,
+    .inbox-eyebrow
+  ) {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: #64718a;
+}
+#root :is(.courses-heading, .wiki-library-heading, .tportal-library-heading) {
+  margin-bottom: 30px;
+}
+#root :is(.courses-toolbar, .wiki-library-toolbar) {
+  border-bottom: 1px solid #cbd4e24d;
+}
+#root
+  :is(.courses-card, .wiki-library-card, .market-card, .tportal-course-card) {
+  background: linear-gradient(140deg, #ffffffac, #ffffff68);
+  border: 1px solid var(--glass-edge);
+  border-radius: 22px;
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s,
+    transform 0.2s;
+}
+#root
+  :is(
+    .courses-card,
+    .wiki-library-card,
+    .market-card,
+    .tportal-course-card
+  ):hover {
+  transform: translateY(-3px);
+  border-color: #fff;
+  box-shadow:
+    0 20px 42px #35476b16,
+    inset 0 1px 0 #fff;
+}
+#root .courses-cover {
+  height: 166px;
+  background: linear-gradient(125deg, #dbe7f580, #eef2ff50);
+  border-bottom: 1px solid #ffffff8a;
+}
+#root .courses-cover-web {
+  background: linear-gradient(125deg, #e7e0f480, #f5effa50);
+}
+#root .courses-cover-grid {
+  opacity: 0.4;
+}
+#root .courses-cover-art {
+  opacity: 0.8;
+}
+#root .courses-card-body {
+  padding: 24px 26px 0;
+}
+#root .courses-card h2 {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.6px;
+}
+#root .courses-card-meta {
+  font-size: 11px;
+}
+#root .courses-card-description {
+  font-size: 13px;
+  line-height: 1.75;
+}
+#root
+  .courses-card
+  :is(.courses-card-stats, .courses-card-footer, .courses-last-conversation) {
+  border-color: #d2d9e754;
+}
+#root .wiki-library-cover {
+  background: linear-gradient(135deg, #dce7f563, #edf1f533);
+  border-bottom: 1px solid #ffffff9c;
+}
+#root .wiki-library-cover-1 {
+  background: linear-gradient(135deg, #e8dff47a, #f3eef744);
+}
+#root .wiki-library-cover-2 {
+  background: linear-gradient(135deg, #ede8d975, #f4f0e333);
+}
+#root .wiki-library-card h2 {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+#root :is(.wiki-library-excerpt, .market-card-description) {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #616e84;
+}
+#root
+  :is(
+    .tportal-panel,
+    .tportal-stat,
+    .tportal-quick-panel,
+    .tportal-student-table,
+    .tportal-material-list,
+    .tportal-student-summary,
+    .inbox-workspace,
+    .course-panel,
+    .courseware-form,
+    .courseware-list,
+    .courseware-card
+  ) {
+  background: #ffffff8c;
+  border: 1px solid #ffffffc9;
+  border-radius: 20px;
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+}
+#root .tportal-course-title h1 {
+  font-size: 32px;
+  letter-spacing: -1px;
+}
+#root .tportal-section-title h2 {
+  font-size: 22px;
+}
+#root .tportal-stat > strong {
+  font-weight: 500;
+  letter-spacing: -1.5px;
+}
+#root .tportal-tabs {
+  border-color: #cbd4e269;
+}
+#root .tportal-tabs > button {
+  font-size: 12px;
+  font-weight: 500;
+}
+#root .tportal-student-row:hover,
+#root .tportal-record-row:hover {
+  background: #ffffff8c;
+}
+#root .tportal-quick-panel h3 {
+  font-size: 24px;
+  letter-spacing: -0.6px;
+}
+#root .inbox-list-panel {
+  background: #ffffff38;
+}
+#root .inbox-detail {
+  background: #ffffff36;
+}
+#root .inbox-thread-row {
+  border-color: #d5dce86b;
+}
+#root .inbox-thread-row.is-selected {
+  background: #ecf0ffb8;
+  border-left-color: #647bdb;
+}
+#root .inbox-message-bubble {
+  background: #f2f4fbb5;
+  border-color: #ffffffc0;
+}
+#root .inbox-message.is-mine .inbox-message-bubble {
+  background: #e8edff99;
+}
+#root .inbox-conversation-heading {
+  background: #ffffff40;
+}
+#root .modal-backdrop {
+  background: #27304c36;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+#root .modal {
+  background: #f8faffed;
+  border: 1px solid #fff;
+  border-radius: 24px;
+  box-shadow:
+    0 32px 100px #1e2c4b30,
+    inset 0 1px 0 #fff;
+}
+#root .modal h2 {
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.7px;
+}
+#root .auth-page {
+  background: transparent;
+  padding: 32px 6vw;
+}
+#root .auth-layout {
+  gap: 8vw;
+  margin-top: 80px;
+}
+#root .auth-story h1 {
+  font-size: clamp(38px, 4.2vw, 60px);
+  font-weight: 500;
+  letter-spacing: -2.5px;
+  line-height: 1.14;
+}
+#root .auth-story h1 em {
+  font-family: var(--font-ui);
+  font-style: normal;
+  font-weight: 500;
+  color: #5169ce;
+}
+#root .auth-story > p {
+  font-size: 15px;
+  line-height: 1.85;
+}
+#root .auth-card {
+  background: #ffffff8f;
+  border: 1px solid #ffffffd9;
+  border-radius: 28px;
+  box-shadow:
+    0 24px 70px #3f4d7317,
+    inset 0 1px 0 #fff;
+  -webkit-backdrop-filter: blur(26px);
+  backdrop-filter: blur(26px);
+}
+#root .auth-card h2 {
+  font-size: 26px;
+  letter-spacing: -0.8px;
+}
+#root .auth-icon {
+  background: #e7edff96;
+  border: 1px solid #ffffffbe;
+  box-shadow: inset 0 1px 0 #fff;
+  border-radius: 16px;
+}
+#root .course-main {
+  background: transparent;
+}
+#root .course-topbar {
+  background: #ffffff9c;
+  -webkit-backdrop-filter: blur(25px);
+  backdrop-filter: blur(25px);
+  border-bottom-color: #ffffffc2;
+}
+#root .course-workspace {
+  background: transparent;
+  --workspace-line: #d5dce77a;
+}
+#root .workspace-tree {
+  background: #ffffff6b;
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+}
+#root .workspace-chat {
+  background: #ffffff63;
+}
+#root .workspace-preview {
+  background: #ffffff3b;
+}
+#root .workspace-tabs,
+#root .workspace-reader-toolbar,
+#root .studio-main-header {
+  background: #ffffff78;
+}
+#root .workspace-document-paper {
+  background: #ffffffbf;
+  border: 1px solid #fff;
+  box-shadow: 0 8px 28px #33426b08;
+  border-radius: 12px;
+}
+#root .studio-composer {
+  background: #ffffffbb;
+  border: 1px solid #ffffffef;
+  box-shadow:
+    0 6px 28px #3141690c,
+    inset 0 1px 0 #fff;
+  border-radius: 20px;
+}
+#root .studio-composer textarea {
+  background: transparent;
+}
+#root .studio-message-user .studio-message-content {
+  background: #e8edf8b3;
+}
+#root .workspace-preview-tab {
+  font-weight: 500;
+}
+#root .vault-main {
+  background:
+    radial-gradient(ellipse at top right, #43416b44, transparent 60%), #20232d;
+}
+#root .obsidian-vault {
+  --vault-bg: #232630;
+  --vault-side: #ffffff06;
+  --vault-ribbon: #ffffff04;
+  --vault-border: #ffffff12;
+  background: transparent;
+  font-family: var(--font-ui);
+}
+#root .vault-topbar {
+  background: #ffffff08;
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+#root .vault-note-body > h1 {
+  font-family: var(--font-ui);
+  font-weight: 600;
+}
+#root .vault-note-body .wiki-markdown {
+  font-size: 14px;
+  line-height: 1.9;
+}
+#root
+  :is(
+    .vault-tabs,
+    .vault-panel-heading,
+    .vault-inspector .vault-panel-heading
+  ) {
+  background: #ffffff03;
+}
+@supports not (backdrop-filter: blur(1px)) {
+  #root .sidebar,
+  #root .topbar:not(.vault-topbar),
+  #root .courses-card,
+  #root .auth-card {
+    background: #f7f9fe;
+  }
+}
+@media (min-width: 1600px) {
+  #root .page-container:not(.page-course):not(.page-wiki-vault) {
+    padding-inline: 48px;
+  }
+}
+@media (max-width: 1100px) {
+  #root .sidebar {
+    left: 10px;
+    top: 10px;
+    bottom: 10px;
+    width: 192px;
+    padding-inline: 10px;
+  }
+  #root .app-main:not(.course-main):not(.vault-main) {
+    margin-left: 212px;
+  }
+  #root .page-container:not(.page-course):not(.page-wiki-vault) {
+    padding: 28px 22px;
+  }
+  #root .topbar:not(.course-topbar):not(.vault-topbar) {
+    margin-inline: 16px;
+    padding-inline: 16px;
+  }
+}
+@media (max-width: 700px) {
+  #root .sidebar {
+    width: 248px;
+    left: 10px;
+    top: 10px;
+    bottom: 10px;
+    transform: translateX(calc(-100% - 24px));
+    background: #f6f8fdeb;
+  }
+  #root .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+  #root .app-main:not(.course-main):not(.vault-main) {
+    margin-left: 0;
+  }
+  #root .topbar:not(.course-topbar):not(.vault-topbar) {
+    margin: 10px 10px 0;
+    border-radius: 16px;
+    height: 56px;
+    min-height: 56px;
+    padding: 0 12px;
+  }
+  #root .page-container:not(.page-course):not(.page-wiki-vault) {
+    padding: 26px 18px;
+  }
+  #root
+    :is(
+      .courses-heading,
+      .wiki-library-heading,
+      .tportal-library-heading,
+      .inbox-page-heading,
+      .wiki-page-heading
+    )
+    h1 {
+    font-size: 30px;
+    letter-spacing: -1.1px;
+  }
+  #root .courses-cover {
+    height: 145px;
+  }
+  #root .courses-card-body {
+    padding: 20px 20px 0;
+  }
+  #root .courses-card h2 {
+    font-size: 18px;
+  }
+  #root .auth-page {
+    padding: 24px;
+  }
+  #root .auth-layout {
+    margin-top: 35px;
+    gap: 30px;
+  }
+  #root .auth-story h1 {
+    font-size: 38px;
+    letter-spacing: -1.5px;
+  }
+  #root .auth-card {
+    padding: 26px;
+    border-radius: 24px;
+  }
+  #root .tportal-course-title h1 {
+    font-size: 26px;
+  }
+  #root .app-footer {
+    font-size: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #root .courses-card:hover,
+  #root .wiki-library-card:hover,
+  #root .market-card:hover {
+    transform: none;
+  }
+}

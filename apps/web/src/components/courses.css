@@ -9,12 +9,12 @@
 .courses-eyebrow {
   color: #7d899e;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.17em;
   margin-bottom: 13px;
 }
 .courses-heading h1 {
-  font-family: "Instrument Serif", Georgia, serif;
+  font-family: var(--font-ui, "Inter", sans-serif);
   font-size: clamp(46px, 4.4vw, 62px);
   font-weight: 400;
   letter-spacing: -0.035em;
@@ -190,7 +190,7 @@
   top: 18px;
   left: 20px;
   font-size: 11px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0.14em;
   color: #667ca9;
   max-width: calc(100% - 40px);
@@ -212,7 +212,7 @@
   right: 18px;
   font-size: 11px;
   letter-spacing: 0.16em;
-  font-weight: 650;
+  font-weight: 600;
   color: #7d8eaf;
 }
 .courses-cover-web .courses-cover-subject {
@@ -239,7 +239,7 @@
 }
 .courses-card-meta > span:first-child {
   color: #3156d3;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.065em;
 }
 .courses-card-meta > span:last-child {
@@ -290,7 +290,7 @@
   color: #919bad;
   font-size: 11px;
   letter-spacing: 0.12em;
-  font-weight: 650;
+  font-weight: 600;
 }
 .courses-recent p {
   margin: 7px 0 0;

@@ -412,7 +412,7 @@
 }
 .vault-note-body > h1 {
   font:
-    600 clamp(23px, 2vw, 31px)/1.25 "DM Sans",
+    600 clamp(23px, 2vw, 31px)/1.25 "Inter",
     sans-serif;
   color: #f0edf5;
   letter-spacing: -0.8px;

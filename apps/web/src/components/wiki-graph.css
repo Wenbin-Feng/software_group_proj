@@ -11,7 +11,7 @@
   min-width: 0;
   min-height: 0;
   height: 100%;
-  font-family: "DM Sans", sans-serif;
+  font-family: "Inter", sans-serif;
 }
 .vault-graph-heading {
   display: flex;
@@ -137,7 +137,7 @@
   fill: #a78bfa18;
 }
 .vault-graph-node text {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12.5px;
   fill: #aca6b8;
   paint-order: stroke;
