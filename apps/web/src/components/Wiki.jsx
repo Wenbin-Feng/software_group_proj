@@ -40,6 +40,7 @@ import {
 import { Modal } from "./ui";
 import LearningAnimation from "./Animation";
 import WikiLibrary from "./WikiLibrary";
+import ShareWikis from "./ShareWikis";
 import WikiGraph from "./WikiGraph";
 import {
   incomingLinks,
@@ -314,11 +315,7 @@ export default function Wiki() {
   const [wikiProgress, setWikiProgress] = useState(0);
   const [newTitle, setNewTitle] = useState("");
   const [newCourseId, setNewCourseId] = useState(contextCourseId);
-  const [publishOpen, setPublishOpen] = useState(false);
-  const [publishTitle, setPublishTitle] = useState("");
-  const [publishDescription, setPublishDescription] = useState("");
-  const [publishCategory, setPublishCategory] = useState("Core concepts");
-  const [selectedIds, setSelectedIds] = useState([]);
+  const [shareOpen, setShareOpen] = useState(false);
   const articleRef = useRef(null);
   const tabsRef = useRef(null);
   const draft = drafts[active?.id] || {
@@ -338,9 +335,6 @@ export default function Wiki() {
             )
           : value,
     }));
-  const categories = [
-    ...new Set(notes.map((note) => note.category || "My notes")),
-  ];
   const knowledgeNotes = useMemo(
     () => notes.filter((note) => !note.ledger),
     [notes],
@@ -590,118 +584,6 @@ export default function Wiki() {
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  const beginPublish = () => {
-    if (!canEdit) return toast("Only the author can publish this wiki.");
-    if (active?.ledger)
-      return toast("Index, log, and manifest pages stay in your vault.");
-    setSelectedIds(active ? [active.id] : []);
-    setPublishTitle(active?.title || "");
-    setPublishDescription("");
-    setPublishCategory(active?.category || "Core concepts");
-    setPublishOpen(true);
-  };
-  const publish = (e) => {
-    e.preventDefault();
-    if (role !== "student" || !canReadCourse(data, actor, noteCourseId)) return;
-    if (!selectedIds.length)
-      return toast("Select at least one page to publish.");
-    const pages = notes.filter(
-      (n) =>
-        n.courseId === noteCourseId &&
-        selectedIds.includes(n.id) &&
-        !n.ledger &&
-        canReadPrivateNote(data, actor, n),
-    );
-    if (!pages.length || role === "teacher")
-      return toast("Publish from your own student wiki.");
-    const previous = (data.market || []).filter(
-      (m) => m.authorId === user.id && m.noteId === pages[0].id,
-    );
-    const version = previous.length
-      ? Math.max(...previous.map((m) => Number(m.version) || 1)) + 1
-      : 1;
-    const pageIds = new Set(pages.map((n) => n.id));
-    const snapshotPages = pages.map((n) => {
-      const publicMaterial =
-        n.source &&
-        (data.materials || []).find(
-          (m) =>
-            m.id === n.source.materialId &&
-            m.courseId === noteCourseId &&
-            !m.ownerId,
-        );
-      return {
-        id: n.id,
-        title: n.title,
-        category: n.category,
-        content: n.content,
-        tags: [...(n.tags || [])],
-        links: outgoingLinks(n, notes)
-          .map((link) => link.note?.id)
-          .filter((id) => pageIds.has(id)),
-        animation: ["race", "request"].includes(n.animation)
-          ? n.animation
-          : /race condition/i.test(n.title)
-            ? "race"
-            : null,
-        hasAnimation: !!n.hasAnimation,
-        visualizationHtml: n.visualizationHtml || null,
-        ...(publicMaterial
-          ? {
-              source: {
-                materialId: publicMaterial.id,
-                name: publicMaterial.name,
-                page: n.source.page || 1,
-              },
-            }
-          : {}),
-      };
-    });
-    const snapshot = {
-      id: `market-${Date.now()}`,
-      noteId: pages[0].id,
-      noteIds: pages.map((n) => n.id),
-      pages: snapshotPages,
-      courseId: noteCourseId,
-      title: publishTitle.trim(),
-      description: publishDescription.trim(),
-      author: user.name,
-      authorId: user.id,
-      initials: user.initials,
-      color: user.color || "#e6ecff",
-      category: publishCategory,
-      content: pages
-        .map((n) =>
-          pages.length > 1 ? `# ${n.title}\n\n${n.content}` : n.content,
-        )
-        .join("\n\n---\n\n"),
-      tags: [...new Set(pages.flatMap((n) => n.tags || []))],
-      likes: 0,
-      bookmarkedBy: [],
-      version,
-      updatedAt: "Just now",
-      hasAnimation: pages.some((n) => n.hasAnimation),
-      animation: snapshotPages[0].animation,
-      pageCount: pages.length,
-    };
-    setData((prev) =>
-      !pages.every((page) =>
-        canReadPrivateNote(
-          prev,
-          actor,
-          prev.notes.find((note) => note.id === page.id),
-        ),
-      )
-        ? prev
-        : {
-            ...prev,
-            market: [snapshot, ...(prev.market || [])],
-          },
-    );
-    setPublishOpen(false);
-    toast(`Published “${snapshot.title}” · version ${version}.`);
-  };
-
   if (role !== "student")
     return (
       <div className="vault-unavailable">
@@ -1027,9 +909,9 @@ export default function Wiki() {
                           <ArrowDownToLine size={15} />
                         </button>
                         {canEdit && (
-                          <button onClick={beginPublish}>
+                          <button onClick={() => setShareOpen(true)}>
                             <Upload size={14} />
-                            <span>Publish</span>
+                            <span>Share</span>
                           </button>
                         )}
                       </>
@@ -1416,116 +1298,7 @@ export default function Wiki() {
           </form>
         </Modal>
       )}
-      {publishOpen && (
-        <Modal
-          title="Let your knowledge travel."
-          subtitle="Publish a snapshot to this course’s wiki market."
-          onClose={() => setPublishOpen(false)}
-          wide
-        >
-          <form className="wiki-modal-form" onSubmit={publish}>
-            <div className="wiki-publish-notice">
-              <ShieldCheck size={18} />
-              <p>
-                Only the pages you select are shared. Your sessions and original
-                files stay private to you and your teacher. Future edits won’t
-                change this published version.
-              </p>
-            </div>
-            <label>
-              Choose pages{" "}
-              <span className="wiki-field-hint">
-                Publish one note or a connected topic collection.
-              </span>
-              <div className="wiki-publish-select">
-                {notes
-                  .filter(
-                    (n) =>
-                      n.courseId === noteCourseId &&
-                      canReadPrivateNote(data, actor, n),
-                  )
-                  .map((n) => (
-                    <label
-                      className={`wiki-select-row ${selectedIds.includes(n.id) ? "selected" : ""}`}
-                      key={n.id}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(n.id)}
-                        onChange={(e) =>
-                          setSelectedIds((ids) =>
-                            e.target.checked
-                              ? [...ids, n.id]
-                              : ids.filter((id) => id !== n.id),
-                          )
-                        }
-                      />
-                      <FileText size={16} />
-                      <span>
-                        {n.title}
-                        <small>{n.category}</small>
-                      </span>
-                      {n.hasAnimation && <Sparkles size={14} />}
-                    </label>
-                  ))}
-              </div>
-            </label>
-            <label>
-              Publication title
-              <input
-                required
-                value={publishTitle}
-                onChange={(e) => setPublishTitle(e.target.value)}
-                placeholder="A title your classmates will understand"
-              />
-            </label>
-            <label>
-              Short description
-              <textarea
-                required
-                rows={3}
-                value={publishDescription}
-                onChange={(e) => setPublishDescription(e.target.value)}
-                placeholder="What will someone understand after reading this?"
-              />
-            </label>
-            <label>
-              Topic
-              <input
-                required
-                value={publishCategory}
-                onChange={(e) => setPublishCategory(e.target.value)}
-                list="wiki-categories"
-              />
-              <datalist id="wiki-categories">
-                {categories.map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
-            </label>
-            <div className="wiki-modal-actions">
-              <span className="wiki-snapshot-label">
-                {selectedIds.length} page{selectedIds.length !== 1 ? "s" : ""} ·
-                Versioned snapshot
-              </span>
-              <button
-                className="btn btn-ghost"
-                type="button"
-                onClick={() => setPublishOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                type="submit"
-                disabled={!selectedIds.length}
-              >
-                <Upload size={15} /> Publish to course
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
+      <ShareWikis open={shareOpen} onClose={() => setShareOpen(false)} />
     </>
   );
 }

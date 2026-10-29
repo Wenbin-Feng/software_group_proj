@@ -20,6 +20,7 @@ import {
 import { useApp } from "../context";
 import { canReadCourse, canTeach, enrolledStudents } from "../lib/access";
 import { Modal } from "./ui";
+import ShareWikis from "./ShareWikis";
 import { WikiMarkdown, friendlyDate } from "./Wiki";
 const matchKey = (value) =>
   String(value || "")
@@ -137,6 +138,7 @@ export default function Market() {
   const [sort, setSort] = useState("Recommended");
   const [readingId, setReadingId] = useState(null);
   const [readingPageId, setReadingPageId] = useState(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const items = (data.market || []).filter(
     (item) =>
       item.courseId === courseId && canReadCourse(data, actor, item.courseId),
@@ -396,8 +398,8 @@ export default function Market() {
           </p>
         </div>
         {!isTeacher && (
-          <button className="btn btn-outline" onClick={() => navigate("wiki")}>
-            <BookOpen size={16} /> Share from my wiki <ArrowRight size={15} />
+          <button className="btn btn-outline" onClick={() => setShareOpen(true)}>
+            <BookOpen size={16} /> Share a wiki <ArrowRight size={15} />
           </button>
         )}
       </div>
@@ -803,6 +805,7 @@ export default function Market() {
           </div>
         </Modal>
       )}
+      <ShareWikis open={shareOpen} onClose={() => setShareOpen(false)} />
     </div>
   );
 }

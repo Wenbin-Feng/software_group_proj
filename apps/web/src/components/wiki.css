@@ -1007,11 +1007,18 @@
   display: flex;
   gap: 11px;
   align-items: center;
+  width: 100%;
   padding: 9px;
+  border: 0;
   border-radius: 5px;
   cursor: pointer;
   background: white;
   color: #8694af;
+  text-align: left;
+  font: inherit;
+}
+.wiki-share-list {
+  max-height: 360px;
 }
 .wiki-select-row.selected {
   background: #f0f4ff;
