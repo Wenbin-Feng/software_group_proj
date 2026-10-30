@@ -62,7 +62,7 @@ export function parseRoute(hash, data, fallbackCourseId = "se") {
         view: "teacher",
         teacherPage: studentId
           ? "student"
-          : ["overview", "materials", "students", "market", "courseware"].includes(parts[3])
+          : ["overview", "materials", "students", "market", "courseware", "board"].includes(parts[3])
             ? parts[3]
             : "overview",
       };
@@ -113,7 +113,7 @@ export function buildRoute(next, params = {}, data, currentCourseId) {
           ?.studentId;
       return `${base}/students/${encodeURIComponent(studentId || "unknown")}/sessions/${encodeURIComponent(params.sessionId || "unknown")}${suffix()}`;
     }
-    return `${base}/${["overview", "materials", "students", "market", "courseware"].includes(page) ? page : "overview"}${suffix()}`;
+    return `${base}/${["overview", "materials", "students", "market", "courseware", "board"].includes(page) ? page : "overview"}${suffix()}`;
   }
   if (next === "inbox") {
     if (params.courseId) query.set("course", params.courseId);

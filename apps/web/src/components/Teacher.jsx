@@ -23,10 +23,13 @@ import {
   Search,
   ShieldCheck,
   Store,
+  LayoutDashboard,
   UploadCloud,
   Users,
 } from "lucide-react";
 import { useApp } from "../context";
+import { api } from "../lib/api";
+import { waitForJob } from "../lib/jobs";
 import {
   canTeach,
   enrolledStudents,
@@ -63,6 +66,7 @@ const teacherTabs = [
   { id: "students", label: "Students", icon: Users },
   { id: "market", label: "Wiki market", icon: Store },
   { id: "courseware", label: "Courseware", icon: FileText },
+  { id: "board", label: "Board", icon: LayoutDashboard },
 ];
 
 function Empty({ icon: Icon = FolderOpen, title, children, action }) {
@@ -303,6 +307,8 @@ export default function Teacher() {
         <TeacherMaterials teacherId={teacherId} />
       ) : page === "students" || page === "student" ? (
         <TeacherStudents teacherId={teacherId} />
+      ) : page === "board" ? (
+        <CourseBoard courseId={courseId} />
       ) : page === "market" ? (
         <div className="tportal-market">
           <Market />
@@ -311,6 +317,106 @@ export default function Teacher() {
         <TeacherOverview teacherId={teacherId} />
       )}
     </div>
+  );
+}
+
+function CourseBoard({ courseId }) {
+  const { navigate, data } = useApp();
+  const [board, setBoard] = useState(null);
+  const [status, setStatus] = useState("Loading the course board");
+  const [error, setError] = useState("");
+  const load = async (force = false) => {
+    setError("");
+    setStatus(force ? "Reading recent sessions" : "Loading the course board");
+    try {
+      const queued = await api(`/api/courses/${courseId}/board`, {
+        method: "POST",
+        body: { force },
+      });
+      if (queued.board) {
+        setBoard(queued.board);
+        setStatus("");
+        return;
+      }
+      const result = await waitForJob(queued.jobId, {
+        onUpdate: (job) =>
+          setStatus(job.progress > 40 ? "Grouping recurring questions" : "Reading recent sessions"),
+      });
+      setBoard(result?.board || null);
+      setStatus("");
+    } catch (caught) {
+      setError(caught.message || "The board could not be prepared.");
+      setStatus("");
+    }
+  };
+  useEffect(() => {
+    setBoard(null);
+    load(false);
+  }, [courseId]);
+  const studentFor = (sessionId) =>
+    data.sessions.find((session) => session.id === sessionId)?.studentId;
+  return (
+    <section className="tportal-board" aria-label="Course board">
+      <header>
+        <div>
+          <p className="tportal-eyebrow">ONE SUMMARY FOR THIS COURSE</p>
+          <h2>What students are stuck on</h2>
+        </div>
+        <button className="btn btn-outline" onClick={() => load(true)} disabled={!!status}>
+          {status ? <LoaderCircle size={15} className="spin" /> : <RotateCcw size={15} />}
+          Refresh
+        </button>
+      </header>
+      {status && <p className="tportal-board-status">{status}</p>}
+      {error && <p className="tportal-board-error">{error}</p>}
+      {board && !status && (
+        <>
+          <p className="tportal-board-summary">{board.summary}</p>
+          <p className="tportal-board-meta">
+            {board.questionCount} questions across {board.sessionCount} sessions
+            {board.generatedAt ? ` · ${date(board.generatedAt)}` : ""}
+          </p>
+          {board.themes?.length ? (
+            <ol>
+              {board.themes.map((theme) => (
+                <li key={theme.title}>
+                  <div>
+                    <strong>{theme.title}</strong>
+                    <span className={`tportal-board-severity ${theme.severity}`}>
+                      {theme.severity}
+                    </span>
+                  </div>
+                  <p>{theme.detail}</p>
+                  <small>{theme.mentions} mentions</small>
+                  {!!theme.sessionIds?.length && (
+                    <div className="tportal-board-links">
+                      {theme.sessionIds.map((sessionId) => (
+                        <button
+                          key={sessionId}
+                          onClick={() =>
+                            navigate("teacher-review", {
+                              courseId,
+                              sessionId,
+                              studentId: studentFor(sessionId),
+                            })
+                          }
+                        >
+                          Open session <ArrowUpRight size={13} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <Empty icon={LayoutDashboard} title="Nothing recurring yet">
+              The sessions in this course do not show a repeated difficulty.
+            </Empty>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 
