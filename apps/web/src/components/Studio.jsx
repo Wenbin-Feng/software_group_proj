@@ -357,6 +357,7 @@ export default function Studio({
           ...(queryIds.length ? { wikiIds: queryIds } : {}),
         },
         (type, event) => {
+          if (type === "stage" && event.text) setChatStage(event.text);
           if (type === "sources") {
             const count = event.sources?.length || 0;
             setChatStage(

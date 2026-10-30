@@ -118,8 +118,10 @@ async function modelCall(
 }
 
 export type ChatMessage = {
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | "tool";
   content: string;
+  tool_calls?: unknown;
+  tool_call_id?: string;
 };
 export class ProviderError extends Error {
   statusCode = 502;
@@ -263,6 +265,61 @@ export async function complete(
       return content;
     },
   );
+}
+
+export async function completeWithTools(
+  messages: ChatMessage[],
+  tools: object[],
+): Promise<{
+  content: string;
+  toolCalls: { id: string; name: string; arguments: Record<string, unknown> }[];
+}> {
+  const encoded = await modelCall(messages, false, false, async (report) => {
+    const response = await request(
+      { messages, tools, tool_choice: "auto" },
+      90000,
+      report,
+    );
+    let result: any;
+    try {
+      result = await response.json();
+    } catch {
+      throw new ProviderError(
+        "The AI provider returned an invalid response. Please retry.",
+      );
+    }
+    reportResponse(report, result);
+    const message = result.choices?.[0]?.message || {};
+    const toolCalls = (Array.isArray(message.tool_calls) ? message.tool_calls : [])
+      .map((call: any, index: number) => {
+        const raw = call?.function?.arguments;
+        let args: Record<string, unknown> = {};
+        if (raw && typeof raw === "object") args = raw;
+        else if (typeof raw === "string" && raw.trim()) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === "object") args = parsed;
+          } catch {
+            args = {};
+          }
+        }
+        return {
+          id: String(call?.id || `call-${index + 1}`),
+          name: String(call?.function?.name || ""),
+          arguments: args,
+        };
+      })
+      .filter((call: { name: string }) => call.name);
+    return JSON.stringify({
+      content: typeof message.content === "string" ? message.content : "",
+      toolCalls,
+    });
+  });
+  const parsed = JSON.parse(encoded);
+  return {
+    content: String(parsed.content || ""),
+    toolCalls: Array.isArray(parsed.toolCalls) ? parsed.toolCalls : [],
+  };
 }
 
 export async function streamCompletion(
