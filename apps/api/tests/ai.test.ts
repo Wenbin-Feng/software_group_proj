@@ -757,3 +757,102 @@ test("course board summarizes only sessions the teacher may still read", async (
     await f.close();
   }
 });
+
+test("knowledge cards come from the student's own notes and stay private", async () => {
+  const f = await fixture(),
+    original = globalThis.fetch,
+    oldKey = process.env.H2A_LLM_API_KEY;
+  process.env.H2A_LLM_API_KEY = "mock-test-key";
+  const prompts: string[] = [];
+  try {
+    globalThis.fetch = (async (_url, init) => {
+      const input = JSON.parse(String(init?.body));
+      prompts.push(input.messages.map((m: any) => m.content).join("\n"));
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  cards: [
+                    { term: "Race condition", meaning: "Timing changes the result.", example: "Two shoppers grab the last cake.", source: "N1" },
+                    { term: "Mutex", meaning: "One worker enters at a time.", example: "One key for one room.", source: "N1" },
+                    { term: "Atomic update", meaning: "Check and change happen together.", example: "A vending machine drops one can.", source: "N1" },
+                  ],
+                }),
+              },
+            },
+          ],
+        }),
+      );
+    }) as typeof fetch;
+    const teacher = await f.app.inject({
+      method: "POST",
+      url: "/api/cards",
+      headers: { "x-role": "teacher" },
+    });
+    assert.equal(teacher.statusCode, 403);
+    f.records.notes = [];
+    assert.equal(
+      (await f.app.inject({ method: "POST", url: "/api/cards" })).statusCode,
+      409,
+    );
+    f.records.notes = [
+      {
+        id: "mine",
+        courseId: "course",
+        studentId: "student",
+        title: "Race conditions",
+        content: "Two requests read stock 1 before either one writes it back.",
+      },
+      {
+        id: "theirs",
+        courseId: "course",
+        studentId: "other",
+        title: "Someone else",
+        content: "Another student's private explanation of deadlocks.",
+      },
+    ];
+    assert.deepEqual(
+      (await f.app.inject("/api/cards")).json(),
+      { deck: null },
+    );
+    const start = await f.app.inject({ method: "POST", url: "/api/cards" });
+    assert.equal(start.statusCode, 202, start.body);
+    const until = Date.now() + 5000;
+    let job: any;
+    while (Date.now() < until) {
+      job = (await f.app.inject(`/api/jobs/${start.json().jobId}`)).json().job;
+      if (job?.status === "succeeded" || job?.status === "failed") break;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    assert.equal(job.status, "succeeded", job.error);
+    assert.equal(prompts.length, 1);
+    assert.match(prompts[0], /Two requests read stock/);
+    assert.doesNotMatch(prompts[0], /deadlocks/);
+    const deck = (await f.app.inject("/api/cards")).json().deck;
+    assert.deepEqual(
+      deck.cards.map((card: any) => [card.term, card.noteId]),
+      [
+        ["Race condition", "mine"],
+        ["Mutex", "mine"],
+        ["Atomic update", "mine"],
+      ],
+    );
+    assert.equal(deck.recentTerms, undefined);
+    assert.equal(
+      (
+        await f.app.inject({
+          url: `/api/jobs/${start.json().jobId}`,
+          headers: { "x-role": "teacher" },
+        })
+      ).statusCode,
+      404,
+    );
+  } finally {
+    globalThis.fetch = original;
+    if (oldKey === undefined) delete process.env.H2A_LLM_API_KEY;
+    else process.env.H2A_LLM_API_KEY = oldKey;
+    await f.close();
+  }
+});

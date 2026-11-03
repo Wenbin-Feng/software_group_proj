@@ -69,7 +69,8 @@ export function parseRoute(hash, data, fallbackCourseId = "se") {
     }
     return { ...base, view: "teacher", teacherPage: "overview" };
   }
-  let view = parts[0] || "courses";
+  // An empty route is the role's home page; App resolves it per role.
+  let view = parts[0] || "home";
   let courseId = base.courseId;
   if (view === "wiki" && noteCourseId) courseId = noteCourseId;
   if (view === "overview") view = "courses";
@@ -80,7 +81,7 @@ export function parseRoute(hash, data, fallbackCourseId = "se") {
   )
     view = "course";
   if (parts[0] === "courses" && parts[1]) courseId = decode(parts[1]);
-  if (!["courses", "course", "wiki", "market", "inbox"].includes(view))
+  if (!["home", "cards", "courses", "course", "wiki", "market", "inbox"].includes(view))
     view = "courses";
   return {
     ...base,
@@ -123,6 +124,7 @@ export function buildRoute(next, params = {}, data, currentCourseId) {
     return `#/inbox${suffix()}`;
   }
   if (next === "courses" || next === "overview") return "#/courses";
+  if (next === "cards") return "#/cards";
   if (next === "wiki" && !params.noteId && !params.wikiId) return "#/wiki";
   if (params.sessionId) query.set("session", params.sessionId);
   if (params.noteId) query.set("note", params.noteId);

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   CircleHelp,
   FileText,
+  GalleryHorizontalEnd,
   GraduationCap,
   Inbox as InboxIcon,
   Layers3,
@@ -33,6 +34,7 @@ import Wiki from "./components/Wiki";
 import Market from "./components/Market";
 import Teacher from "./components/Teacher";
 import Inbox from "./components/Inbox";
+import KnowledgeCards from "./components/KnowledgeCards";
 import Settings from "./components/Settings";
 import { getOriginal } from "./lib/originals";
 import { buildRoute, parseRoute } from "./lib/navigation";
@@ -55,8 +57,9 @@ function savedCourse() {
   }
 }
 function roleRoute(route, role, data) {
-  if (role !== "teacher") return route;
-  if (route.view === "courses")
+  if (role !== "teacher")
+    return route.view === "home" ? { ...route, view: "cards" } : route;
+  if (route.view === "courses" || route.view === "home" || route.view === "cards")
     return { ...route, view: "teacher", teacherPage: "courses" };
   if (route.view === "course")
     return {
@@ -255,6 +258,7 @@ export default function App({
           { id: "inbox", name: "Inbox", icon: InboxIcon },
         ]
       : [
+          { id: "cards", name: "Knowledge cards", icon: GalleryHorizontalEnd },
           { id: "courses", name: "Courses", icon: BookOpen },
           { id: "wiki", name: "My wiki", icon: Network },
           { id: "market", name: "Wiki market", icon: Store },
@@ -304,7 +308,7 @@ export default function App({
   const navigate = useCallback(
     (next, params = {}) => {
       if (role === "teacher") {
-        if (["courses", "overview"].includes(next)) next = "teacher-courses";
+        if (["courses", "overview", "cards"].includes(next)) next = "teacher-courses";
         else if (["course", "studio"].includes(next))
           next = params.sessionId ? "teacher-review" : "teacher-overview";
         else if (next === "materials") next = "teacher-materials";
@@ -690,7 +694,7 @@ export default function App({
           id="main-content"
           tabIndex={-1}
           className={`page-container page-${inCourse ? "course" : view} ${inWiki ? "page-wiki-vault" : ""}`}
-          key={`${view}-${view === "wiki" || view === "inbox" ? "all" : course.id}-${actor.id}-${role}`}
+          key={`${view}-${view === "wiki" || view === "inbox" || view === "cards" ? "all" : course.id}-${actor.id}-${role}`}
         >
           {teacherOnly ||
           privateWikiDenied ||
@@ -717,6 +721,7 @@ export default function App({
             </div>
           ) : (
             <>
+              {view === "cards" && <KnowledgeCards />}
               {view === "courses" && <Courses />}
               {view === "teacher" &&
                 (isReview ? <CourseWorkspace /> : <Teacher />)}
@@ -968,6 +973,7 @@ function SearchDialog({ onClose }) {
         .includes(query.toLowerCase());
     const withinCourse = (item) =>
       view === "inbox" ||
+      view === "cards" ||
       view === "courses" ||
       view === "wiki" ||
       (view === "teacher" && route.teacherPage === "courses") ||

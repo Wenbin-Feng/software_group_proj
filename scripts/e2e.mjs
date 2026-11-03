@@ -177,8 +177,18 @@ async function walletPage(key, role, name) {
   if (role === "student")
     await page.getByLabel("Student number").fill("24000001");
   await page.getByRole("button", { name: "Open my workspace" }).click();
-  await page.getByRole("heading", { name: "Courses.", exact: true }).waitFor();
+  await reachCourses(page, role);
   return { page, context };
+}
+// Students land on Knowledge cards; the rest of the run starts from Courses.
+async function reachCourses(page, role) {
+  if (role === "student") {
+    await page
+      .getByRole("heading", { name: "Knowledge cards.", exact: true })
+      .waitFor();
+    await page.evaluate(() => (location.hash = "#/courses"));
+  }
+  await page.getByRole("heading", { name: "Courses.", exact: true }).waitFor();
 }
 async function api(page, path, options = {}) {
   return page.evaluate(
@@ -211,7 +221,7 @@ async function switchRole(page, role) {
     .getByRole("button", { name: "Save changes", exact: true })
     .click();
   await settings.waitFor({ state: "hidden" });
-  await page.getByRole("heading", { name: "Courses.", exact: true }).waitFor();
+  await reachCourses(page, role);
   const result = await api(page, "/api/auth/me");
   assert.equal(result.user.role, role);
   assert.equal(result.user.authMethod, "wallet");
