@@ -8,8 +8,26 @@ import {
   Wallet,
 } from "lucide-react";
 import App from "../App";
+import AuthBackdrop from "./AuthBackdrop";
 import { api, flushChanges } from "../lib/api";
 import "./auth.css";
+import "./auth-motion.css";
+
+// Card spotlight and a slight tilt that follow the pointer.
+function followPointer(event) {
+  const card = event.currentTarget;
+  const box = card.getBoundingClientRect();
+  const x = (event.clientX - box.left) / box.width;
+  const y = (event.clientY - box.top) / box.height;
+  card.style.setProperty("--mx", `${x * 100}%`);
+  card.style.setProperty("--my", `${y * 100}%`);
+  card.style.setProperty("--tilt-x", `${(0.5 - y) * 4}deg`);
+  card.style.setProperty("--tilt-y", `${(x - 0.5) * 4}deg`);
+}
+function resetPointer(event) {
+  event.currentTarget.style.setProperty("--tilt-x", "0deg");
+  event.currentTarget.style.setProperty("--tilt-y", "0deg");
+}
 
 const googleErrors = {
   google_unavailable:
@@ -280,6 +298,7 @@ export default function Auth() {
     );
   return (
     <main className="auth-page">
+      <AuthBackdrop />
       <header className="auth-brand">
         <Layers3 size={28} />
         <strong>
@@ -290,10 +309,11 @@ export default function Auth() {
         <section className="auth-story">
           <span className="eyebrow">A CLEARER WAY TO LEARN</span>
           <h1>
-            Make room
-            <br />
-            for your next <br />
-            <em>understanding.</em>
+            <span className="auth-line">Make room</span>
+            <span className="auth-line">for your next</span>
+            <span className="auth-line">
+              <em>understanding.</em>
+            </span>
           </h1>
           <p>
             Read your course materials. Ask better questions. Build a personal
@@ -308,7 +328,18 @@ export default function Auth() {
             </span>
           </div>
         </section>
-        <section className="auth-card" aria-busy={busy}>
+        <section
+          className="auth-card"
+          aria-busy={busy}
+          onPointerMove={followPointer}
+          onPointerLeave={resetPointer}
+        >
+          <span className="auth-chip cited" aria-hidden="true">
+            <BookOpen size={14} /> Week 04 · p.3 cited
+          </span>
+          <span className="auth-chip linked" aria-hidden="true">
+            <i /> 3 new wiki links
+          </span>
           <span className="auth-icon">
             {user ? <GraduationCap size={27} /> : <BookOpen size={27} />}
           </span>
