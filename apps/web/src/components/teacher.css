@@ -1958,77 +1958,174 @@ button.tportal-stat:hover {
     margin-bottom: 20px;
   }
 }
-.tportal-board header {
+.tportal-board-actions {
   display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: flex-end;
-  margin-bottom: 18px;
+  align-items: center;
+  gap: 14px;
 }
-.tportal-board header h2 {
-  margin: 4px 0 0;
-}
-.tportal-board header button {
+.tportal-board-actions .btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
-.tportal-board-summary {
-  font-size: 16px;
-  line-height: 1.5;
-  margin: 0 0 8px;
-}
-.tportal-board-meta,
 .tportal-board-status {
-  color: #64718a;
-  margin: 0 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 24px;
+  color: var(--tp-muted);
+  font-size: 13px;
 }
 .tportal-board-error {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #fdf1ef;
+  border: 1px solid #f3d3cd;
   color: #9b3b2f;
+  font-size: 13px;
 }
-.tportal-board ol {
+.tportal-board-summary {
+  padding: 22px 24px;
+  margin-bottom: 18px;
+}
+.tportal-board-summary > p:not(.tportal-eyebrow) {
+  margin: 8px 0 16px;
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 72ch;
+}
+.tportal-board-summary ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tportal-board-summary li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--tp-soft);
+  color: var(--tp-muted);
+  font-size: 11px;
+}
+.tportal-board-themes {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
   gap: 12px;
 }
-.tportal-board li {
-  border: 1px solid var(--tp-line);
-  border-radius: 10px;
-  background: #fff;
-  padding: 16px 18px;
-}
-.tportal-board li > div {
+.tportal-board-theme {
+  --severity: #3156d3;
+  --severity-soft: #edf1fd;
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
+  gap: 18px;
+  padding: 20px 22px;
+  border-radius: 18px;
+  background: #ffffff8c;
+  border: 1px solid #ffffffc9;
+  border-left: 3px solid var(--severity);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+  min-width: 0;
 }
-.tportal-board-severity {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #3156d3;
+.tportal-board-theme.high {
+  --severity: #c2493a;
+  --severity-soft: #fcefec;
 }
-.tportal-board-severity.high {
-  color: #9b3b2f;
+.tportal-board-theme.medium {
+  --severity: #c58a1d;
+  --severity-soft: #fdf5e4;
 }
-.tportal-board-links {
+.tportal-board-theme.low {
+  --severity: #5f8a74;
+  --severity-soft: #eef5f0;
+}
+.tportal-board-rank {
+  font-size: 20px;
+  font-weight: 500;
+  color: #a4aec0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+.tportal-board-body {
+  flex: 1;
+  min-width: 0;
+}
+.tportal-board-title {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 12px;
 }
-.tportal-board-links button {
+.tportal-board-title h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.tportal-board-severity {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--severity);
+  background: var(--severity-soft);
+}
+.tportal-board-body > p {
+  margin: 8px 0 14px;
+  color: #4d5a72;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.tportal-board-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.tportal-board-foot small {
+  color: #8692a5;
+  font-size: 11px;
+  margin-right: 4px;
+}
+.tportal-board-foot button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 0;
-  background: transparent;
-  color: #3156d3;
-  padding: 0;
+  max-width: 100%;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--tp-line);
+  background: #ffffffb3;
+  color: var(--tp-blue);
+  font-size: 11px;
   cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.tportal-board-foot button:hover {
+  border-color: #b9c9ef;
+}
+.tportal-board-foot button:focus-visible {
+  outline: 2px solid var(--tp-blue);
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .tportal-board-theme {
+    gap: 12px;
+    padding: 16px;
+  }
+  .tportal-board-rank {
+    font-size: 16px;
+  }
 }
 .tportal-board .spin {
   animation: tportal-spin 0.8s linear infinite;

@@ -682,3 +682,78 @@ test("queued courseware generates a private editable draft, publishes a real fil
     await f.close();
   }
 });
+
+test("course board summarizes only sessions the teacher may still read", async () => {
+  const f = await fixture(),
+    original = globalThis.fetch,
+    oldKey = process.env.H2A_LLM_API_KEY;
+  process.env.H2A_LLM_API_KEY = "mock-test-key";
+  const teacher = { "x-role": "teacher" };
+  const prompts: string[] = [];
+  f.records.sessions = [
+    {
+      id: "session",
+      courseId: "course",
+      studentId: "student",
+      messages: [{ role: "user", content: "How does an atomic update work?" }],
+    },
+    {
+      id: "dropped",
+      courseId: "course",
+      studentId: "former",
+      messages: [{ role: "user", content: "Former student question" }],
+    },
+  ];
+  (f.app as any).folio.canReadSession = (_u: any, s: any) =>
+    s.studentId === "student";
+  try {
+    globalThis.fetch = (async (_url, init) => {
+      const input = JSON.parse(String(init?.body));
+      prompts.push(input.messages.map((m: any) => m.content).join("\n"));
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  quiet: true,
+                  summary: "Nothing recurs yet.",
+                  themes: [],
+                }),
+              },
+            },
+          ],
+        }),
+      );
+    }) as typeof fetch;
+    const start = await f.app.inject({
+      method: "POST",
+      url: "/api/courses/course/board",
+      headers: teacher,
+      payload: {},
+    });
+    assert.equal(start.statusCode, 202, start.body);
+    const until = Date.now() + 5000;
+    let job: any;
+    while (Date.now() < until) {
+      job = (
+        await f.app.inject({
+          url: `/api/jobs/${start.json().jobId}`,
+          headers: teacher,
+        })
+      ).json().job;
+      if (job.status === "succeeded" || job.status === "failed") break;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    assert.equal(job.status, "succeeded", job.error);
+    assert.equal(prompts.length, 1);
+    assert.match(prompts[0], /atomic update/);
+    assert.doesNotMatch(prompts[0], /Former student/);
+    assert.equal(job.result.board.sessionCount, 1);
+  } finally {
+    globalThis.fetch = original;
+    if (oldKey === undefined) delete process.env.H2A_LLM_API_KEY;
+    else process.env.H2A_LLM_API_KEY = oldKey;
+    await f.close();
+  }
+});
