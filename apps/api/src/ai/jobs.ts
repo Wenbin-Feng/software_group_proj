@@ -4,7 +4,7 @@ export type Job = {
   id: string;
   userId: string;
   courseId: string;
-  type: "courseware" | "visualization" | "wiki" | "board";
+  type: "courseware" | "visualization" | "wiki" | "board" | "cards";
   status: "queued" | "running" | "succeeded" | "failed";
   progress: number;
   attempts: number;

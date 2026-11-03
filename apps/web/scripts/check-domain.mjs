@@ -298,6 +298,10 @@ assert.equal(
   "Unified Inbox must not inherit a selected course",
 );
 assert.equal(parseRoute("#/inbox", data, "se").courseId, null);
+assert.equal(parseRoute("", data, "se").view, "home");
+assert.equal(parseRoute("#/", data, "se").view, "home");
+assert.equal(parseRoute("#/cards", data, "se").view, "cards");
+assert.equal(buildRoute("cards", {}, data, "se"), "#/cards");
 const inboxHash = buildRoute(
   "inbox",
   {

@@ -159,6 +159,16 @@ async function wait(url, child) {
   throw new Error(`Server unavailable: ${url}\n${child.log}`);
 }
 
+// Students land on Knowledge cards; the rest of the run starts from Courses.
+async function reachCourses(page, role) {
+  if (role === "student") {
+    await page
+      .getByRole("heading", { name: "Knowledge cards.", exact: true })
+      .waitFor();
+    await page.evaluate(() => (location.hash = "#/courses"));
+  }
+  await page.getByRole("heading", { name: "Courses.", exact: true }).waitFor();
+}
 async function api(page, path, options = {}) {
   return page.evaluate(
     async ({ path, options }) => {
@@ -249,7 +259,7 @@ async function finishProfile(page, role, name) {
   await page
     .getByRole("button", { name: "Open my workspace", exact: true })
     .click();
-  await page.getByRole("heading", { name: "Courses.", exact: true }).waitFor();
+  await reachCourses(page, role);
   const result = await api(page, "/api/auth/me");
   assert.equal(result.status, 200);
   assert.equal(result.body.user.role, role);
@@ -301,7 +311,7 @@ async function switchRole(page, role) {
     .getByRole("button", { name: "Save changes", exact: true })
     .click();
   await dialog.waitFor({ state: "hidden" });
-  await page.getByRole("heading", { name: "Courses.", exact: true }).waitFor();
+  await reachCourses(page, role);
   const result = await api(page, "/api/auth/me");
   assert.equal(result.body.user.role, role);
   return result.body.user;
@@ -774,9 +784,7 @@ try {
     .getByRole("button", { name: "Save changes", exact: true })
     .click();
   await settings.waitFor({ state: "hidden" });
-  await student
-    .getByRole("heading", { name: "Courses.", exact: true })
-    .waitFor();
+  await reachCourses(student, "student");
   const restoredStudent = (await api(student, "/api/auth/me")).body.user;
   const restoredWorkspace = (await api(student, "/api/workspace")).body;
   assert.equal(restoredStudent.id, studentUser.id);

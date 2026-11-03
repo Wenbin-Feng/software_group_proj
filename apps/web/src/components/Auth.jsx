@@ -254,7 +254,7 @@ export default function Auth() {
     setWorkspace(null);
     setSettingsFeedback(null);
     acceptUser(null);
-    location.hash = "#/courses";
+    location.hash = "#/";
   }
   async function saveSettings(values) {
     await flushChanges();
@@ -263,7 +263,7 @@ export default function Auth() {
       body: values,
     });
     const roleChanged = result.user.role !== userRef.current?.role;
-    if (roleChanged) location.hash = "#/courses";
+    if (roleChanged) location.hash = "#/";
     acceptUser(result.user);
     setWorkspace(result.data);
     setSettingsFeedback({
