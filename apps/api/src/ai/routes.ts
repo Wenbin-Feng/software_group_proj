@@ -176,7 +176,11 @@ export async function registerAiRoutes(app: FastifyInstance) {
             fail(403, "Only this course teacher can refresh the board.");
           const sessions = core
             .all("sessions")
-            .filter((session) => session.courseId === job.courseId);
+            .filter(
+              (session) =>
+                session.courseId === job.courseId &&
+                core.canReadSession(user, session),
+            );
           const sources = boardSources(sessions);
           progress(25);
           const parsed = sources.questionCount
@@ -1093,16 +1097,15 @@ export async function registerAiRoutes(app: FastifyInstance) {
   app.post("/api/courses/:id/board", async (request, reply) => {
     const user = core.requireUser(request),
       courseId = idFrom(request);
-    courseBoard(user, courseId);
-    if (!process.env.H2A_LLM_API_KEY)
-      fail(503, "AI generation is not configured on this server.");
-    const current = core.get("boards", courseId);
+    const current = courseBoard(user, courseId);
     const age = current?.generatedAt
       ? Date.now() - Date.parse(current.generatedAt)
       : Number.POSITIVE_INFINITY;
     const force = (request.body as any)?.force === true;
     if (current && !force && age < 24 * 60 * 60 * 1000)
       return { board: current };
+    if (!process.env.H2A_LLM_API_KEY)
+      fail(503, "AI generation is not configured on this server.");
     const job = core.db
       .transaction(() => {
         usage.consume(user.id, "generation");
