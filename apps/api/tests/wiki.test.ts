@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   compileWiki,
+  mergePlans,
+  missingConcepts,
   validateWikiPlan,
   wikiCapturePrompt,
   wikiConfidence,
@@ -269,4 +271,23 @@ test("wiki prompt asks for linked prose pages", () => {
   assert.match(prompt, /\[\[Exact page title\]\]/);
   assert.match(prompt, /at least two other pages/);
   assert.match(prompt, /- Staging area: Files chosen/);
+});
+
+test("a thin plan names its missing concepts and merges only new pages", () => {
+  const first = plan({
+    overview: "- [[Working tree]]\n- [[Remote]]",
+    pages: [page({ body: "Moves to the [[Staging area]], then a [[Commit|commit]] and the [[remote]].", links: ["Branch"] })],
+  });
+  assert.deepEqual(missingConcepts(first, ["Staging area"]), ["Remote", "Commit", "Branch"]);
+  const second = plan({
+    pages: [
+      page({ title: "Commit", body: "A snapshot of the [[Working tree]]." }),
+      page({ title: "working tree", body: "Duplicate." }),
+      page({ title: "Staging area", body: "Already exists." }),
+      page({ action: "update", matchTitle: "Working tree", title: "Remote", body: "Not a create." }),
+    ],
+  });
+  const merged = mergePlans(first, second, ["Staging area"]);
+  assert.deepEqual(merged.pages.map((item) => item.title), ["Working tree", "Commit"]);
+  assert.equal(merged.overview, first.overview);
 });
