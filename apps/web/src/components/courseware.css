@@ -498,14 +498,6 @@
   overflow: auto;
   padding: 4px 6px;
 }
-.courseware-preview-note {
-  margin: 0;
-  padding: 9px 16px;
-  font-size: 11px;
-  color: #6b5a2c;
-  background: #fbf6e8;
-  border-bottom: 1px solid #efe6cc;
-}
 .courseware-style-pick {
   display: inline-flex !important;
   flex-direction: row !important;

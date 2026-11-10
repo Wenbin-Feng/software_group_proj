@@ -515,15 +515,6 @@ export default function Courseware() {
               </div>
               {slidemaker ? (
                 <>
-                  {selected.deck.style !== "default" && (
-                    <p className="courseware-preview-note">
-                      The preview shows each layout. The PowerPoint file uses
-                      the{" "}
-                      {STYLES.find((style) => style.id === selected.deck.style)
-                        ?.name || "selected"}{" "}
-                      style.
-                    </p>
-                  )}
                   <div className="courseware-preview-scroll">
                     <SlideFrame
                       html={selected.html}

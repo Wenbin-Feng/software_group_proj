@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import JSZip from "jszip";
 import {
   advertised,
+  PREVIEW_MARK,
   slidesContext,
   slidesHtml,
   slidesIssues,
@@ -37,9 +38,14 @@ test("saved decks render escaped HTML and editable PPTX with speaker notes", asy
     ...slideDeck(3, { text: "<script>alert(1)</script>", notes: "Ask about lost updates" }),
     style: "genspark_college",
   });
-  const html = slidesHtml(deck);
+  const html = await slidesHtml(deck);
   assert.match(html, /^<!DOCTYPE html>\s*<html[^>]*>\s*<head><meta http-equiv="Content-Security-Policy"/);
   assert.doesNotMatch(html, /<script>alert/);
+  assert.match(html, /&lt;script&gt;alert/);
+  assert.ok(html.includes(PREVIEW_MARK));
+  // The preview draws the College style, not the default look.
+  assert.match(html, /background:#F4F1EC/i);
+  assert.match(html, /Georgia/);
   const zip = await JSZip.loadAsync(await slidesPptx(deck));
   const notes = await Promise.all(
     Object.keys(zip.files)

@@ -10,8 +10,11 @@ and stress tooling, tests, and the bundled web fonts.
 Local changes:
 
 - `lib/template-loader.js` loads styles from `./styles` next to the runtime.
-- `lib/pptx/core.js` writes `slide.notes` as PowerPoint speaker notes and takes an
-  `author` option.
+- `lib/pptx/core.js` writes `slide.notes` as PowerPoint speaker notes, takes an
+  `author` option, and exposes `drawDeck` so the same drawing can run on another backend.
+- `lib/preview.js` (new) records that drawing and renders it as HTML, so previews show the
+  selected style exactly as the PPTX does. `lib/render.js` (the original HTML renderer,
+  default look only) is no longer used by Folio.
 - `package.json` marks this folder as CommonJS inside the ESM API workspace.
 
 `vendor/pptxgen.cjs.js` is PptxGenJS (MIT, see `vendor/PPTXGENJS-LICENSE`); it loads
