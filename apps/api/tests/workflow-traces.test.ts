@@ -6,6 +6,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import Fastify from "fastify";
 import { registerAiRoutes } from "../src/ai/routes.js";
+import { slideDeck } from "./slide-deck.js";
 import {
   flushObservability,
   initializeObservability,
@@ -48,16 +49,12 @@ test("workflow traces preserve hierarchy, suppress private content, and do not r
     name: "PRIVATE_STUDENT_NAME",
     studentNumber: "PRIVATE_STUDENT_NUMBER",
   };
-  const slide = {
-    title: "PRIVATE_MODEL_OUTPUT",
-    body: ["PRIVATE_MATERIAL_TEXT"],
-    layout: "content",
-    secondary: [],
-    table: [],
+  const deck = slideDeck(3, {
+    title: "PRIVATE_DECK_TITLE",
+    text: "PRIVATE_MATERIAL_TEXT",
     notes: "PRIVATE_TEACHER_NOTES",
-    sources: [{ materialId: "material-internal-id", page: 3 }],
-  };
-  const deck = { title: "PRIVATE_DECK_TITLE", language: "en", slides: [slide] };
+    source: { materialId: "material-internal-id", page: 3 },
+  });
   const visual = {
     title: "PRIVATE_VISUALIZATION_TITLE",
     summary: "PRIVATE_EXPLANATION",
@@ -227,7 +224,7 @@ test("workflow traces preserve hierarchy, suppress private content, and do not r
         courseId: "course-internal-id",
         materialIds: ["material-internal-id"],
         topic: "PRIVATE_COURSEWARE_REQUEST",
-        slideCount: 1,
+        slideCount: 3,
       },
     });
     assert.equal(start.statusCode, 202);

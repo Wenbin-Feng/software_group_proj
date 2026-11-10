@@ -31,9 +31,8 @@ const server = createServer(async (req, res) => {
   const visual = body.response_format?.json_schema.schema.properties.steps;
   const wiki = body.response_format?.json_schema.schema.properties.worthSaving;
   if (wiki) lastWikiPrompt = body.messages.at(-1).content;
-  const count = Number(
-    body.messages.at(-1).content.match(/Exactly (\d+) slides/)?.[1] || 3,
-  );
+  const count =
+    body.response_format?.json_schema.schema.properties.slides?.minItems || 3;
   const content = wiki
     ? {
         worthSaving: true,
@@ -88,13 +87,22 @@ const server = createServer(async (req, res) => {
       }
     : {
         title: "并发事务教学",
-        language: "zh-CN",
+        lang: "zh",
+        aspect: "16:9",
         slides: Array.from({ length: count }, (_, i) => ({
-          title: `事务与并发 ${i + 1}`,
-          body: ["保护检查与更新", "用真实案例理解原子操作"],
-          layout: "content",
-          secondary: [],
-          table: [],
+          template: i === 0 ? "title" : i === count - 1 ? "closing" : "bullets",
+          fields:
+            i === 0
+              ? { title: "并发事务教学", subtitle: "第四周" }
+              : i === count - 1
+                ? { message: "保护检查与更新" }
+                : {
+                    title: `事务与并发 ${i}`,
+                    items: [
+                      { heading: "检查", body: "保护检查与更新" },
+                      { heading: "原子", body: "用真实案例理解原子操作" },
+                    ],
+                  },
           notes: "Teacher notes",
           sources: [],
         })),
@@ -286,7 +294,7 @@ try {
   });
   await teacher.getByLabel("Topic", { exact: true }).fill("事务与并发");
   await teacher.getByLabel("Slides", { exact: true }).fill("3");
-  await teacher.locator("#courseware-language").selectOption("zh-CN");
+  await teacher.locator("#courseware-language").selectOption("zh");
   console.log("E2E: teacher course creation passed; generating courseware");
   await teacher
     .getByRole("button", { name: "Generate courseware", exact: true })

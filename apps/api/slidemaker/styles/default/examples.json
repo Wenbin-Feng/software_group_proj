@@ -1,0 +1,1039 @@
+{
+  "title": {
+    "title": "From scale to quality growth",
+    "subtitle": "FY2026 business review and FY2027 growth plan",
+    "presenter": "Strategy & Business Analytics",
+    "date": "December 18, 2026"
+  },
+  "section": {
+    "number": "01",
+    "title": "Business review",
+    "subtitle": "Revenue grew steadily while profit mix improved",
+    "chapters": [
+      "Business review",
+      "Diagnosis",
+      "FY2027 plan",
+      "Decisions"
+    ]
+  },
+  "agenda": {
+    "title": "Four questions for today",
+    "items": [
+      "What did we deliver in FY2026?",
+      "What is holding growth back?",
+      "Where do we invest in FY2027?",
+      "What do we need you to decide?"
+    ]
+  },
+  "bullets": {
+    "title": "Three reasons growth slowed in H1",
+    "lead": "Each one is fixable within the next two quarters.",
+    "items": [
+      {
+        "heading": "Fewer new customers",
+        "body": "Paid acquisition cost rose 28%, so we cut spend and new-customer volume fell."
+      },
+      {
+        "heading": "Lower basket size online",
+        "body": "Free-shipping threshold pushed small baskets to competitors."
+      },
+      {
+        "heading": "Store openings slipped",
+        "body": "Five of eight planned openings moved to H2 because of permits."
+      }
+    ]
+  },
+  "as-is-to-be": {
+    "title": "Replenishment must move from gut feel to data",
+    "asIsLabel": "Today",
+    "asIsItems": [
+      "Store managers order from experience",
+      "Fresh spoilage stuck above 4%",
+      "Promo stock allocated top-down"
+    ],
+    "toBeLabel": "Target",
+    "toBeItems": [
+      "Forecasts generate daily order proposals",
+      "Fresh spoilage below 2.5%",
+      "Promo stock allocated by store profile"
+    ],
+    "transition": "Automation"
+  },
+  "big-number": {
+    "title": "Members generate nearly three quarters of revenue",
+    "value": "73",
+    "unit": "%",
+    "caption": "Share of revenue from member orders",
+    "description": "Paid members passed 2.1 million. They spend 1.8x more per order and come back every 19 days.",
+    "points": [
+      "Renewal rate 81%, up 6 pt",
+      "Member prices lift cross-category baskets",
+      "Top members cluster in tier-1 cities"
+    ]
+  },
+  "chart": {
+    "title": "Growth accelerated in H2, with a record Q4",
+    "chartType": "bar",
+    "labels": [
+      "Q1",
+      "Q2",
+      "Q3",
+      "Q4"
+    ],
+    "values": [
+      1.02,
+      1.11,
+      1.24,
+      1.49
+    ],
+    "unit": "$B",
+    "highlight": "3",
+    "delta": "0 :: 3",
+    "callouts": [
+      {
+        "index": 3,
+        "text": "Holiday peak"
+      }
+    ],
+    "points": [
+      "Q4 revenue up 26% YoY, the best quarter",
+      "New stores added $310M in H2",
+      "Online share passed 40% in Q4"
+    ],
+    "note": "Q4 includes Black Friday and the holiday season."
+  },
+  "gantt": {
+    "title": "H1 schedule for the five priority projects",
+    "columns": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun"
+    ],
+    "tasks": [
+      {
+        "name": "Member benefits",
+        "start": 1,
+        "end": 2
+      },
+      {
+        "name": "Data cleanup",
+        "start": 1,
+        "end": 3
+      },
+      {
+        "name": "Forecast pilot",
+        "start": 3,
+        "end": 5
+      },
+      {
+        "name": "Store remodels",
+        "start": 2,
+        "end": 6
+      },
+      {
+        "name": "Shipping threshold",
+        "start": 1,
+        "end": 1
+      }
+    ],
+    "note": "Project review in the first week of every month."
+  },
+  "image-text": {
+    "title": "一个工作台串起记录与执行",
+    "lead": "左侧保留来源，右侧跟进关键行动。",
+    "points": [
+      "集中查找会议与项目知识",
+      "摘要连接原始记录",
+      "任务状态保持可见"
+    ],
+    "imageSrc": "-",
+    "imageAlt": "知识协作工作台的示意界面",
+    "imageNote": "工作台界面截图",
+    "caption": "示意界面：卡片指标、知识趋势与任务列表"
+  },
+  "comparison": {
+    "title": "Remodelling bottom stores beats closing them",
+    "col1Heading": "Close",
+    "col1Items": [
+      "One-off exit cost of about $24M",
+      "High risk of losing nearby members",
+      "Frees management attention"
+    ],
+    "col2Heading": "Remodel to community store",
+    "col2Items": [
+      "About $15M capex in total",
+      "Keeps members, adds pickup point",
+      "Expected payback in 9 months"
+    ],
+    "col3Heading": "Keep as is",
+    "col3Items": [
+      "No new investment",
+      "Losing about $9M per year",
+      "Drags down network productivity"
+    ],
+    "highlight": "2"
+  },
+  "key-points": {
+    "title": "Three guardrails come with the growth target",
+    "points": [
+      {
+        "heading": "Cash safety",
+        "body": "Operating cash flow stays positive; new stores pay back within 18 months."
+      },
+      {
+        "heading": "Zero food incidents",
+        "body": "Full traceability for fresh; every supplier audited each year."
+      },
+      {
+        "heading": "Member experience",
+        "body": "No cost saving may slow delivery times or after-sales response."
+      }
+    ]
+  },
+  "timeline": {
+    "title": "Quarterly milestones keep the plan on track",
+    "milestones": [
+      {
+        "label": "Q1 2027",
+        "heading": "Foundations",
+        "body": "Member tiers and data pipelines ready"
+      },
+      {
+        "label": "Q2 2027",
+        "heading": "Pilot",
+        "body": "Replenishment live in 20 stores"
+      },
+      {
+        "label": "Q3 2027",
+        "heading": "Scale",
+        "body": "System covers 80% of stores"
+      },
+      {
+        "label": "Q4 2027",
+        "heading": "Review",
+        "body": "Measure impact, set FY2028 plan"
+      }
+    ],
+    "lanes": [
+      "Ops",
+      "Tech",
+      "Stores"
+    ],
+    "bands": [
+      {
+        "lane": 1,
+        "start": 1,
+        "end": 2,
+        "label": "Member tiers"
+      },
+      {
+        "lane": 2,
+        "start": 1,
+        "end": 3,
+        "label": "Forecasting"
+      },
+      {
+        "lane": 3,
+        "start": 2,
+        "end": 4,
+        "label": "Remodels"
+      }
+    ]
+  },
+  "quote": {
+    "title": "Customers care most about freshness and ease",
+    "quote": "I pay for the membership because the produce is always fresh and it arrives first thing the next morning.",
+    "name": "Member interview",
+    "role": "October 2026 member satisfaction survey"
+  },
+  "fact-profile": {
+    "title": "FY2027 budget at a glance",
+    "lead": "Built on the Balanced option, pending approval.",
+    "facts": [
+      {
+        "heading": "Investment",
+        "body": "$200M total, of which $130M capex"
+      },
+      {
+        "heading": "Revenue",
+        "body": "$5.59B target, up 15% year over year"
+      },
+      {
+        "heading": "Profit",
+        "body": "4.5% net margin, about $250M net profit"
+      },
+      {
+        "heading": "Stores",
+        "body": "30 remodels and 20 new community stores"
+      },
+      {
+        "heading": "People",
+        "body": "45 new data and supply chain roles"
+      }
+    ]
+  },
+  "case-summary": {
+    "title": "Boston pilot proves the model",
+    "meta": "Pilot · 6 stores",
+    "challenge": [
+      "Sales density below region",
+      "Strong local group buying"
+    ],
+    "solution": [
+      "Smaller box, fresh focus",
+      "Pickup and 1-hour delivery"
+    ],
+    "outcome": [
+      "Sales per m² up 62%",
+      "Member activity up 35%"
+    ],
+    "metric": "7 mo",
+    "metricLabel": "Average payback period of pilot stores",
+    "voice": "The store got smaller but busier. I pick up groceries on my way home.",
+    "voiceBy": "Member near a pilot store"
+  },
+  "pricing": {
+    "title": "Three investment options for FY2027",
+    "plan1Name": "Conservative",
+    "plan1Price": "$120M",
+    "plan1Note": "Revenue +10%",
+    "plan1Items": [
+      "Replenishment only",
+      "No network changes",
+      "Light member updates"
+    ],
+    "plan2Name": "Balanced",
+    "plan2Price": "$200M",
+    "plan2Note": "Revenue +15%",
+    "plan2Items": [
+      "Full replenishment rollout",
+      "Remodel 30 bottom stores",
+      "Tiered member program",
+      "20 new community stores"
+    ],
+    "plan3Name": "Aggressive",
+    "plan3Price": "$350M",
+    "plan3Note": "Revenue +22%",
+    "plan3Items": [
+      "Everything in Balanced",
+      "Enter two new cities",
+      "Scale paid acquisition"
+    ],
+    "highlight": "2",
+    "badge": "Recommended"
+  },
+  "stats": {
+    "title": "运营效率提升直接转化为利润",
+    "lead": "仓配一体化和自动补货是两项关键改进。",
+    "stats": [
+      {
+        "heading": "-21%",
+        "body": "库存周转天数同比下降"
+      },
+      {
+        "heading": "98.6%",
+        "body": "次日达履约准时率"
+      },
+      {
+        "heading": "1.9亿",
+        "body": "全年节约运营成本"
+      }
+    ],
+    "chartType": "line",
+    "chartLabels": [
+      "1月",
+      "3月",
+      "5月",
+      "7月",
+      "9月",
+      "11月"
+    ],
+    "chartValues": [
+      42,
+      39,
+      37,
+      35,
+      34,
+      33
+    ],
+    "chartUnit": "天",
+    "note": "曲线为库存周转天数；数据为演示用途。"
+  },
+  "table": {
+    "title": "Store tiers perform very differently",
+    "lead": "186 stores grouped by sales per square metre.",
+    "columns": [
+      "Tier",
+      "Stores",
+      "Sales / m²",
+      "Gross margin",
+      "Action"
+    ],
+    "rows": [
+      [
+        "Top",
+        "38",
+        "$5,800",
+        "33.5%",
+        "Add private label"
+      ],
+      [
+        "Middle",
+        "111",
+        "$3,600",
+        "30.8%",
+        "Rework range"
+      ],
+      [
+        "Bottom",
+        "37",
+        "$1,800",
+        "26.1%",
+        "Remodel or close"
+      ]
+    ],
+    "highlight": "5",
+    "note": "Sales per m² = annual sales ÷ trading area. Illustrative data."
+  },
+  "faq": {
+    "title": "Questions we expect from the board",
+    "items": [
+      {
+        "heading": "What if the forecasting pilot underperforms?",
+        "body": "The pilot has a three-month gate; below 85% accuracy we keep manual approval, so store operations are not affected."
+      },
+      {
+        "heading": "Will remodels hurt sales during the works?",
+        "body": "Stores stay open and remodel in phases. Each store is affected for about two weeks, under 0.3% of annual revenue."
+      },
+      {
+        "heading": "What is the main risk of the Balanced option?",
+        "body": "Site selection and group-buying competition. We hold a 15% budget buffer to adjust the store plan mid-year."
+      }
+    ]
+  },
+  "changelog-list": {
+    "title": "会员权益将在一季度完成三项调整",
+    "lead": "所有调整均提前 30 天通知会员。",
+    "items": [
+      {
+        "label": "新增",
+        "heading": "生鲜品质无忧退",
+        "body": "不满意可在 24 小时内一键退款"
+      },
+      {
+        "label": "改善",
+        "heading": "免运费门槛下调",
+        "body": "会员免运费门槛从 59 元下调到 39 元"
+      },
+      {
+        "label": "调整",
+        "heading": "积分有效期统一",
+        "body": "积分有效期统一为 12 个月"
+      }
+    ],
+    "timings": [
+      "1月",
+      "2月",
+      "3月"
+    ]
+  },
+  "change-detail": {
+    "title": "免运费门槛下调到 39 元",
+    "badge": "改善",
+    "timing": "2027年2月1日起",
+    "scope": "全部付费会员",
+    "what": "付费会员单笔订单满 39 元即可免运费，非会员门槛保持 59 元不变。",
+    "background": "加购到下单环节流失中，运费门槛是首要原因。",
+    "impact": [
+      "小额订单转化率预计提升",
+      "会员权益感知更加明显"
+    ],
+    "action": [
+      "更新会员权益页面说明",
+      "客服同步新的话术口径"
+    ]
+  },
+  "talk-track": {
+    "title": "门店员工介绍新权益的统一口径",
+    "lead": "强调对顾客的实际好处，避免过度承诺。",
+    "items": [
+      {
+        "label": "顾客询问会员价值",
+        "heading": "现在会员满 39 元就免运费，日常买菜基本都能免。",
+        "body": "不要说“买多少都免运费”。"
+      },
+      {
+        "label": "顾客担心生鲜品质",
+        "heading": "如果收到不满意，24 小时内可以在 App 一键退款。",
+        "body": "不要承诺“无条件退货”。"
+      }
+    ]
+  },
+  "converge": {
+    "title": "Three signals point to the same priority",
+    "lead": "Membership and supply chain are our most certain levers.",
+    "points": [
+      {
+        "heading": "Demand",
+        "body": "Member frequency and basket size keep rising"
+      },
+      {
+        "heading": "Cost",
+        "body": "Spoilage and fulfilment still have room to fall"
+      },
+      {
+        "heading": "Competition",
+        "body": "Peers lag clearly on supply chain capability"
+      }
+    ],
+    "conclusionLabel": "So",
+    "conclusion": "Put 70% of incremental FY2027 investment into members and supply chain."
+  },
+  "drivers": {
+    "title": "Three gaps hold back profit flexibility",
+    "points": [
+      {
+        "heading": "High fresh spoilage",
+        "body": "Every 1 pt of spoilage costs about $17M in profit"
+      },
+      {
+        "heading": "Rising acquisition cost",
+        "body": "Online new-customer cost is up 28% year over year"
+      },
+      {
+        "heading": "Uneven store productivity",
+        "body": "Bottom 20% of stores sell a third of the top tier"
+      }
+    ],
+    "arrowLabel": "Leads to",
+    "conclusionLabel": "Our view",
+    "conclusion": "The bottleneck is supply chain and store mix, not demand.",
+    "conclusionPoints": [
+      "Demand still has headroom",
+      "Fix the cost base first",
+      "Stop low-return expansion"
+    ]
+  },
+  "pyramid": {
+    "title": "One goal, three supporting moves",
+    "conclusionLabel": "Goal",
+    "conclusion": "Grow revenue 15%, lift net margin to 4.5% and reach 2.6M paid members.",
+    "points": [
+      {
+        "heading": "Deepen membership",
+        "body": "Grow high-value members and their purchase frequency"
+      },
+      {
+        "heading": "Automate supply",
+        "body": "Roll out forecasting to every store and fresh category"
+      },
+      {
+        "heading": "Reshape the network",
+        "body": "Remodel 30 stores and open 20 community stores"
+      }
+    ]
+  },
+  "discussion-map": {
+    "title": "Notta Brain 売り方改革 方針会議",
+    "lead": "インフォグラフィック生成のターゲットと提供方式を決める",
+    "threads": [
+      {
+        "text": "個人ユーザー向けに自由画像生成を強化",
+        "verdict": "保留"
+      },
+      {
+        "text": "企業向けはテンプレ固定で一貫性を担保",
+        "verdict": "採用"
+      },
+      {
+        "text": "コスト削減を主目的に据える",
+        "verdict": "棄却"
+      }
+    ],
+    "deliberations": [
+      {
+        "text": "IP安全と一貫性が企業の本命価値"
+      },
+      {
+        "text": "コストは既に十分安く訴求にならない"
+      }
+    ],
+    "links": [
+      {
+        "from": "t1",
+        "to": "d0"
+      },
+      {
+        "from": "t0",
+        "to": "d1"
+      },
+      {
+        "from": "t2",
+        "to": "d1"
+      },
+      {
+        "from": "d0",
+        "to": "c"
+      },
+      {
+        "from": "d1",
+        "to": "c"
+      }
+    ],
+    "conclusionLabel": "結論",
+    "conclusion": "企業向けは「テンプレ固定でIP安全・一貫性」を本命に据える",
+    "open": [
+      "縦A4の高密度レイアウト設計",
+      "個人向け自由生成の扱いは別途"
+    ]
+  },
+  "agenda-grid": {
+    "title": "Notta PRDレビュー会議",
+    "lead": "2026-06-09 / 製品・設計コミュニティ / 次Trainの優先度確認",
+    "items": [
+      {
+        "topic": "Pricing/Home 再構築",
+        "status": "決定",
+        "conclusion": "Meeting と Brain を明確に区別し情報設計を作り直す",
+        "points": [
+          "権益境界の誤認とBug誤判定を解消",
+          "Brain は Add-on として独立販売"
+        ],
+        "owner": "@Kerry / @廖然",
+        "due": "次Train"
+      },
+      {
+        "topic": "Slack Bot 体験",
+        "status": "決定",
+        "conclusion": "thread 単位の文脈記憶と権限を本Trainで実装",
+        "points": [
+          "固定100課金を廃止し Brain と整合",
+          "未授権ユーザーへ前置ガイド"
+        ],
+        "owner": "@Slack統合",
+        "due": "本Train"
+      },
+      {
+        "topic": "B2B username 管理",
+        "status": "継続",
+        "conclusion": "管理者が成員名/Bot名を一括管理（成員管理・CSV）",
+        "points": [
+          "Bot名の統一方針は中導に確認",
+          "保存即時反映・上書きルール"
+        ],
+        "owner": "@Trista",
+        "due": "仕様確定中"
+      },
+      {
+        "topic": "転写完了メール",
+        "status": "決定",
+        "conclusion": "Brain 誘導モジュールを追加し発見・転化を促す",
+        "points": [
+          "会議内容から推奨質問を3〜6件",
+          "失敗時は固定質問にフォールバック"
+        ],
+        "owner": "@通知",
+        "due": "本Train"
+      }
+    ],
+    "summary": [
+      "次Train PRD・設計を完成度100%で提出",
+      "試用策略は来週全量化"
+    ]
+  },
+  "hub": {
+    "title": "Notta Brain 売り方改革 方針会議",
+    "lead": "インフォグラフィック生成のターゲットと提供方式を決める",
+    "conclusionLabel": "結論",
+    "conclusion": "企業向けはテンプレ固定でIP安全・一貫性を本命に据える",
+    "points": [
+      {
+        "heading": "IP非侵害",
+        "body": "自由生成の知財リスクを回避できる"
+      },
+      {
+        "heading": "一貫性",
+        "body": "構造・ブランドが毎回揃う"
+      },
+      {
+        "heading": "コストは弱い",
+        "body": "画像は既に十分安く訴求にならない"
+      },
+      {
+        "heading": "用途は社内圧縮",
+        "body": "議事録→1枚で全社・役職者に配布"
+      },
+      {
+        "heading": "個人は別軸",
+        "body": "柔軟性・SNSシェアを重視"
+      }
+    ]
+  },
+  "dashboard": {
+    "title": "2026年Q2 事業レビュー サマリー",
+    "lead": "2026年4〜6月 / セールス・マーケティング本部",
+    "summary": "Q2は売上が計画比+12%で着地。主要3施策のうち2つは順調、ウェビナー経由の獲得のみ要改善。",
+    "status": "順調",
+    "statusTone": "ok",
+    "kpis": [
+      {
+        "label": "売上",
+        "value": "1.42",
+        "unit": "億",
+        "delta": "+12%",
+        "dir": "up",
+        "tone": "ok"
+      },
+      {
+        "label": "新規商談",
+        "value": "318",
+        "unit": "件",
+        "delta": "+8%",
+        "dir": "up",
+        "tone": "ok"
+      },
+      {
+        "label": "解約率",
+        "value": "2.1",
+        "unit": "%",
+        "delta": "+0.4pt",
+        "dir": "up",
+        "tone": "warn"
+      },
+      {
+        "label": "NPS",
+        "value": "46",
+        "unit": "",
+        "delta": "+5",
+        "dir": "up",
+        "tone": "ok"
+      }
+    ],
+    "chartTitle": "月次売上の推移（百万円）",
+    "projectsTitle": "主要成約 トップ5",
+    "chart": {
+      "type": "line",
+      "labels": [
+        "1月",
+        "2月",
+        "3月",
+        "4月",
+        "5月",
+        "6月"
+      ],
+      "values": [
+        98,
+        105,
+        112,
+        120,
+        128,
+        142
+      ],
+      "unit": "百万円"
+    },
+    "projects": [
+      {
+        "name": "エンプラ新規開拓",
+        "progress": 78,
+        "tone": "ok",
+        "note": "パイプライン目標を達成"
+      },
+      {
+        "name": "PLG オンボーディング改善",
+        "progress": 55,
+        "tone": "ok",
+        "note": "有効化率 +6pt"
+      },
+      {
+        "name": "ウェビナー経由の獲得",
+        "progress": 30,
+        "tone": "warn",
+        "note": "CVR が想定を下回る"
+      }
+    ],
+    "foot": [
+      "ウェビナー導線を7月までに再設計",
+      "解約率の上昇要因をCSと深掘り"
+    ]
+  },
+  "kpi-cards": {
+    "title": "All four targets met; profit outgrew sales",
+    "lead": "Member repeat purchases were the main driver of the year.",
+    "kpis": [
+      {
+        "label": "Net revenue",
+        "value": "4.86",
+        "unit": "B",
+        "delta": "+18.2%",
+        "trend": "up",
+        "note": "104% of annual target",
+        "series": [
+          3.2,
+          3.4,
+          3.6,
+          3.7,
+          3.9,
+          4.1,
+          4.3,
+          4.4,
+          4.6,
+          4.86
+        ]
+      },
+      {
+        "label": "Gross margin",
+        "value": "31.4",
+        "unit": "%",
+        "delta": "+2.1 pt",
+        "trend": "up",
+        "note": "Private label mix up",
+        "series": [
+          28.6,
+          29.1,
+          29.5,
+          30.2,
+          30.8,
+          31.4
+        ]
+      },
+      {
+        "label": "Repeat rate",
+        "value": "46",
+        "unit": "%",
+        "delta": "+7 pt",
+        "trend": "up",
+        "note": "2nd order within 90 days",
+        "series": [
+          36,
+          38,
+          39,
+          41,
+          43,
+          46
+        ]
+      },
+      {
+        "label": "Fulfilment cost",
+        "value": "6.8",
+        "unit": "%",
+        "delta": "-0.9 pt",
+        "trend": "down",
+        "tone": "good",
+        "note": "of revenue, after DC merge",
+        "series": [
+          8.1,
+          7.9,
+          7.6,
+          7.3,
+          7.0,
+          6.8
+        ]
+      }
+    ],
+    "note": "Illustrative data. Revenue is recognised net of returns."
+  },
+  "chart-series": {
+    "title": "Online channels drove most of the growth",
+    "lead": "Quarterly revenue by channel; stores stayed stable.",
+    "chartType": "stacked",
+    "categories": [
+      "Q1",
+      "Q2",
+      "Q3",
+      "Q4"
+    ],
+    "series": [
+      {
+        "name": "Stores",
+        "values": [
+          610,
+          630,
+          650,
+          700
+        ]
+      },
+      {
+        "name": "E-commerce",
+        "values": [
+          260,
+          300,
+          360,
+          510
+        ]
+      },
+      {
+        "name": "Group buying",
+        "values": [
+          150,
+          180,
+          230,
+          280
+        ]
+      }
+    ],
+    "unit": "$M",
+    "points": [
+      "E-commerce grew 61% for the year",
+      "Group buying scaled in smaller cities",
+      "Stores now anchor experience and pickup"
+    ],
+    "note": "Illustrative data; group buying booked at transaction value."
+  },
+  "donut": {
+    "title": "Fresh and household make up 62% of sales",
+    "lead": "Category mix defines how far margins can improve.",
+    "segments": [
+      {
+        "label": "Fresh",
+        "value": 1750
+      },
+      {
+        "label": "Household",
+        "value": 1260
+      },
+      {
+        "label": "Food & drinks",
+        "value": 980
+      },
+      {
+        "label": "Private label",
+        "value": 540
+      },
+      {
+        "label": "Other",
+        "value": 330
+      }
+    ],
+    "unit": "$M",
+    "centerLabel": "Revenue ($M)",
+    "points": [
+      "Private label earns 12 pt above average margin",
+      "Fresh spoilage is the biggest profit swing factor"
+    ]
+  },
+  "funnel": {
+    "title": "Most buyers drop off between cart and checkout",
+    "lead": "Customer journey on our e-commerce site, November sample.",
+    "stages": [
+      {
+        "label": "Visitors",
+        "value": 1260000,
+        "note": "Unique, all channels"
+      },
+      {
+        "label": "Product views",
+        "value": 742000
+      },
+      {
+        "label": "Add to cart",
+        "value": 286000
+      },
+      {
+        "label": "Checkout",
+        "value": 131000,
+        "note": "Order submitted"
+      },
+      {
+        "label": "Paid",
+        "value": 104000
+      }
+    ],
+    "points": [
+      "Only 46% of carts reach checkout",
+      "Payment drop-off is concentrated in new users",
+      "Fixing both could add 1.2 pt conversion"
+    ]
+  },
+  "matrix": {
+    "title": "Start with two quick wins, fund two strategic bets",
+    "xLabel": "Effort to implement →",
+    "yLabel": "↑ Business value",
+    "quadrants": [
+      {
+        "heading": "Quick wins",
+        "body": "Lower the free-shipping threshold and remodel bottom stores. Low cost, fast payback."
+      },
+      {
+        "heading": "Strategic bets",
+        "body": "Automated replenishment and a member data platform. High value, longer build."
+      },
+      {
+        "heading": "Keep improving",
+        "body": "Promotion calendar and service scripts stay in the regular operating rhythm."
+      },
+      {
+        "heading": "Park for now",
+        "body": "Cross-border range and new-city pilots. Value is unclear, so we keep watching."
+      }
+    ],
+    "highlight": "1"
+  },
+  "process": {
+    "title": "Automated replenishment rolls out in four steps",
+    "lead": "Pilot first, then scale; each step has an exit criterion.",
+    "steps": [
+      {
+        "heading": "Prepare data",
+        "body": "Connect sales, stock and weather feeds"
+      },
+      {
+        "heading": "Pilot model",
+        "body": "Test forecast accuracy in 20 stores"
+      },
+      {
+        "heading": "Change process",
+        "body": "Managers approve proposals instead of ordering"
+      },
+      {
+        "heading": "Scale",
+        "body": "Cover all stores and add to scorecards"
+      }
+    ],
+    "conclusion": "Exit criterion: 85% forecast accuracy and 1.5 pt lower spoilage."
+  },
+  "progress": {
+    "title": "Four of six FY2026 strategic projects completed",
+    "lead": "Two projects carry over into FY2027.",
+    "items": [
+      {
+        "label": "Integrated DCs",
+        "value": 100,
+        "note": "East and South regions"
+      },
+      {
+        "label": "Paid membership",
+        "value": 112,
+        "note": "Member target beaten"
+      },
+      {
+        "label": "Private label range",
+        "value": 86,
+        "target": 100,
+        "display": "86 / 100 SKUs"
+      },
+      {
+        "label": "Store digitisation",
+        "value": 100
+      },
+      {
+        "label": "Group buying",
+        "value": 64,
+        "note": "Smaller cities lagging"
+      },
+      {
+        "label": "Supplier portal",
+        "value": 45,
+        "note": "Moved to Q2 2027"
+      }
+    ]
+  },
+  "closing": {
+    "message": "We ask you to approve the Balanced plan",
+    "submessage": "With approval today, member benefits and data cleanup start in the first week of January.",
+    "contact": "Strategy & Business Analytics · strategy@example.com"
+  }
+}
