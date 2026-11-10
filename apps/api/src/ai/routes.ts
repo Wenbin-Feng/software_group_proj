@@ -17,6 +17,7 @@ import {
   slidesPptx,
   slidesPrompt,
   validateSlidemakerDeck,
+  PREVIEW_MARK,
   type SlidemakerDeck,
 } from "./slides.js";
 import {
@@ -74,7 +75,7 @@ const jsonParse = (value: string) => {
 type CoursewareDeck = ReturnType<typeof validateDeck> | SlidemakerDeck;
 const coursewareDeck = (input: any): CoursewareDeck =>
   isSlidemakerDeck(input) ? validateSlidemakerDeck(input) : validateDeck(input);
-const coursewareHtml = (deck: CoursewareDeck) =>
+const coursewareHtml = async (deck: CoursewareDeck) =>
   isSlidemakerDeck(deck) ? slidesHtml(deck) : deckHtml(deck);
 const coursewarePptx = (deck: CoursewareDeck) =>
   isSlidemakerDeck(deck) ? slidesPptx(deck) : deckPptx(deck);
@@ -1337,9 +1338,16 @@ export async function registerAiRoutes(app: FastifyInstance) {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return { courseware };
   });
-  app.get("/api/courseware/:id", async (request) => ({
-    courseware: teacherDeck(core.requireUser(request), idFrom(request)),
-  }));
+  app.get("/api/courseware/:id", async (request) => {
+    const record = teacherDeck(core.requireUser(request), idFrom(request));
+    // Drafts saved before the preview replayed the PPTX drawing get a styled preview.
+    if (isSlidemakerDeck(record.deck) && !String(record.html).includes(PREVIEW_MARK)) {
+      const refreshed = { ...record, html: await slidesHtml(record.deck) };
+      core.put("courseware", refreshed);
+      return { courseware: refreshed };
+    }
+    return { courseware: record };
+  });
   app.patch("/api/courseware/:id", async (request) => {
     const user = core.requireUser(request),
       record = teacherDeck(user, idFrom(request));
@@ -1380,7 +1388,7 @@ export async function registerAiRoutes(app: FastifyInstance) {
       ...record,
       title: deck.title,
       deck,
-      html: coursewareHtml(deck),
+      html: await coursewareHtml(deck),
       updatedAt: new Date().toISOString(),
     };
     core.put("courseware", updated);

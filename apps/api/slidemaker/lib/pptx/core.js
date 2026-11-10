@@ -30,7 +30,9 @@ function supportedTemplates(opts = {}) {
   return Object.keys(createContext({}, opts).emitters);
 }
 
-async function renderDeckPptx(deck, opts = {}) {
+// Draws every slide onto `pptx`, a PptxGenJS instance or anything with the same
+// slide API (Folio's HTML preview records the calls instead).
+async function drawDeck(pptx, deck, opts = {}) {
   const errors = validateDeck(deck);
   if (errors.length) {
     const err = new Error('deck の検証に失敗しました:\n  - ' + errors.join('\n  - '));
@@ -48,7 +50,6 @@ async function renderDeckPptx(deck, opts = {}) {
         `対応済み: ${Object.keys(emitters).join(', ')}`
     );
   }
-  const pptx = new PptxGenJS();
   pptx.defineLayout({ name: 'SLIDEMAKER', width: +(W / 96).toFixed(5), height: H / 96 });
   pptx.layout = 'SLIDEMAKER';
   pptx.author = opts.author || 'slidemaker';
@@ -77,7 +78,13 @@ async function renderDeckPptx(deck, opts = {}) {
     // Folio: teacher notes travel as PowerPoint speaker notes.
     if (typeof slide.notes === 'string' && slide.notes.trim()) sl.addNotes(slide.notes);
   }
+  return { colors, font, W, H };
+}
+
+async function renderDeckPptx(deck, opts = {}) {
+  const pptx = new PptxGenJS();
+  await drawDeck(pptx, deck, opts);
   return pptx.write({ outputType: 'nodebuffer' });
 }
 
-module.exports = { renderDeckPptx, supportedTemplates };
+module.exports = { renderDeckPptx, drawDeck, supportedTemplates };

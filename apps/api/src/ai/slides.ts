@@ -14,7 +14,7 @@ const root = path.resolve(
 const load = createRequire(path.join(root, "package.json"));
 const runtime = {
   deck: load("./lib/deck.js"),
-  html: load("./lib/render.js"),
+  preview: load("./lib/preview.js"),
   pptx: load("./lib/render-pptx.js"),
   templates: load("./lib/templates.js"),
   loader: load("./lib/template-loader.js"),
@@ -231,16 +231,17 @@ export function validateSlidemakerDeck(input: any): SlidemakerDeck {
   return deck;
 }
 
-export function slidesHtml(deck: SlidemakerDeck) {
-  // The preview runs in a sandboxed frame without network access, so the
-  // renderer's web fonts are dropped and the sandbox policy goes first.
-  return runtime.html
-    .renderDeck(deck)
-    .replace(/@font-face\s*\{[^}]*\}/g, "")
-    .replace(
-      /<head>/i,
-      `<head><meta http-equiv="Content-Security-Policy" content="${sandboxCsp}">`,
-    );
+// The preview replays the same PPTX drawing as HTML, so it shows the chosen
+// style exactly. It runs in a sandboxed frame, so the sandbox policy goes first.
+export const PREVIEW_MARK = '<meta name="slidemaker-preview" content="pptx">';
+export async function slidesHtml(deck: SlidemakerDeck): Promise<string> {
+  const html: string = await runtime.preview.renderDeckPreview(deck, {
+    templateId: slideStyle(deck.style),
+  });
+  return html.replace(
+    /<head>/i,
+    `<head><meta http-equiv="Content-Security-Policy" content="${sandboxCsp}">`,
+  );
 }
 
 export async function slidesPptx(deck: SlidemakerDeck): Promise<Buffer> {
