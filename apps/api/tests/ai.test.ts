@@ -939,7 +939,7 @@ test("courseware generation repairs slides that overflow their layout", async ()
   }
 });
 
-test("course ingest writes linked pages and an overview, and rebuild replaces only generated pages", async () => {
+test("course ingest writes linked pages and an overview, fills a thin wiki, and rebuild replaces only generated pages", async () => {
   const f = await fixture(),
     original = globalThis.fetch,
     oldKey = process.env.H2A_LLM_API_KEY;
@@ -949,36 +949,43 @@ test("course ingest writes linked pages and an overview, and rebuild replaces on
   try {
     globalThis.fetch = (async (_url, init) => {
       const input = JSON.parse(String(init?.body));
-      prompts.push(input.messages.map((m: any) => m.content).join("\n"));
+      const prompt = input.messages.map((m: any) => m.content).join("\n");
+      prompts.push(prompt);
       const [a, b] = titles;
-      const page = (title: string, other: string) => ({
+      const page = (title: string, other: string, extra = "") => ({
         action: "create",
         matchTitle: "",
         type: "concept",
         title,
         summary: `${title} in one line.`,
         tags: ["database", "concurrency"],
-        body: `${title} is explained here. It is the answer to a [[${other}]].\n\n## Example\n\n| Step | Stock |\n| --- | --- |\n| Read | 1 |`,
+        body: `${title} is explained here. It is the answer to a [[${other}]].${extra}\n\n## Example\n\n| Step | Stock |\n| --- | --- |\n| Read | 1 |`,
         openQuestions: [],
         links: [other],
         relationships: [],
       });
+      const second = /second pass of a whole-course ingest/.test(prompt);
+      const plan = second
+        ? {
+            worthSaving: true,
+            reason: "More concepts.",
+            takeaways: "",
+            overview: "",
+            pages: [
+              page("Row lock", a),
+              page(a, b),
+              { ...page("Mutex", a), action: "update", matchTitle: a },
+            ],
+          }
+        : {
+            worthSaving: true,
+            reason: "The course defines both ideas.",
+            takeaways: "Two connected database pages.",
+            overview: `The course is about safe updates.\n\n## Core ideas\n\n- [[${a}]]\n- [[${b}]]`,
+            pages: [page(a, b, " A [[Row lock]] is the other option."), page(b, a)],
+          };
       return new Response(
-        JSON.stringify({
-          choices: [
-            {
-              message: {
-                content: JSON.stringify({
-                  worthSaving: true,
-                  reason: "The course defines both ideas.",
-                  takeaways: "Two connected database pages.",
-                  overview: `The course is about safe updates.\n\n## Core ideas\n\n- [[${a}]]\n- [[${b}]]`,
-                  pages: [page(a, b), page(b, a)],
-                }),
-              },
-            },
-          ],
-        }),
+        JSON.stringify({ choices: [{ message: { content: JSON.stringify(plan) } }] }),
       );
     }) as typeof fetch;
     f.records.notes = [
@@ -1001,40 +1008,47 @@ test("course ingest writes linked pages and an overview, and rebuild replaces on
     assert.equal(teacher.statusCode, 403);
 
     const first = await run({});
-    assert.equal(first.created, 2);
+    // Two pages is too thin, so a second pass writes the linked "Row lock".
+    assert.equal(prompts.length, 2);
     assert.match(prompts[0], /\(page 3\) Atomic update prevents overselling/);
     assert.match(prompts[0], /plan 8 to 12 pages/);
     assert.doesNotMatch(prompts[0], /Private text/);
+    assert.match(prompts[1], /titled exactly: Row lock/);
+    assert.match(prompts[1], /Pages already written: Atomic update; Lost update/);
+    assert.equal(first.created, 3);
     const pages = () => f.records.notes.filter((note) => !note.ledger && !note.wikiRoot);
+    assert.deepEqual(pages().map((note) => note.title).sort(), ["Atomic update", "Lost update", "Row lock"]);
     const atomic = pages().find((note) => note.title === "Atomic update");
     const lost = pages().find((note) => note.title === "Lost update");
-    assert.match(atomic.content, /answer to a \[\[Lost update\]\]/);
+    const lock = pages().find((note) => note.title === "Row lock");
+    assert.match(atomic.content, /answer to a \[\[Lost update\]\]\. A \[\[Row lock\]\] is the other option/);
     assert.match(atomic.content, /\| Step \| Stock \|/);
-    assert.deepEqual(atomic.links, [lost.id]);
+    assert.deepEqual(new Set(atomic.links), new Set([lost.id, lock.id]));
     const root = f.records.notes.find((note) => note.id === "wiki-root");
     assert.match(root.content, /^# Databases\n\nThe course is about safe updates\./);
-    assert.deepEqual(new Set(root.links), new Set([atomic.id, lost.id]));
+    assert.match(root.content, /## More pages\n- \[\[Row lock\]\]/);
+    assert.deepEqual(new Set(root.links), new Set([atomic.id, lost.id, lock.id]));
 
     // A repeat ingest reuses the result without another paid call.
     assert.equal((await run({})).already, true);
-    assert.equal(prompts.length, 1);
+    assert.equal(prompts.length, 2);
 
     // A saved chat answer also fed "Lost update", so a rebuild keeps it.
     lost.wiki.sourceKeys = [...lost.wiki.sourceKeys, "agent:folio/session/m1"];
-    titles = ["Row lock", "Lost update"];
+    titles = ["Optimistic lock", "Lost update"];
     const rebuilt = await run({ rebuild: true });
-    assert.equal(prompts.length, 2);
-    assert.equal(rebuilt.created, 1);
+    assert.equal(prompts.length, 4);
+    assert.equal(rebuilt.created, 2);
     assert.equal(rebuilt.updated, 1);
-    assert.deepEqual(pages().map((note) => note.title).sort(), ["Lost update", "Row lock"]);
-    assert.equal(f.records.notes.some((note) => note.id === atomic.id), false);
+    assert.deepEqual(pages().map((note) => note.title).sort(), ["Lost update", "Optimistic lock", "Row lock"]);
+    assert.equal(f.records.notes.some((note) => note.id === atomic.id || note.id === lock.id), false);
     assert.equal(pages().find((note) => note.title === "Lost update").id, lost.id);
     const manifest = f.records.notes.find((note) => note.ledger === "manifest");
     assert.deepEqual(
       manifest.manifest.sources["agent:folio/ingest/wiki-root"].pages_produced.sort(),
-      ["concepts/lost-update.md", "concepts/row-lock.md"],
+      ["concepts/lost-update.md", "concepts/optimistic-lock.md", "concepts/row-lock.md"],
     );
-    assert.match(f.records.notes.find((note) => note.id === "wiki-root").content, /\[\[Row lock\]\]/);
+    assert.match(f.records.notes.find((note) => note.id === "wiki-root").content, /\[\[Optimistic lock\]\]/);
   } finally {
     globalThis.fetch = original;
     if (oldKey === undefined) delete process.env.H2A_LLM_API_KEY;

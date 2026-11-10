@@ -36,6 +36,9 @@ import {
   validateWikiPlan,
   wikiCapturePrompt,
   wikiCaptureSchema,
+  INGEST_TARGET,
+  missingConcepts,
+  mergePlans,
   wikiSourceKey,
 } from "./wiki.js";
 import {
@@ -444,32 +447,66 @@ export async function registerAiRoutes(app: FastifyInstance) {
               wikiId: wiki.id,
             };
           progress(20);
+          const catalog = notes
+            .filter((note) => !note.ledger && !note.wikiRoot)
+            .map((note) => ({
+              title: note.title,
+              path: note.path,
+              summary: note.summary || "",
+            }));
+          const excerpts = cited
+            .map((item) => `[${item.name}]\n${item.text}`)
+            .join("\n\n");
           const output = await complete(
             [
               {
                 role: "system",
-                content: `${wikiCapturePrompt(
-                  notes
-                    .filter((note) => !note.ledger)
-                    .map((note) => ({
-                      title: note.title,
-                      path: note.path,
-                      summary: note.summary || "",
-                    })),
-                )}\nThis is a whole-course ingest, not a single answer. Cover the material end to end: plan 8 to 12 pages, one per distinct concept, procedure or decision, so the wiki forms a connected graph rather than a few long pages. Make each page substantial, with the actual definitions, commands, steps, numbers and examples from the excerpts, and link it to the pages it depends on or contrasts with. Do not write generic summaries. Also write overview: one short paragraph on what the course is about, then ## sections that group the pages, linking every page with [[Exact page title]] and a few words on each. Write in the language of the materials.`,
+                content: `${wikiCapturePrompt(catalog)}\nThis is a whole-course ingest, not a single answer. Cover the material end to end: plan 8 to 12 pages, one per distinct concept, procedure, tool or decision, so the wiki forms a connected graph rather than a few long pages. Make each page substantial, with the actual definitions, commands, steps, numbers and examples from the excerpts, and link it to the pages it depends on or contrasts with. Do not write generic summaries. Also write overview: one short paragraph on what the course is about, then ## sections that group the pages, linking every page with [[Exact page title]] and a few words on each. Write in the language of the materials.`,
               },
               {
                 role: "user",
-                content: `Create the wiki from these course materials.\n\n${cited
-                  .map((item) => `[${item.name}]\n${item.text}`)
-                  .join("\n\n")}`,
+                content: `Create the wiki from these course materials.\n\n${excerpts}`,
               },
             ],
             wikiCaptureSchema,
             14000,
           );
+          let plan = validateWikiPlan(jsonParse(output));
+          // Models often stop at a few broad pages. One more pass writes the
+          // concepts those pages already link to, so the graph fills in.
+          if (plan.worthSaving && plan.pages.length < INGEST_TARGET) {
+            progress(50);
+            const known = catalog.map((page) => page.title);
+            const written = plan.pages.map((page) => page.title);
+            const missing = missingConcepts(plan, known);
+            const more = validateWikiPlan(
+              jsonParse(
+                await complete(
+                  [
+                    {
+                      role: "system",
+                      content: `${wikiCapturePrompt([
+                        ...catalog,
+                        ...plan.pages.map((page) => ({ title: page.title, summary: page.summary })),
+                      ])}\nThis is the second pass of a whole-course ingest: the wiki is still too thin. Only create new pages; never update or repeat a page that exists. Leave overview empty. Write in the language of the materials.`,
+                    },
+                    {
+                      role: "user",
+                      content: `Pages already written: ${[...known, ...written].join("; ")}.\n${
+                        missing.length
+                          ? `These concepts are linked but have no page yet. Write a page for each one the materials support, titled exactly: ${missing.join("; ")}.\n`
+                          : ""
+                      }Write ${INGEST_TARGET - plan.pages.length} to ${12 - plan.pages.length} more pages for distinct concepts, procedures, tools or terms in the materials that no page covers yet. Link each new page to the pages already written and to each other.\n\n${excerpts}`,
+                    },
+                  ],
+                  wikiCaptureSchema,
+                  12000,
+                ),
+              ),
+            );
+            plan = mergePlans(plan, more, known);
+          }
           progress(75);
-          const plan = validateWikiPlan(jsonParse(output));
           const compiled = compileWiki({
             now: new Date().toISOString(),
             courseId: wiki.courseId,

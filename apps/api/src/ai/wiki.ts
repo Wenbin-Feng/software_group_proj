@@ -838,6 +838,46 @@ function upsertLedger(
   return record;
 }
 
+// A whole-course ingest should reach at least this many pages; below it the
+// server asks once more for the concepts the first pages already point at.
+export const INGEST_TARGET = 8;
+const INGEST_MAX = 16;
+
+/** Concepts a plan links to that have no page yet, in order of first mention. */
+export function missingConcepts(plan: WikiPlan, existing: string[]) {
+  const have = new Set(
+    [...existing, ...plan.pages.map((page) => page.title)].map((title) => title.toLocaleLowerCase()),
+  );
+  const found = new Map<string, string>();
+  const add = (raw: string) => {
+    const target = clean(raw, 120);
+    const key = target.toLocaleLowerCase();
+    if (target && !have.has(key) && !found.has(key)) found.set(key, target);
+  };
+  for (const text of [plan.overview, ...plan.pages.map((page) => page.body)])
+    for (const match of String(text || "").matchAll(LINK)) add(linkTarget(match[1]).target);
+  for (const page of plan.pages) page.links.forEach(add);
+  return [...found.values()].slice(0, 12);
+}
+
+/** Adds the second pass's new pages to the first plan, never a duplicate title. */
+export function mergePlans(first: WikiPlan, second: WikiPlan, existing: string[]): WikiPlan {
+  const have = new Set(
+    [...existing, ...first.pages.map((page) => page.title)].map((title) => title.toLocaleLowerCase()),
+  );
+  const extra = second.pages.filter((page) => {
+    const key = page.title.toLocaleLowerCase();
+    if (page.action !== "create" || have.has(key)) return false;
+    have.add(key);
+    return true;
+  });
+  return {
+    ...first,
+    worthSaving: first.worthSaving || (second.worthSaving && extra.length > 0),
+    pages: [...first.pages, ...extra].slice(0, INGEST_MAX),
+  };
+}
+
 export function wikiCapturePrompt(catalog: { title: string; path?: string; summary?: string }[]) {
   const index = catalog
     .slice(0, 60)
@@ -850,7 +890,7 @@ export function wikiCapturePrompt(catalog: { title: string; path?: string; summa
     "Compile this course explanation into an Obsidian-style wiki: small atomic pages, one idea each, densely linked to each other.",
     "Keep only knowledge that would still matter months later: concepts, procedures, decisions and why, and facts grounded in the excerpts.",
     "Drop logistics, pleasantries, and unfinished exploration. If nothing is worth keeping, set worthSaving to false and pages to [].",
-    "Title each page with the concept itself as a short noun phrase, for example Race condition or Pull request review. Never title a page after the course, a file, a lecture or a slide deck.",
+    "Title each page with the concept itself as a short noun phrase, for example Race condition or Pull request review. Never title a page after the course, a file, a lecture or a slide deck, and never as a list or tour such as Four areas of X, Introduction to X or Overview of X; split those into one page per area.",
     "Write body as a real wiki page in Markdown, not a list of claims: an opening paragraph that defines the idea in plain words, then ## sections with explanation, concrete steps, commands, numbers or a worked example from the excerpts. Use a bullet list or table only where it helps.",
     "Link inside the sentences. The first time body mentions another page, write it as [[Exact page title]], or [[Exact page title|shown words]] to fit the sentence. Every page links at least two other pages, chosen from the existing pages or the pages you create in this result. Never link a page that is neither.",
     "links repeats the titles the page links to. relationships use only extends, implements, contradicts, derived_from, uses, replaces, or related_to, and only when the source makes the direction clear.",
