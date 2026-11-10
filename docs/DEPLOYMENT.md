@@ -6,7 +6,7 @@ Production deploys **only when `release` changes**, including a merge or direct 
 
 The VM prerequisites, persistent directories, root-only server environment, SSH deployment secrets, Vercel deployment token, and backup/renewal timers are configured. A real isolated SQLite/file backup test passed. The initial Azure inbound-port block was resolved on 17 October 2026: the public HTTP challenge preflight and HTTPS certificate validation both passed. A trusted Let's Encrypt IP certificate is installed, and the six-hourly renewal timer is enabled. Langfuse runtime configuration is present with root-only permissions and outbound authentication has passed. Application deployment status is established by the release workflow and public frontend/API smoke checks, rather than infrastructure readiness alone.
 
-Both CI verification jobs build and run browser integration checks with synthetic wallets, a temporary SQLite database, and a local mock AI provider. They upload screenshots and a generated test PPTX under `test-results/` even when a test fails, retaining artifacts for seven days. This checks real browser/API interactions without using the production database or making paid AI calls. Both verification jobs also build the actual Linux backend image, run native SQLite migrations, and check non-root API startup and version using temporary storage with no credentials, network access, or published ports. The production job runs only after the release verification job succeeds.
+Regular CI runs type checks, unit tests, builds, and deployment-script validation. Run the CI workflow manually for the full browser, Google authentication, responsive-layout, and Linux packaging suites. Production uses one job: install dependencies once, run type checks and unit tests, build the frontend once with Vercel and the backend once with Docker, then back up, migrate, deploy, and smoke-test the matching versions. Rollback remains enabled.
 
 ## Accounts, courses, and generation
 
@@ -14,7 +14,7 @@ The frontend uses React/Vite in `apps/web`; Fastify, the SQLite/Drizzle store, o
 
 Teachers create courses and share/reset their join codes; students join by code. Teachers may only manage their own courses and see enrolled students' sessions/uploads read-only; private student Wiki metadata and contents remain inaccessible. Sample course materials are seeded on a fresh database with student join codes `FOLIO-SE` and `FOLIO-WEB`, without copying browser prototype records into real accounts.
 
-The provider defaults to `deepseek/deepseek-v4.1-flash-1017` and is configurable by `H2A_LLM_MODEL`. The default per-account UTC-day quotas are 60 chat requests and 10 combined courseware/visualization generations. Configure `H2A_DAILY_CHAT_LIMIT` and `H2A_DAILY_GENERATION_LIMIT` on the backend to change them. Failed provider calls and user retries consume quota. One worker runs generation jobs; an account may have two queued/running jobs, with at most three attempts per task. Existing exports can be downloaded without another model call.
+The provider defaults to `deepseek/deepseek-v4.1-flash-1017` and is configurable by `H2A_LLM_MODEL`. Daily AI request quotas are disabled; usage is recorded without rejecting requests. Legacy `H2A_DAILY_CHAT_LIMIT` and `H2A_DAILY_GENERATION_LIMIT` values are ignored. One worker runs generation jobs; an account may have two queued/running jobs, with at most three attempts per task. Existing exports can be downloaded without another model call.
 
 Uploads accept text-based PDF, Markdown, and UTF-8 plain text up to 10 MB, with a 500-page/2-million-character PDF extraction bound and no OCR. AI requests select at most 30 accessible active materials. Teachers generate 1–20 slides (default 10), choose English/simplified/traditional Chinese, edit the validated slide structure, then preview HTML or download native editable 16:9 PPTX text, tables, and basic shapes. Drafts stay private until published. The renderer supports Folio-generated structured decks; arbitrary external HTML and executable PowerPoint animations are outside this version.
 
@@ -56,8 +56,6 @@ ORIGIN_SECRET=<random shared proxy secret>
 H2A_LLM_BASE_URL=https://openrouter.ai/api/v1
 H2A_LLM_API_KEY=<existing OpenRouter key>
 H2A_LLM_MODEL=deepseek/deepseek-v4.1-flash-1017
-H2A_DAILY_CHAT_LIMIT=60
-H2A_DAILY_GENERATION_LIMIT=10
 LANGFUSE_PUBLIC_KEY=<Langfuse project public key>
 LANGFUSE_SECRET_KEY=<Langfuse project secret key>
 LANGFUSE_BASE_URL=https://jp.cloud.langfuse.com

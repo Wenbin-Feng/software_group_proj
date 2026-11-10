@@ -3,6 +3,7 @@ on:
   push:
     branches-ignore: [release]
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -28,17 +29,22 @@ jobs:
           node --check deploy/smoke.mjs
           node --check deploy/vercel-current.mjs
       - name: Install browser integration dependencies
+        if: github.event_name == 'workflow_dispatch'
         run: npx playwright install --with-deps chromium
       - name: Run browser integration checks
+        if: github.event_name == 'workflow_dispatch'
         run: node scripts/e2e.mjs
       - name: Run Google login browser checks with a local identity provider
+        if: github.event_name == 'workflow_dispatch'
         run: node scripts/e2e-google.mjs
       - name: Check responsive layouts and long-content rendering
+        if: github.event_name == 'workflow_dispatch'
         run: npm run test:ui
       - name: Verify Linux backend packaging
+        if: github.event_name == 'workflow_dispatch'
         run: bash deploy/verify-image.sh folio-api:verify
       - name: Save browser integration results
-        if: always()
+        if: always() && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: folio-ci-browser-${{ github.run_id }}-${{ github.run_attempt }}

@@ -85,12 +85,12 @@ OAuth callback queries and cookies are excluded from API request logs. The Folio
 | PDF parsing | At most 500 pages and 2 million extracted characters; text-based PDFs, no OCR |
 | Selected source materials | At most 30 per request; only accessible, active materials |
 | Chat | 6,000 characters per question; one active answer per session |
-| Daily chat requests | 60 per account, configurable with `H2A_DAILY_CHAT_LIMIT` |
-| Daily generation requests | 10 per account shared by visualizations and courseware, configurable with `H2A_DAILY_GENERATION_LIMIT` |
+| Daily chat requests | Unlimited |
+| Daily generation requests | Unlimited |
 | Generation queue | One worker, at most two queued/running jobs per account, up to three attempts per job |
 | Courseware | 1–20 slides, default 10; 16:9; topic up to 200 characters and requirements up to 4,000 characters |
 
-Daily quotas reset at **00:00 UTC**. Failed provider attempts and user retries count toward the quota. Downloading an existing PPTX does not call the model again. AI requests use the configured OpenRouter account and its billing; application quotas limit request counts, not provider prices.
+Daily AI request quotas are disabled. Usage is still recorded; legacy daily-limit environment variables are ignored. Provider billing and service availability still apply.
 
 The server retrieves relevant text chunks and validates model citations against selected material/page pairs. It labels answers unsupported by selected materials as general explanation. AI output should be reviewed before publishing. File parsing runs in a separate persistent queue, so it does not wait behind model generation. Up to five file jobs per account can be pending. Generation jobs and outputs persist in SQLite; the worker resumes interrupted jobs after a restart and reports failures for retry. Existing private browser prototype data is not imported automatically.
 

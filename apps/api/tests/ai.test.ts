@@ -281,7 +281,7 @@ test("provider JSON and streaming use Qwen without exposing provider error detai
   }
 });
 
-test("durable AI budgets isolate accounts and reset on the next UTC day", () => {
+test("AI usage remains durable by account and UTC day without daily limits", () => {
   const db = new Database(":memory:"),
     oldLimit = process.env.H2A_DAILY_CHAT_LIMIT;
   process.env.H2A_DAILY_CHAT_LIMIT = "1";
@@ -290,17 +290,16 @@ test("durable AI budgets isolate accounts and reset on the next UTC day", () => 
     const first = createUsageMeter(db, () => clock);
     first.consume("student-a", "chat");
     const resumed = createUsageMeter(db, () => clock);
-    assert.throws(
-      () => resumed.consume("student-a", "chat"),
-      (error: any) => error.statusCode === 429,
-    );
+    resumed.consume("student-a", "chat");
+    for (let i = 0; i < 65; i++) resumed.consume("student-a", "chat");
+    for (let i = 0; i < 12; i++) resumed.consume("student-a", "generation");
     resumed.consume("student-b", "chat");
     resumed.consume("student-a", "generation");
     clock += 2000;
     resumed.consume("student-a", "chat");
     assert.equal(
       (db.prepare("SELECT SUM(count) AS n FROM ai_usage").get() as any).n,
-      4,
+      82,
     );
   } finally {
     db.close();
@@ -456,7 +455,7 @@ test("AI routes enforce teacher/private-material boundaries and persist verified
   }
 });
 
-test("daily quota rejection happens before paid provider calls or new jobs", async () => {
+test("chat and generation accept repeat requests despite legacy quota settings", async () => {
   const f = await fixture(),
     original = globalThis.fetch;
   const old = {
@@ -486,14 +485,14 @@ test("daily quota rejection happens before paid provider calls or new jobs", asy
         .statusCode,
       200,
     );
-    const limited = await f.app.inject({
+    const repeated = await f.app.inject({
       method: "POST",
       url: "/api/chat",
       payload: chat,
     });
-    assert.equal(limited.statusCode, 429);
-    assert.equal(calls, 1);
-    assert.equal(f.records.sessions[0].messages.length, 2);
+    assert.equal(repeated.statusCode, 200);
+    assert.equal(calls, 2);
+    assert.equal(f.records.sessions[0].messages.length, 4);
     const courseware = {
       method: "POST",
       url: "/api/courseware",
@@ -501,12 +500,12 @@ test("daily quota rejection happens before paid provider calls or new jobs", asy
       payload: { courseId: "course", topic: "Atomic transactions" },
     } as const;
     assert.equal((await f.app.inject(courseware)).statusCode, 202);
-    assert.equal((await f.app.inject(courseware)).statusCode, 429);
+    assert.equal((await f.app.inject(courseware)).statusCode, 202);
     assert.equal(
       (f.db.prepare("SELECT COUNT(*) AS n FROM ai_jobs").get() as any).n,
-      1,
+      2,
     );
-    assert.equal(calls, 1);
+    assert.equal(calls, 2);
   } finally {
     globalThis.fetch = original;
     for (const [env, value] of [

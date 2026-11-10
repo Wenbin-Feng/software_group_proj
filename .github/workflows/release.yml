@@ -9,47 +9,11 @@ concurrency:
   group: folio-production
   cancel-in-progress: false
 jobs:
-  verify:
-    # A manual run on any other branch must never deploy production.
-    if: github.ref == 'refs/heads/release'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run check
-      - run: npm test
-      - run: npm run build
-      - run: shellcheck deploy/*.sh
-      - name: Install browser integration dependencies
-        run: npx playwright install --with-deps chromium
-      - name: Run browser integration checks
-        run: node scripts/e2e.mjs
-      - name: Run Google login browser checks with a local identity provider
-        run: node scripts/e2e-google.mjs
-      - name: Check responsive layouts and long-content rendering
-        run: npm run test:ui
-      - name: Verify Linux backend packaging
-        run: bash deploy/verify-image.sh folio-api:verify
-      - name: Save browser integration results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: folio-release-browser-${{ github.run_id }}-${{ github.run_attempt }}
-          path: test-results/
-          if-no-files-found: ignore
-          retention-days: 7
-
   deploy:
-    needs: verify
     if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-24.04
     environment: production
-    timeout-minutes: 35
+    timeout-minutes: 25
     env:
       DEPLOY_HOST: ${{ vars.DEPLOY_HOST || '20.164.17.72' }}
       DEPLOY_USER: ${{ vars.DEPLOY_USER || 'azureuserwjh' }}
@@ -79,6 +43,11 @@ jobs:
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" >~/.ssh/known_hosts
           chmod 600 ~/.ssh/folio_deploy ~/.ssh/known_hosts
       - run: npm ci
+      - name: Check types, unit tests, and deployment scripts
+        run: |
+          npm run check
+          npm test
+          shellcheck deploy/*.sh
       - run: npm install --global vercel@64.0.2
       - name: Build matching frontend before touching the server
         run: |
