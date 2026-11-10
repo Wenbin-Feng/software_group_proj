@@ -1,0 +1,212 @@
+{
+  "title": "INFO\n1300",
+  "aspect": "16:9",
+  "lang": "zh",
+  "slides": [
+    {
+      "template": "title",
+      "fields": {
+        "title": "关系代数\n在实践中",
+        "subtitle": "从等价变换到查询优化：一堂 50 分钟的讨论课",
+        "presenter": "数据库课程 · 助教课堂",
+        "date": "第 8 周 / 2026 秋季"
+      }
+    },
+    {
+      "template": "quote",
+      "fields": {
+        "title": "今天只解决一个核心问题",
+        "quote": "面对一个新的四表结构，写出关系代数表达式，并解释为什么你的改写减少了中间结果。",
+        "name": "本节学习目标",
+        "role": "能够写出来，也能够说清楚",
+        "imageSrc": ""
+      }
+    },
+    {
+      "template": "agenda",
+      "fields": {
+        "title": "50 分钟的课堂安排",
+        "items": [
+          "回忆：选择与投影的作用",
+          "示范：把筛选推到连接之前",
+          "讨论：逐步解释每次变换",
+          "练习：独立作答后与同伴比较",
+          "回顾：写下一条仍然不清楚的问题"
+        ]
+      }
+    },
+    {
+      "template": "section",
+      "fields": {
+        "number": "01",
+        "title": "从课堂定理到查询实践",
+        "subtitle": "相同的结果，可能有不同的执行成本。",
+        "chapters": [
+          "回忆基础",
+          "共同推导",
+          "独立练习",
+          "总结反思"
+        ]
+      }
+    },
+    {
+      "template": "comparison",
+      "fields": {
+        "title": "等价不意味着同样高效",
+        "col1Heading": "先连接，再筛选",
+        "col1Items": [
+          "先合并完整关系",
+          "产生较大的中间结果",
+          "最后去掉不需要的记录"
+        ],
+        "col2Heading": "先筛选，再连接",
+        "col2Items": [
+          "检查条件引用哪些属性",
+          "在允许的位置提前筛选",
+          "让更少的记录参与连接"
+        ],
+        "col3Heading": "",
+        "col3Items": [],
+        "highlight": "2"
+      }
+    },
+    {
+      "template": "bullets",
+      "fields": {
+        "title": "推导时需要回答的四个问题",
+        "lead": "每次变换都说明依据，而不是只写最后一行。",
+        "items": [
+          {
+            "heading": "这条条件引用哪张表？",
+            "body": "先标出谓词使用的全部属性。"
+          },
+          {
+            "heading": "能否移动到连接之前？",
+            "body": "检查移动后是否仍保留需要的记录。"
+          },
+          {
+            "heading": "结果是否保持一致？",
+            "body": "用一组小数据核对改写前后的输出。"
+          },
+          {
+            "heading": "中间结果为什么会变小？",
+            "body": "解释减少记录发生在哪一步。"
+          }
+        ],
+        "images": []
+      }
+    },
+    {
+      "template": "table",
+      "fields": {
+        "title": "先把四张关系表读清楚",
+        "lead": "示例结构，用于讨论条件可以移动到哪里。",
+        "columns": [
+          "关系",
+          "关键属性",
+          "在查询中的角色"
+        ],
+        "rows": [
+          "Student | sid、name、gpa | 学生与成绩",
+          "Course | cid、title、dept | 课程与所属部门",
+          "Enroll | sid、cid、grade | 学生选课关系",
+          "Term | cid、year、season | 开课时间"
+        ],
+        "highlight": "1",
+        "note": "所有表名和字段均为课堂示例。"
+      }
+    },
+    {
+      "template": "key-points",
+      "fields": {
+        "title": "先独立思考，再解释给同伴",
+        "points": [
+          {
+            "heading": "THINK · 独立思考",
+            "body": "用 90 秒写下第一版表达式，标出不确定的部分。"
+          },
+          {
+            "heading": "PAIR · 两人讨论",
+            "body": "逐行比较答案，找出第一次出现分歧的位置。"
+          },
+          {
+            "heading": "SHARE · 全班交流",
+            "body": "分享分歧和判断依据，而不只展示最终答案。"
+          }
+        ],
+        "images": []
+      }
+    },
+    {
+      "template": "chart",
+      "fields": {
+        "title": "比较中间结果的规模",
+        "chartType": "bar",
+        "labels": [
+          "原始连接",
+          "先筛选一表",
+          "两侧均筛选"
+        ],
+        "values": [
+          1000,
+          320,
+          110
+        ],
+        "unit": "条",
+        "highlight": "2",
+        "delta": "",
+        "callouts": [],
+        "points": [
+          "记录数为演示数据。",
+          "相同逻辑结果可能有不同计算成本。"
+        ],
+        "note": "教学演示，非数据库性能实测。"
+      }
+    },
+    {
+      "template": "key-points",
+      "fields": {
+        "title": "带走三个判断原则",
+        "points": [
+          {
+            "heading": "先检查属性归属",
+            "body": "条件能移动多远，取决于它需要哪些属性。"
+          },
+          {
+            "heading": "仔细理解“每一个”",
+            "body": "不要把全称条件直接当作普通筛选条件。"
+          },
+          {
+            "heading": "同时说明结果与成本",
+            "body": "解释等价性，也解释中间结果为什么不同。"
+          }
+        ],
+        "images": []
+      }
+    },
+    {
+      "template": "faq",
+      "fields": {
+        "title": "用两个问题检查理解",
+        "items": [
+          {
+            "heading": "选择与投影有什么不同？",
+            "body": "选择保留满足条件的记录，投影保留指定的属性。"
+          },
+          {
+            "heading": "提前筛选一定合法？",
+            "body": "需要检查谓词引用的属性和连接语义，不能只凭“更快”就移动。"
+          }
+        ]
+      }
+    },
+    {
+      "template": "closing",
+      "fields": {
+        "message": "今天最不清楚的\n一点是什么？",
+        "submessage": "用一句话写下来：我还不能解释的是……\n下次讨论从这些问题开始。",
+        "contact": "数据库课程 · 课后反馈"
+      }
+    }
+  ]
+}

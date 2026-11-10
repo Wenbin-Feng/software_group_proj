@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { getOriginal } from "../lib/originals";
 import { coursewareHtml } from "../lib/coursewareHtml";
+import SlideFrame, { isSlidemakerHtml } from "./SlideFrame";
 import { WikiMarkdown } from "./Wiki";
 import LearningAnimation from "./Animation";
 
@@ -393,6 +394,11 @@ export default function WorkspacePreview({
         >
           Download PPTX
         </a>
+        {isSlidemakerHtml(material.html) ? (
+          <div className="generated-slides">
+            <SlideFrame html={material.html} title={material.name} />
+          </div>
+        ) : (
         <iframe
           className="generated-html"
           title={material.name}
@@ -406,6 +412,7 @@ export default function WorkspacePreview({
               : material.html
           }
         />
+        )}
       </div>
     );
   if (tab.kind === "material" && material)

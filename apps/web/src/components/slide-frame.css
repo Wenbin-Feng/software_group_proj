@@ -1,0 +1,20 @@
+.slide-frame {
+  position: relative;
+  width: 100%;
+  min-height: 120px;
+  overflow: hidden;
+}
+.slide-frame iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 0;
+  transform-origin: 0 0;
+  background: transparent;
+}
+.generated-slides {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin-top: 12px;
+}

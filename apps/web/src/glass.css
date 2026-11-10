@@ -311,7 +311,8 @@ body {
     .inbox-workspace,
     .course-panel,
     .courseware-form,
-    .courseware-list,
+    .courseware-library,
+    .courseware-edit-panel,
     .courseware-card
   ) {
   background: #ffffff8c;

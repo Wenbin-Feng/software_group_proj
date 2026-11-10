@@ -16,6 +16,7 @@ import { createJobQueue } from "../src/ai/jobs.js";
 import { complete, streamCompletion } from "../src/ai/provider.js";
 import { registerAiRoutes } from "../src/ai/routes.js";
 import { createUsageMeter } from "../src/ai/usage.js";
+import { slideDeck } from "./slide-deck.js";
 
 const slide = (title = "事务隔离") => ({
   title,
@@ -529,7 +530,12 @@ test("queued courseware generates a private editable draft, publishes a real fil
       providerCalls++;
       const input = JSON.parse(String(init?.body));
       const result = input.response_format.json_schema.schema.properties.slides
-        ? deck()
+        ? slideDeck(3, {
+            lang: "zh",
+            title: "数据库并发",
+            text: "两个请求同时读取库存",
+            notes: "提问：哪一步丢失了更新？",
+          })
         : visual();
       return new Response(
         JSON.stringify({
@@ -546,7 +552,8 @@ test("queued courseware generates a private editable draft, publishes a real fil
         materialIds: ["public"],
         topic: "Atomic transactions",
         language: "zh-CN",
-        slideCount: 2,
+        style: "genspark_college",
+        slideCount: 3,
       },
     });
     assert.equal(start.statusCode, 202);
@@ -572,14 +579,40 @@ test("queued courseware generates a private editable draft, publishes a real fil
     assert.equal(job.status, "succeeded", job.error);
     const draft = f.records.courseware[0];
     assert.equal(draft.status, "draft");
+    assert.equal(draft.deck.format, "slidemaker");
+    assert.equal(draft.deck.style, "genspark_college");
+    assert.equal(draft.deck.lang, "zh");
+    assert.deepEqual(draft.deck.slides[1].sources, [
+      { materialId: "public", page: 3 },
+    ]);
+    assert.match(draft.html, /Content-Security-Policy/);
+    assert.doesNotMatch(draft.html, /@font-face/);
     assert.equal(f.records.materials.length, 2);
     assert.equal(
       (await f.app.inject(`/api/courseware/${draft.id}`)).statusCode,
       404,
     );
     f.records.materials[0].archivedAt = new Date().toISOString();
-    const edited = deck();
+    const legacyEdit = await f.app.inject({
+      method: "PATCH",
+      url: `/api/courseware/${draft.id}`,
+      headers: teacher,
+      payload: { deck: deck() },
+    });
+    assert.equal(legacyEdit.statusCode, 400);
+    const tooLong = structuredClone(draft.deck);
+    tooLong.slides[1].fields.items[0].body = "x".repeat(400);
+    const overflow = await f.app.inject({
+      method: "PATCH",
+      url: `/api/courseware/${draft.id}`,
+      headers: teacher,
+      payload: { deck: tooLong },
+    });
+    assert.equal(overflow.statusCode, 400);
+    assert.match(overflow.json().message, /too long|max|chars/i);
+    const edited = structuredClone(draft.deck);
     edited.title = "Edited title";
+    edited.style = "default";
     const save = await f.app.inject({
       method: "PATCH",
       url: `/api/courseware/${draft.id}`,
@@ -849,6 +882,52 @@ test("knowledge cards come from the student's own notes and stay private", async
       ).statusCode,
       404,
     );
+  } finally {
+    globalThis.fetch = original;
+    if (oldKey === undefined) delete process.env.H2A_LLM_API_KEY;
+    else process.env.H2A_LLM_API_KEY = oldKey;
+    await f.close();
+  }
+});
+
+test("courseware generation repairs slides that overflow their layout", async () => {
+  const f = await fixture(),
+    original = globalThis.fetch,
+    oldKey = process.env.H2A_LLM_API_KEY;
+  process.env.H2A_LLM_API_KEY = "mock-test-key";
+  const prompts: string[] = [];
+  try {
+    globalThis.fetch = (async (_url, init) => {
+      const input = JSON.parse(String(init?.body));
+      prompts.push(input.messages.at(-1).content);
+      const result =
+        prompts.length === 1 ? slideDeck(4, { text: "x".repeat(400) }) : slideDeck(4);
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: JSON.stringify(result) } }] }),
+      );
+    }) as typeof fetch;
+    const start = await f.app.inject({
+      method: "POST",
+      url: "/api/courseware",
+      headers: { "x-role": "teacher" },
+      payload: { courseId: "course", materialIds: ["public"], topic: "Atomicity", slideCount: 4 },
+    });
+    assert.equal(start.statusCode, 202, start.body);
+    const until = Date.now() + 5000;
+    let job: any;
+    while (Date.now() < until) {
+      job = (
+        await f.app.inject({ url: `/api/jobs/${start.json().jobId}`, headers: { "x-role": "teacher" } })
+      ).json().job;
+      if (job.status === "succeeded" || job.status === "failed") break;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    assert.equal(job.status, "succeeded", job.error);
+    assert.equal(prompts.length, 2);
+    assert.match(prompts[1], /Repair the previous response/);
+    assert.match(prompts[1], /400 chars, too long/);
+    assert.equal(f.records.courseware[0].deck.slides.length, 4);
+    assert.equal(f.records.courseware[0].deck.style, "default");
   } finally {
     globalThis.fetch = original;
     if (oldKey === undefined) delete process.env.H2A_LLM_API_KEY;

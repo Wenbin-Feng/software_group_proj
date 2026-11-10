@@ -14,7 +14,48 @@ import {
 import { useApp } from "../context";
 import { api } from "../lib/api";
 import { coursewareHtml } from "../lib/coursewareHtml";
+import SlideFieldsEditor from "./SlideFieldsEditor";
+import SlideFrame from "./SlideFrame";
 import "./courseware.css";
+
+const STYLES = [
+  {
+    id: "default",
+    name: "Clean",
+    note: "Navy and bright blue on white",
+    swatch: ["#0F1B33", "#2571FF", "#00AADF"],
+  },
+  {
+    id: "genspark_college",
+    name: "College",
+    note: "Academic blue and gold on warm paper",
+    swatch: ["#0E3A5F", "#9B8033", "#F4F1EC"],
+  },
+];
+const LANGS = [
+  { id: "en", name: "English" },
+  { id: "zh", name: "简体中文" },
+  { id: "ja", name: "日本語" },
+];
+const EMPTY_FORM = {
+  topic: "",
+  requirements: "",
+  lang: "en",
+  style: "default",
+  slideCount: 10,
+  materialIds: [],
+};
+const layoutName = (slide) =>
+  String(slide.template || slide.layout || "").replace(/-/g, " ");
+// Blank lines left while typing are not slide content.
+const tidy = (value) =>
+  Array.isArray(value)
+    ? value.every((item) => typeof item === "string")
+      ? value.map((item) => item.trim()).filter(Boolean)
+      : value.map(tidy)
+    : value && typeof value === "object"
+      ? Object.fromEntries(Object.entries(value).map(([k, v]) => [k, tidy(v)]))
+      : value;
 
 export default function Courseware() {
   const { data, courseId, toast, refresh } = useApp();
@@ -24,13 +65,7 @@ export default function Courseware() {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({
-    topic: "",
-    requirements: "",
-    language: "English",
-    slideCount: 10,
-    materialIds: [],
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [deck, setDeck] = useState(null),
     [dirty, setDirty] = useState(false),
     [editor, setEditor] = useState(0);
@@ -53,13 +88,7 @@ export default function Courseware() {
     setDeck(null);
     setJob(null);
     setError("");
-    setForm({
-      topic: "",
-      requirements: "",
-      language: "English",
-      slideCount: 10,
-      materialIds: [],
-    });
+    setForm(EMPTY_FORM);
     Promise.all([
       api(`/api/courseware?courseId=${encodeURIComponent(courseId)}`),
       api(`/api/jobs?courseId=${encodeURIComponent(courseId)}`),
@@ -163,9 +192,21 @@ export default function Courseware() {
     try {
       const result = await api(`/api/courseware/${selected.id}`, {
         method: "PATCH",
-        body: { deck },
+        body: {
+          deck:
+            deck.format === "slidemaker"
+              ? {
+                  ...deck,
+                  slides: deck.slides.map((slide) => ({
+                    ...slide,
+                    fields: tidy(slide.fields),
+                  })),
+                }
+              : deck,
+        },
       });
       setSelected(result.courseware);
+      setDeck(structuredClone(result.courseware.deck));
       setDirty(false);
       await loadItems();
       notify("Changes saved.");
@@ -205,11 +246,12 @@ export default function Courseware() {
     setDirty(true);
   }
   const pending = job && ["queued", "running"].includes(job.status);
+  const slidemaker = deck?.format === "slidemaker";
+  const slide = deck?.slides[editor];
   return (
     <section className="courseware" aria-label="Teacher courseware">
       <header className="courseware-header">
         <div>
-          <span className="courseware-kicker">TEACHING STUDIO</span>
           <h2>Courseware</h2>
           <p>
             Turn your course materials into a lesson you can edit and share.
@@ -296,6 +338,24 @@ export default function Courseware() {
                 <span className="courseware-unsaved">Unsaved changes</span>
               )}
             </div>
+            {slidemaker && (
+              <label className="courseware-style-pick">
+                PowerPoint style
+                <select
+                  value={deck.style}
+                  onChange={(e) => {
+                    setDeck({ ...deck, style: e.target.value });
+                    setDirty(true);
+                  }}
+                >
+                  {STYLES.map((style) => (
+                    <option key={style.id} value={style.id}>
+                      {style.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <div>
               <button
                 className="btn btn-outline"
@@ -349,6 +409,7 @@ export default function Courseware() {
                     key={i}
                     role="tab"
                     aria-selected={i === editor}
+                    title={layoutName(slide)}
                     onClick={() => setEditor(i)}
                   >
                     {i + 1}
@@ -356,9 +417,16 @@ export default function Courseware() {
                 ))}
               </div>
               <span className="courseware-kicker">
-                SLIDE {editor + 1} ·{" "}
-                {deck.slides[editor].layout.replace("-", " ")}
+                SLIDE {editor + 1} · {layoutName(slide)}
               </span>
+              {slidemaker ? (
+                <SlideFieldsEditor
+                  key={editor}
+                  fields={slide.fields}
+                  onChange={(fields) => editSlide("fields", fields)}
+                />
+              ) : (
+              <>
               <label>
                 Title
                 <input
@@ -413,11 +481,13 @@ export default function Courseware() {
                   />
                 </label>
               )}
+              </>
+              )}
               <label>
                 Teaching notes
                 <textarea
                   rows={4}
-                  maxLength={4000}
+                  maxLength={slidemaker ? 1500 : 4000}
                   value={deck.slides[editor].notes}
                   onChange={(e) => editSlide("notes", e.target.value)}
                 />
@@ -434,20 +504,41 @@ export default function Courseware() {
                 </p>
               )}
               <p className="courseware-help">
-                Save changes to refresh the preview and enable export. Complex
-                animations become static slides in PowerPoint.
+                {slidemaker
+                  ? "Save changes to refresh the preview and enable export. Text that would overflow its layout is rejected with the field to shorten. Notes become PowerPoint speaker notes."
+                  : "Save changes to refresh the preview and enable export. Complex animations become static slides in PowerPoint."}
               </p>
             </div>
             <div className="courseware-preview">
               <div>
                 <Presentation size={15} /> Saved preview <span>16:9</span>
               </div>
-              <iframe
-                title="Courseware preview"
-                srcDoc={coursewareHtml(selected.html)}
-                sandbox=""
-                referrerPolicy="no-referrer"
-              />
+              {slidemaker ? (
+                <>
+                  {selected.deck.style !== "default" && (
+                    <p className="courseware-preview-note">
+                      The preview shows each layout. The PowerPoint file uses
+                      the{" "}
+                      {STYLES.find((style) => style.id === selected.deck.style)
+                        ?.name || "selected"}{" "}
+                      style.
+                    </p>
+                  )}
+                  <div className="courseware-preview-scroll">
+                    <SlideFrame
+                      html={selected.html}
+                      title="Courseware preview"
+                    />
+                  </div>
+                </>
+              ) : (
+                <iframe
+                  title="Courseware preview"
+                  srcDoc={coursewareHtml(selected.html)}
+                  sandbox=""
+                  referrerPolicy="no-referrer"
+                />
+              )}
             </div>
           </div>
         </div>
@@ -488,14 +579,14 @@ export default function Courseware() {
                 <select
                   aria-label="Language"
                   id="courseware-language"
-                  value={form.language}
-                  onChange={(e) =>
-                    setForm({ ...form, language: e.target.value })
-                  }
+                  value={form.lang}
+                  onChange={(e) => setForm({ ...form, lang: e.target.value })}
                 >
-                  <option>English</option>
-                  <option value="zh-CN">简体中文</option>
-                  <option value="zh-HK">繁體中文</option>
+                  {LANGS.map((lang) => (
+                    <option key={lang.id} value={lang.id}>
+                      {lang.name}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label htmlFor="courseware-count">
@@ -503,7 +594,7 @@ export default function Courseware() {
                 <input
                   id="courseware-count"
                   type="number"
-                  min={1}
+                  min={3}
                   max={20}
                   required
                   value={form.slideCount}
@@ -513,6 +604,34 @@ export default function Courseware() {
                 />
               </label>
             </div>
+            <fieldset className="courseware-styles">
+              <legend>PowerPoint style</legend>
+              <div>
+                {STYLES.map((style) => (
+                  <label
+                    key={style.id}
+                    className={form.style === style.id ? "selected" : ""}
+                  >
+                    <input
+                      type="radio"
+                      name="courseware-style"
+                      value={style.id}
+                      checked={form.style === style.id}
+                      onChange={() => setForm({ ...form, style: style.id })}
+                    />
+                    <span className="courseware-swatch" aria-hidden="true">
+                      {style.swatch.map((color) => (
+                        <i key={color} style={{ background: color }} />
+                      ))}
+                    </span>
+                    <span>
+                      <strong>{style.name}</strong>
+                      <small>{style.note}</small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             <fieldset>
               <legend>
                 Course sources <span>{form.materialIds.length} selected</span>
@@ -577,8 +696,9 @@ export default function Courseware() {
                 <Presentation size={35} />
                 <h3>Your next lesson starts here.</h3>
                 <p>
-                  Select your materials and describe the lesson. You will get an
-                  HTML preview and an editable PowerPoint file.
+                  Select your materials and describe the lesson. Folio picks a
+                  layout for every slide and gives you an editable PowerPoint
+                  file with speaker notes.
                 </p>
               </div>
             ) : (

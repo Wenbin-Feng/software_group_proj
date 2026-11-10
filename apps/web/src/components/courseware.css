@@ -27,9 +27,10 @@
 }
 .courseware-header h2 {
   font-family: var(--font-ui, "Inter", sans-serif);
-  font-size: 34px;
-  font-weight: 400;
-  margin: 7px 0;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.6px;
+  margin: 0 0 8px;
 }
 .courseware-header p,
 .courseware-help,
@@ -368,12 +369,14 @@
 .courseware-preview {
   padding: 0;
   overflow: hidden;
+  border-radius: 20px;
+  border-color: #ffffffc9;
   background: #edf0f6;
   display: flex;
   flex-direction: column;
   min-height: 560px;
 }
-.courseware-preview > div {
+.courseware-preview > div:first-child {
   display: flex;
   gap: 8px;
   align-items: center;
@@ -383,11 +386,11 @@
   color: #758098;
   border-bottom: 1px solid #e1e5ee;
 }
-.courseware-preview > div span {
+.courseware-preview > div:first-child span {
   margin-left: auto;
   font-size: 10px;
 }
-.courseware-preview iframe {
+.courseware-preview > iframe {
   border: 0;
   width: 100%;
   flex: 1;
@@ -486,4 +489,143 @@
   .courseware {
     padding-top: 14px;
   }
+}
+
+.courseware-preview-scroll {
+  flex: 1;
+  min-height: 0;
+  max-height: 78vh;
+  overflow: auto;
+  padding: 4px 6px;
+}
+.courseware-preview-note {
+  margin: 0;
+  padding: 9px 16px;
+  font-size: 11px;
+  color: #6b5a2c;
+  background: #fbf6e8;
+  border-bottom: 1px solid #efe6cc;
+}
+.courseware-style-pick {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  margin: 0 !important;
+  font-size: 11px !important;
+  color: #758098;
+  white-space: nowrap;
+}
+.courseware-style-pick select {
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  border: 1px solid #d9deea;
+  background: #fff;
+  font: inherit;
+  color: #202d44;
+}
+.courseware-styles > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+.courseware-styles label {
+  position: relative;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 12px;
+  margin: 0 !important;
+  padding: 12px 14px;
+  border: 1px solid #e1e5ee;
+  border-radius: 14px;
+  background: #ffffffb3;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.courseware-styles label.selected {
+  border-color: #3156d3;
+  box-shadow: 0 0 0 3px #3156d31f;
+}
+.courseware-styles input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.courseware-styles label:has(input:focus-visible) {
+  outline: 2px solid #3156d3;
+  outline-offset: 2px;
+}
+.courseware-styles strong {
+  display: block;
+  font-size: 13px;
+  color: #202d44;
+}
+.courseware-styles small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #758098;
+}
+.courseware-swatch {
+  display: flex;
+  flex-shrink: 0;
+}
+.courseware-swatch i {
+  width: 16px;
+  height: 30px;
+  border: 1px solid #0000001a;
+}
+.courseware-swatch i:first-child {
+  border-radius: 8px 0 0 8px;
+}
+.courseware-swatch i:last-child {
+  border-radius: 0 8px 8px 0;
+}
+.slide-fields-group {
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid #e6eaf2;
+  border-radius: 12px;
+  background: #f8f9fc;
+  min-width: 0;
+}
+.slide-fields-group legend {
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #202d44;
+}
+.slide-fields-group legend span {
+  margin-left: 6px;
+  font-weight: 400;
+  color: #8692a5;
+}
+.slide-fields-item {
+  padding: 10px 12px 2px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #eef0f5;
+}
+.slide-fields-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: #8692a5;
+}
+.slide-fields-item-head .icon-btn {
+  min-width: 30px;
+  min-height: 30px;
+}
+.slide-fields-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
 }

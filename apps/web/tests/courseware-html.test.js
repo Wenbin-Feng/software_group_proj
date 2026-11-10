@@ -25,3 +25,9 @@ test("courseware without a saved head keeps its body when display styles are add
   assert.equal(coursewareHtml(coursewareHtml(source)), coursewareHtml(source));
   assert.equal(coursewareHtml(""), "");
 });
+
+test("SlideMaker courseware keeps its own stylesheet", () => {
+  const source =
+    '<!DOCTYPE html><html><head><meta name="generator" content="slidemaker"><style>.slide{}</style></head><body></body></html>';
+  assert.equal(coursewareHtml(source), source);
+});
