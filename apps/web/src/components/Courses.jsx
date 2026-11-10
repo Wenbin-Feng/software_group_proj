@@ -247,7 +247,11 @@ export default function Courses() {
                   (Date.parse(a.updatedAt) || 0),
               );
             const notes = (data.notes || []).filter(
-              (note) => note.courseId === item.id && belongsToUser(note),
+              (note) =>
+                note.courseId === item.id &&
+                !note.ledger &&
+                !note.wikiRoot &&
+                belongsToUser(note),
             );
             const recent = sessions[0];
             return (

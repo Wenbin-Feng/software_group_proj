@@ -2693,3 +2693,36 @@
 .wiki-mode-switch button.active {
   border-color: currentColor;
 }
+
+.wiki-table {
+  margin: 12px 0 18px;
+  overflow-x: auto;
+  border: 1px solid #e6e9f1;
+  border-radius: 10px;
+}
+.wiki-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+  line-height: 1.55;
+}
+.wiki-table th,
+.wiki-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eef0f5;
+  vertical-align: top;
+}
+.wiki-table th {
+  background: #f6f7fb;
+  color: #38445e;
+  font-weight: 600;
+}
+.wiki-table tr:last-child td {
+  border-bottom: 0;
+}
+.wiki-modal-note {
+  margin: 0 0 16px;
+  color: #5b6579;
+  font-size: 13px;
+  line-height: 1.6;
+}

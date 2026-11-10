@@ -31,6 +31,9 @@ export function createStore(
       "INSERT INTO records(collection,id,json) VALUES(?,?,?) ON CONFLICT(collection,id) DO UPDATE SET json=excluded.json",
     ).run(collection, record.id, JSON.stringify(record));
   };
+  const remove = (collection: string, id: string) => {
+    db.prepare("DELETE FROM records WHERE collection=? AND id=?").run(collection, id);
+  };
   const enrolled = (userId: string, courseId: string) =>
     all("enrollments").some(
       (e) => e.studentId === userId && e.courseId === courseId,
@@ -140,6 +143,7 @@ export function createStore(
     all,
     get,
     put,
+    remove,
     canTeach,
     canReadCourse,
     canReadMaterial,

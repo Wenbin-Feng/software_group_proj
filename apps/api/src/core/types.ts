@@ -26,6 +26,7 @@ export interface FolioCore {
   all: (collection: string) => RecordData[];
   get: (collection: string, id: string) => RecordData | undefined;
   put: (collection: string, record: RecordData) => void;
+  remove: (collection: string, id: string) => void;
   canReadCourse: (user: User, id: string) => boolean;
   canTeach: (user: User, id: string) => boolean;
   canReadMaterial: (user: User, record: RecordData) => boolean;

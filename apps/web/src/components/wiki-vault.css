@@ -1095,3 +1095,15 @@
     display: inline;
   }
 }
+
+.obsidian-vault .wiki-table {
+  border-color: #3b3449;
+}
+.obsidian-vault .wiki-table th {
+  background: #24212d;
+  color: #ece7f5;
+}
+.obsidian-vault .wiki-table th,
+.obsidian-vault .wiki-table td {
+  border-bottom-color: #322d3d;
+}

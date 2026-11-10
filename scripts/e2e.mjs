@@ -38,6 +38,7 @@ const server = createServer(async (req, res) => {
         worthSaving: true,
         reason: "The explanation defines an atomic inventory update.",
         takeaways: "An atomic update protects the inventory check.",
+        overview: "",
         pages: [
           {
             action: "create",
@@ -46,16 +47,7 @@ const server = createServer(async (req, res) => {
             title: "Atomic inventory update",
             summary: "An atomic update protects the check and the write.",
             tags: ["database", "concurrency"],
-            claims: [
-              {
-                text: "An atomic update protects the check and the write.",
-                provenance: "extracted",
-              },
-              {
-                text: "A transaction alone does not define isolation.",
-                provenance: "inferred",
-              },
-            ],
+            body: "An atomic update protects the check and the write in one statement.\n\n## Why it matters\n\nA transaction alone does not define isolation.\n\n| Approach | Protects |\n| --- | --- |\n| Conditional update | Check and write |",
             openQuestions: [],
             links: [],
             relationships: [],

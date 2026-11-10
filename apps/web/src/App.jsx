@@ -266,8 +266,12 @@ export default function App({
         ];
   const noteCount =
     role === "student"
-      ? data.notes.filter((note) => canReadPrivateNote(data, actor, note))
-          .length
+      ? data.notes.filter(
+          (note) =>
+            !note.ledger &&
+            !note.wikiRoot &&
+            canReadPrivateNote(data, actor, note),
+        ).length
       : 0;
   useEffect(() => {
     if (route.courseId && courseExists && canReadCourse(data, actor, course.id))
@@ -1001,6 +1005,7 @@ function SearchDialog({ onClose }) {
       ...data.notes
         .filter(
           (item) =>
+            !item.ledger &&
             canReadPrivateNote(data, actor, item) &&
             withinCourse(item) &&
             matches(item.title),

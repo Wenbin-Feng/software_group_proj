@@ -22,6 +22,7 @@ import { api, streamChat, flushChanges } from "../lib/api";
 import { waitForJob, WIKI_STEPS, VISUAL_STEPS } from "../lib/jobs";
 import TaskProgress from "./TaskProgress";
 import { canReadMaterial, canReadSession, isEnrolled } from "../lib/access";
+import { tableAt } from "../lib/markdownTable";
 import LearningAnimation from "./Animation";
 import "./studio.css";
 
@@ -40,59 +41,177 @@ const uid = (prefix) =>
 const cleanTitle = (text) =>
   text.length > 48 ? `${text.slice(0, 45)}…` : text;
 
-function chatInline(text, key) {
+// Citation markers [S4] point at retrieved passages. Sources are stored in
+// order of first citation, so the n-th distinct marker is the n-th source.
+function citationMap(text, sources) {
+  const order = new Map();
+  for (const match of String(text).matchAll(/\[S(\d+)\]/g))
+    if (!order.has(match[1])) order.set(match[1], order.size);
+  return (number) => {
+    const index = order.get(number);
+    return index === undefined || !sources?.[index] ? null : index;
+  };
+}
+function chatInline(text, key, cite) {
   return String(text)
-    .split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
+    .split(/(\*\*[^*]+\*\*|`[^`]+`|\[S\d+\]|\[\[[^\[\]\n]+\]\]|(?<![*\w])\*[^*\s][^*\n]*\*(?![*\w]))/g)
     .map((part, index) => {
+      const id = `${key}-${index}`;
       if (part.startsWith("**") && part.endsWith("**"))
-        return <strong key={`${key}-${index}`}>{part.slice(2, -2)}</strong>;
+        return <strong key={id}>{part.slice(2, -2)}</strong>;
       if (part.startsWith("`") && part.endsWith("`"))
-        return <code key={`${key}-${index}`}>{part.slice(1, -1)}</code>;
+        return <code key={id}>{part.slice(1, -1)}</code>;
+      const wiki = part.match(/^\[\[([^\[\]\n]+)\]\]$/);
+      if (wiki) {
+        const [destination, alias] = wiki[1].split("|");
+        const target = destination.split("#")[0].trim();
+        const label = (alias || destination).trim();
+        const note = cite?.findNote?.(target);
+        return note ? (
+          <button
+            key={id}
+            type="button"
+            className="studio-wiki-link"
+            onClick={() => cite.openNote(note)}
+          >
+            {label}
+          </button>
+        ) : (
+          label
+        );
+      }
+      const marker = part.match(/^\[S(\d+)\]$/);
+      if (marker) {
+        const found = cite?.lookup(marker[1]);
+        if (found === null || found === undefined)
+          return cite?.lookup ? null : <span key={id} className="studio-cite is-pending">{marker[1]}</span>;
+        return (
+          <button
+            key={id}
+            type="button"
+            className="studio-cite"
+            title={`${cite.sources[found].name}, page ${cite.sources[found].page}`}
+            aria-label={`Source ${found + 1}: ${cite.sources[found].name}, page ${cite.sources[found].page}`}
+            onClick={() => cite.open(cite.sources[found])}
+          >
+            {found + 1}
+          </button>
+        );
+      }
+      if (part.length > 2 && part.startsWith("*") && part.endsWith("*"))
+        return <em key={id}>{part.slice(1, -1)}</em>;
       return part;
     });
 }
-function ChatMarkdown({ text = "" }) {
+function ChatMarkdown({ text = "", sources, onSource, findNote, openNote }) {
+  const cite = sources
+    ? { lookup: citationMap(text, sources), sources, open: onSource, findNote, openNote }
+    : null;
+  const inline = (value, key) => chatInline(value, key, cite);
   const blocks = [];
   let list = [];
   let ordered = false;
-  const flush = () => {
+  let paragraph = [];
+  const flushList = () => {
     if (!list.length) return;
     const items = list;
+    const key = `list-${blocks.length}`;
+    const Tag = ordered ? "ol" : "ul";
     blocks.push(
-      ordered ? (
-        <ol key={`list-${blocks.length}`}>
-          {items.map((item, index) => (
-            <li key={index}>{chatInline(item, `ol-${blocks.length}-${index}`)}</li>
-          ))}
-        </ol>
-      ) : (
-        <ul key={`list-${blocks.length}`}>
-          {items.map((item, index) => (
-            <li key={index}>{chatInline(item, `ul-${blocks.length}-${index}`)}</li>
-          ))}
-        </ul>
-      ),
+      <Tag key={key}>
+        {items.map((item, index) => (
+          <li key={index}>{inline(item, `${key}-${index}`)}</li>
+        ))}
+      </Tag>,
     );
     list = [];
   };
-  text.split("\n").forEach((line) => {
-    const heading = line.match(/^(#{1,3})\s+(.+)$/);
-    const bullet = line.match(/^\s*[-*]\s+(.+)$/);
-    const number = line.match(/^\s*\d+\.\s+(.+)$/);
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+    const key = `p-${blocks.length}`;
+    blocks.push(<p key={key}>{inline(paragraph.join("\n"), key)}</p>);
+    paragraph = [];
+  };
+  const flush = () => {
+    flushList();
+    flushParagraph();
+  };
+  const lines = String(text).split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^\s*```/.test(line)) {
+      flush();
+      const code = [];
+      for (i++; i < lines.length && !/^\s*```/.test(lines[i]); i++) code.push(lines[i]);
+      blocks.push(
+        <pre key={`code-${blocks.length}`}>
+          <code>{code.join("\n")}</code>
+        </pre>,
+      );
+      continue;
+    }
+    const table = tableAt(lines, i);
+    if (table) {
+      flush();
+      const key = `table-${blocks.length}`;
+      blocks.push(
+        <div className="studio-table" key={key}>
+          <table>
+            <thead>
+              <tr>
+                {table.head.map((cell, c) => (
+                  <th key={c} style={{ textAlign: table.align[c] }}>
+                    {inline(cell, `${key}-h${c}`)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {table.rows.map((row, r) => (
+                <tr key={r}>
+                  {row.map((cell, c) => (
+                    <td key={c} style={{ textAlign: table.align[c] }}>
+                      {inline(cell, `${key}-${r}-${c}`)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+      i = table.end - 1;
+      continue;
+    }
+    const heading = line.match(/^(#{1,4})\s+(.+)$/);
+    const bullet = line.match(/^\s*[-*+]\s+(.+)$/);
+    const number = line.match(/^\s*\d+[.)]\s+(.+)$/);
     if (heading) {
       flush();
-      blocks.push(
-        <h4 key={`h-${blocks.length}`}>{chatInline(heading[2], `h-${blocks.length}`)}</h4>,
-      );
+      const key = `h-${blocks.length}`;
+      blocks.push(<h4 key={key}>{inline(heading[2], key)}</h4>);
+    } else if (/^\s*>/.test(line)) {
+      flush();
+      const quote = [];
+      for (; i < lines.length && /^\s*>/.test(lines[i]); i++)
+        quote.push(lines[i].replace(/^\s*>\s?/, ""));
+      i--;
+      const key = `q-${blocks.length}`;
+      blocks.push(<blockquote key={key}>{inline(quote.join("\n"), key)}</blockquote>);
+    } else if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+      flush();
+      blocks.push(<hr key={`hr-${blocks.length}`} />);
     } else if (bullet || number) {
+      flushParagraph();
+      if (list.length && ordered !== Boolean(number)) flushList();
       if (!list.length) ordered = Boolean(number);
       list.push((bullet || number)[1]);
     } else if (!line.trim()) flush();
     else {
-      flush();
-      blocks.push(<p key={`p-${blocks.length}`}>{chatInline(line, `p-${blocks.length}`)}</p>);
+      flushList();
+      paragraph.push(line);
     }
-  });
+  }
   flush();
   return blocks;
 }
@@ -517,6 +636,37 @@ export default function Studio({
     );
   }
 
+  // [[Links]] in an answer open the student's own wiki page of that title.
+  function findWikiNote(title) {
+    const wanted = String(title || "").trim().toLocaleLowerCase();
+    if (!wanted || isTeacher) return null;
+    return (
+      (data.notes || []).find(
+        (note) =>
+          note.courseId === courseId &&
+          !note.ledger &&
+          note.title.trim().toLocaleLowerCase() === wanted,
+      ) || null
+    );
+  }
+  function openWikiNote(note) {
+    navigate("wiki", {
+      wikiId: note.wikiId || (note.wikiRoot ? note.id : undefined),
+      noteId: note.id,
+      courseId: note.courseId,
+    });
+  }
+  // A source is a course page, or a wiki page when /query answered from a wiki.
+  function openSource(source) {
+    const page = data.notes.find((note) => note.id === source.materialId);
+    if (page)
+      navigate("wiki", {
+        wikiId: page.wikiId,
+        noteId: page.id,
+        courseId: page.courseId,
+      });
+    else openMaterial(source.materialId, source.page);
+  }
   function selectSession(id) {
     const next = sessions.find((item) => item.id === id);
     if (!next || !canReadSession(data, actor, next)) return;
@@ -905,7 +1055,13 @@ export default function Studio({
                   )}
                   <div className="studio-message-content">
                     {message.role === "assistant" ? (
-                      <ChatMarkdown text={message.content} />
+                      <ChatMarkdown
+                        text={message.content}
+                        sources={message.sources || []}
+                        onSource={openSource}
+                        findNote={findWikiNote}
+                        openNote={openWikiNote}
+                      />
                     ) : (
                       message.content.split("\n\n").map((paragraph, i) => (
                         <p key={i}>{paragraph}</p>
@@ -917,19 +1073,9 @@ export default function Studio({
                       {message.sources.map((source, i) => (
                         <button
                           key={`${source.materialId}-${source.page}-${i}`}
-                          onClick={() => {
-                            const page = data.notes.find(
-                              (note) => note.id === source.materialId,
-                            );
-                            if (page)
-                              navigate("wiki", {
-                                wikiId: page.wikiId,
-                                noteId: page.id,
-                                courseId: page.courseId,
-                              });
-                            else openMaterial(source.materialId, source.page);
-                          }}
+                          onClick={() => openSource(source)}
                         >
+                          <i className="studio-source-number">{i + 1}</i>
                           <FileText size={12} />
                           <span>{source.name}</span>
                           <b>p. {source.page}</b>

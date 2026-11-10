@@ -2495,3 +2495,115 @@
 .studio-message.from-assistant .studio-message-content {
   min-height: 1.75em;
 }
+
+/* Rich answers: tables, quotes, code and numbered citations. */
+.studio-message-content em {
+  font-style: italic;
+}
+.studio-message-content blockquote {
+  margin: 0.5em 0 0.9em;
+  padding: 0.55em 0.9em;
+  border-left: 3px solid #b9c7f5;
+  background: #f6f8fe;
+  border-radius: 0 8px 8px 0;
+  color: #4a5670;
+  white-space: pre-line;
+}
+.studio-message-content pre {
+  margin: 0.5em 0 0.9em;
+  padding: 0.7em 0.9em;
+  background: #f5f7fb;
+  border: 1px solid #e6eaf3;
+  border-radius: 8px;
+  overflow-x: auto;
+  line-height: 1.55;
+}
+.studio-message-content pre code {
+  white-space: pre;
+}
+.studio-message-content hr {
+  border: 0;
+  border-top: 1px solid #e8ebf2;
+  margin: 1em 0;
+}
+.studio-table {
+  margin: 0.5em 0 1em;
+  overflow-x: auto;
+  border: 1px solid #e3e8f3;
+  border-radius: 10px;
+}
+.studio-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.94em;
+  line-height: 1.55;
+}
+.studio-table th,
+.studio-table td {
+  padding: 7px 11px;
+  border-bottom: 1px solid #edf0f6;
+  vertical-align: top;
+}
+.studio-table th {
+  background: #f6f8fc;
+  color: #34405a;
+  font-weight: 600;
+}
+.studio-table tr:last-child td {
+  border-bottom: 0;
+}
+.studio-cite {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.45em;
+  height: 1.45em;
+  margin: 0 1px 0 2px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 999px;
+  background: #e9eefc;
+  color: #3156d3;
+  font-size: 0.72em;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: 0.35em;
+  cursor: pointer;
+}
+.studio-cite:hover,
+.studio-cite:focus-visible {
+  background: #3156d3;
+  color: #fff;
+}
+.studio-cite.is-pending {
+  cursor: default;
+  background: #eef0f5;
+  color: #8a94a8;
+}
+.studio-source-number {
+  display: inline-grid;
+  place-items: center;
+  min-width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #e9eefc;
+  color: #3156d3;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 0.95em;
+}
+.studio-wiki-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #3156d3;
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: #b9c7f5;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.studio-wiki-link:hover,
+.studio-wiki-link:focus-visible {
+  text-decoration-color: currentColor;
+}

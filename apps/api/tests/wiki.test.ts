@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   compileWiki,
   validateWikiPlan,
+  wikiCapturePrompt,
   wikiConfidence,
   type WikiPlan,
 } from "../src/ai/wiki.js";
@@ -19,79 +20,75 @@ const base = {
   materials: [{ id: "git-ppt", name: "Using Git every day.pptx", page: 3 }],
 };
 
-function plan(extra: Partial<WikiPlan> = {}): WikiPlan {
+const page = (extra: Record<string, unknown> = {}) => ({
+  action: "create",
+  matchTitle: "",
+  type: "concept",
+  title: "Working tree",
+  summary: "The working tree holds the files you are editing.",
+  tags: ["git", "workflow"],
+  body:
+    "The working tree holds the files you are editing. Changes move from here to the [[Staging area]] before a commit.\n\n## Clean and dirty\n\nA clean working tree matches the latest commit.",
+  openQuestions: [],
+  links: ["Staging area"],
+  relationships: [{ target: "Staging area", type: "uses" }],
+  ...extra,
+});
+
+function plan(extra: Partial<Record<keyof WikiPlan, unknown>> = {}): WikiPlan {
   return validateWikiPlan({
     worthSaving: true,
     reason: "The explanation defines the working tree.",
     takeaways: "The working tree is now distinct from the repository.",
-    pages: [
-      {
-        action: "create",
-        matchTitle: "",
-        type: "concept",
-        title: "Working tree",
-        summary: "The working tree holds the files you are editing.",
-        tags: ["git", "workflow"],
-        claims: [
-          {
-            text: "The working tree holds the files you are editing.",
-            provenance: "extracted",
-          },
-          {
-            text: "A clean working tree means the files match the latest commit.",
-            provenance: "inferred",
-          },
-        ],
-        openQuestions: [],
-        links: ["Staging area"],
-        relationships: [{ target: "Staging area", type: "uses" }],
-      },
-    ],
+    overview: "",
+    pages: [page()],
     ...extra,
   });
 }
 
-test("wiki compile writes a declarative page, provenance, and the vault ledgers", () => {
-  const existing = [
-    {
-      id: "note-staging",
-      courseId: base.courseId,
-      studentId: base.studentId,
-      title: "Staging area",
-      category: "Concepts",
-      path: "concepts/staging-area.md",
-      content: "# Staging area\n\nFiles chosen for the next commit.\n",
-      tags: ["git"],
-      links: [],
-      summary: "Files chosen for the next commit.",
-    },
-  ];
+const staging = {
+  id: "note-staging",
+  courseId: base.courseId,
+  studentId: base.studentId,
+  title: "Staging area",
+  category: "Concepts",
+  path: "concepts/staging-area.md",
+  content: "# Staging area\n\nFiles chosen for the next commit.\n",
+  tags: ["git"],
+  links: [],
+  summary: "Files chosen for the next commit.",
+};
+
+test("wiki compile writes a prose page with inline links and the vault ledgers", () => {
+  const existing = [staging];
   const compiled = compileWiki({ ...base, existing, plan: plan() });
   assert.equal(compiled.result.saved, true);
   assert.equal(compiled.result.created, 1);
   assert.equal(compiled.result.path, "concepts/working-tree.md");
-  const page = compiled.records.find((note) => note.title === "Working tree");
-  assert.match(page.content, /base_confidence: 0\.66/);
-  assert.match(page.content, /lifecycle: draft/);
-  assert.match(page.content, /## What It Is/);
-  assert.match(page.content, /## How It Works/);
-  assert.match(page.content, /\^\[inferred\]/);
-  assert.match(page.content, /\[\[Staging area\]\]/);
-  assert.match(page.content, /agent:folio\/session-1\/message-1/);
-  assert.equal(page.wiki.baseConfidence, wikiConfidence(1));
-  assert.equal(page.links.includes("note-staging"), true);
-  const manifest = compiled.records.find((note) => note.ledger === "manifest");
+  const note = compiled.records.find((item) => item.title === "Working tree");
+  assert.match(note.content, /base_confidence: 0\.66/);
+  assert.match(note.content, /lifecycle: draft/);
+  assert.match(note.content, /^# Working tree$/m);
+  assert.match(note.content, /move from here to the \[\[Staging area\]\] before/);
+  assert.match(note.content, /## Clean and dirty\n\nA clean working tree/);
+  assert.doesNotMatch(note.content, /What It Is|\^\[inferred\]/);
+  // A link already written in the text is not repeated under Related.
+  assert.doesNotMatch(note.content, /## Related/);
+  assert.match(note.content, /agent:folio\/session-1\/message-1/);
+  assert.equal(note.wiki.baseConfidence, wikiConfidence(1));
+  assert.deepEqual(note.links, ["note-staging"]);
+  const manifest = compiled.records.find((item) => item.ledger === "manifest");
   assert.equal(manifest.manifest.sources["agent:folio/session-1/message-1"].source_type, "data");
   assert.match(
-    compiled.records.find((note) => note.ledger === "log").content,
+    compiled.records.find((item) => item.ledger === "log").content,
     /CAPTURE source="agent:folio\/session-1\/message-1" pages_created=1 pages_updated=0/,
   );
   assert.match(
-    compiled.records.find((note) => note.ledger === "index").content,
+    compiled.records.find((item) => item.ledger === "index").content,
     /\[\[Working tree\]\] — /,
   );
   assert.match(
-    compiled.records.find((note) => note.ledger === "hot").content,
+    compiled.records.find((item) => item.ledger === "hot").content,
     /distinct from the repository/,
   );
 
@@ -102,11 +99,43 @@ test("wiki compile writes a declarative page, provenance, and the vault ledgers"
   });
   assert.equal(again.result.already, true);
   assert.equal(again.records.length, 0);
-  assert.equal(again.result.noteId, page.id);
+  assert.equal(again.result.noteId, note.id);
 });
 
-test("wiki compile merges a new claim into an existing page", () => {
+test("wiki links resolve to real pages, siblings and aliases; invented links become text", () => {
+  const compiled = compileWiki({
+    ...base,
+    existing: [staging],
+    plan: plan({
+      pages: [
+        page({
+          body: "Edit files, then [[staging area|stage]] them. A [[Commit]] records them. See [[Imaginary page]] and [[Staging area#Why]].",
+          links: ["Commit", "Nowhere"],
+        }),
+        page({
+          title: "Commit",
+          summary: "A snapshot of staged changes.",
+          body: "A commit records what the [[Staging area]] holds.",
+          links: ["Staging area"],
+        }),
+      ],
+    }),
+  });
+  const tree = compiled.records.find((item) => item.title === "Working tree");
+  const commit = compiled.records.find((item) => item.title === "Commit");
+  assert.match(tree.content, /then \[\[Staging area\|stage\]\] them/);
+  assert.match(tree.content, /A \[\[Commit\]\] records them/);
+  assert.match(tree.content, /See Imaginary page and \[\[Staging area#Why\]\]/);
+  assert.doesNotMatch(tree.content, /Nowhere/);
+  assert.deepEqual(new Set(tree.links), new Set(["note-staging", commit.id]));
+  // Each new page reaches at least two pages; Commit gets its sibling added.
+  assert.match(commit.content, /## Related\n- \[\[Working tree\]\]/);
+  assert.equal(commit.links.length, 2);
+});
+
+test("wiki compile merges new paragraphs into an existing page and keeps the student's text", () => {
   const existing = [
+    staging,
     {
       id: "note-tree",
       courseId: base.courseId,
@@ -115,7 +144,7 @@ test("wiki compile merges a new claim into an existing page", () => {
       category: "Concepts",
       path: "concepts/working-tree.md",
       content:
-        "# Working tree\n\n## What It Is\n- The working tree holds the files you are editing.\n\nOriginal classroom example stays.\n",
+        "# Working tree\n\nThe working tree holds the files you are editing.\n\nOriginal classroom example stays.\n",
       tags: ["git"],
       links: [],
       summary: "The working tree holds the files you are editing.",
@@ -128,56 +157,85 @@ test("wiki compile merges a new claim into an existing page", () => {
     existing,
     plan: plan({
       pages: [
-        {
-          ...plan().pages[0],
+        page({
           action: "update",
           matchTitle: "Working tree",
-          claims: [
-            {
-              text: "The working tree holds the files you are editing.",
-              provenance: "extracted",
-            },
-            {
-              text: "Untracked files are still part of the working tree.",
-              provenance: "extracted",
-            },
-          ],
+          body:
+            "The working tree holds the files you are editing.\n\n## Untracked files\n\nUntracked files are still part of the working tree.\n\nThey stay out of the [[Staging area]] until added.",
           links: [],
           relationships: [],
-        },
+        }),
       ],
     }),
   });
-  const page = compiled.records.find((note) => note.id === "note-tree");
+  const note = compiled.records.find((item) => item.id === "note-tree");
   assert.equal(compiled.result.updated, 1);
-  assert.match(page.content, /Original classroom example stays/);
-  assert.match(page.content, /Untracked files are still part of the working tree/);
-  assert.equal(page.content.includes("The student asked"), false);
-  assert.equal(page.wiki.baseConfidence, 0.42);
+  assert.match(note.content, /Original classroom example stays/);
+  assert.match(
+    note.content,
+    /## Untracked files\n\nUntracked files are still part of the working tree\.\n\nThey stay out of the \[\[Staging area\]\] until added\./,
+  );
+  const body = note.content.replace(/^---\n[\s\S]*?\n---\n/, "");
+  assert.equal(body.match(/The working tree holds the files you are editing\./g)?.length, 1);
+  assert.equal(note.wiki.baseConfidence, 0.42);
+  assert.deepEqual(note.links, ["note-staging"]);
+});
+
+test("whole-course ingest turns the wiki root into a map that links every page", () => {
+  const root = {
+    id: "wiki-git",
+    courseId: base.courseId,
+    studentId: base.studentId,
+    title: "Git",
+    content: "# Git\n\n",
+    wikiRoot: true,
+    tags: [],
+    links: [],
+  };
+  const compiled = compileWiki({
+    ...base,
+    sessionId: "ingest",
+    messageId: root.id,
+    existing: [],
+    wikiId: root.id,
+    root,
+    plan: plan({
+      overview: "# Git\n\nGit tracks changes.\n\n## Basics\n\n- [[Working tree]]: where you edit\n- [[Ghost]]: not real",
+      pages: [
+        page({ body: "Files you edit. Next comes the [[Commit]].", links: [] }),
+        page({ title: "Commit", body: "A snapshot of the [[Working tree]].", links: [] }),
+        page({ title: "Branch", tags: ["branching", "git"], body: "A movable pointer.", links: [] }),
+      ],
+    }),
+  });
+  const map = compiled.records.find((item) => item.id === root.id);
+  assert.ok(map.wikiRoot);
+  assert.match(map.content, /^# Git\n\nGit tracks changes\.\n\n## Basics/);
+  assert.match(map.content, /- \[\[Working tree\]\]: where you edit\n- Ghost: not real/);
+  // Pages the overview missed are still listed.
+  assert.match(map.content, /## More pages\n- \[\[Commit\]\][^\n]*\n- \[\[Branch\]\]/);
+  assert.equal(map.links.length, 3);
+  const branch = compiled.records.find((item) => item.title === "Branch");
+  assert.equal(branch.links.length, 2);
+  assert.match(
+    compiled.records.find((item) => item.ledger === "log").content,
+    /INGEST source="agent:folio\/ingest\/wiki-git" pages_created=3/,
+  );
+  assert.equal(compiled.records.every((item) => item.wikiId === root.id || item.id === root.id), true);
 });
 
 test("wiki compile skips an explanation with nothing to keep", () => {
   const compiled = compileWiki({
     ...base,
     existing: [],
-    plan: validateWikiPlan({
-      worthSaving: false,
-      reason: "The exchange never reached a conclusion.",
-      takeaways: "",
-      pages: [],
-    }),
+    plan: plan({ worthSaving: false, reason: "The exchange never reached a conclusion.", pages: [] }),
   });
   assert.equal(compiled.result.saved, false);
   assert.equal(compiled.records.length, 0);
 });
 
 test("wiki compile keeps two wikis separate", () => {
-  const first = compileWiki({
-    ...base,
-    existing: [],
-    plan: plan(),
-    wikiId: "wiki-one",
-  });
+  const first = compileWiki({ ...base, existing: [], plan: plan(), wikiId: "wiki-one" });
   const second = compileWiki({
     ...base,
     messageId: "message-2",
@@ -190,25 +248,25 @@ test("wiki compile keeps two wikis separate", () => {
   assert.equal(second.records.every((note) => note.wikiId === "wiki-two"), true);
 });
 
-test("wiki plan drops a relationship outside the allowlist", () => {
-  const parsed = validateWikiPlan({
-    worthSaving: true,
-    reason: "The page defines the working tree.",
-    takeaways: "Working tree stays separate from the repository.",
+test("wiki plan cleans bodies and drops a relationship outside the allowlist", () => {
+  const parsed = plan({
     pages: [
-      {
-        action: "create",
-        matchTitle: "",
-        type: "concept",
-        title: "Working tree",
-        summary: "Files you are editing.",
-        tags: ["git", "workflow"],
-        claims: [{ text: "Files you are editing.", provenance: "extracted" }],
-        openQuestions: [],
-        links: [],
+      page({
+        body: "---\ntitle: x\n---\n# Working tree\n\nThe student asked about files.\nFiles you are editing.\n# Details\n\n\n\nMore.",
         relationships: [{ target: "Repository", type: "depends_on" }],
-      },
+      }),
+      page({ title: "Empty", body: "   " }),
     ],
   });
+  assert.equal(parsed.pages.length, 1);
+  assert.equal(parsed.pages[0].body, "Files you are editing.\n## Details\n\nMore.");
   assert.equal(parsed.pages[0].relationships.length, 0);
+  assert.throws(() => validateWikiPlan({ worthSaving: true, pages: [{ ...page(), body: undefined }] }));
+});
+
+test("wiki prompt asks for linked prose pages", () => {
+  const prompt = wikiCapturePrompt([{ title: "Staging area", summary: "Files chosen for the next commit." }]);
+  assert.match(prompt, /\[\[Exact page title\]\]/);
+  assert.match(prompt, /at least two other pages/);
+  assert.match(prompt, /- Staging area: Files chosen/);
 });
