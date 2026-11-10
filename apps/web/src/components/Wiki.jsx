@@ -48,6 +48,7 @@ import {
   parseWikiLinks,
   resolveWikiLink,
 } from "../lib/wikiLinks";
+import { tableAt } from "../lib/markdownTable";
 import "./wiki.css";
 import "./wiki-vault.css";
 
@@ -90,15 +91,44 @@ export function WikiMarkdown({ content = "", notes = [], onLink, sourceNote }) {
   const frontmatterEnd =
     blocks[0] === "---" ? blocks.indexOf("---", 1) : -1;
   let inCode = false;
-  return (
-    <div className="wiki-markdown">
-      {blocks.map((line, i) => {
+  let skipTo = 0;
+  const render = (line, i) => {
         if (i <= frontmatterEnd) return null;
         if (line.startsWith("```")) {
           inCode = !inCode;
           return null;
         }
         if (inCode) return <pre key={i}>{line || " "}</pre>;
+        const table = tableAt(blocks, i);
+        if (table) {
+          skipTo = table.end;
+          return (
+            <div className="wiki-table" key={i}>
+              <table>
+                <thead>
+                  <tr>
+                    {table.head.map((cell, c) => (
+                      <th key={c} style={{ textAlign: table.align[c] }}>
+                        {inline(cell, `${i}-h${c}`)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {table.rows.map((row, r) => (
+                    <tr key={r}>
+                      {row.map((cell, c) => (
+                        <td key={c} style={{ textAlign: table.align[c] }}>
+                          {inline(cell, `${i}-${r}-${c}`)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
         if (!line.trim()) return <div className="wiki-paragraph-gap" key={i} />;
         if (line.startsWith("### "))
           return (
@@ -136,9 +166,13 @@ export function WikiMarkdown({ content = "", notes = [], onLink, sourceNote }) {
           return <blockquote key={i}>{inline(line.slice(2), i)}</blockquote>;
         if (line === "---") return <hr key={i} />;
         return <p key={i}>{inline(line, i)}</p>;
-      })}
-    </div>
-  );
+  };
+  const out = [];
+  for (let i = 0; i < blocks.length; i++) {
+    if (i < skipTo) continue;
+    out.push(render(blocks[i], i));
+  }
+  return <div className="wiki-markdown">{out}</div>;
 }
 
 function ConceptAnimation() {
@@ -284,7 +318,13 @@ export default function Wiki() {
     const scoped = owned.filter(
       (note) => note.wikiId === route.wikiId || note.id === route.wikiId,
     );
-    const pages = scoped.filter((note) => !note.wikiRoot);
+    // A generated wiki's root is its map of content, so it stays in the vault
+    // once it holds more than its title.
+    const pages = scoped.filter(
+      (note) =>
+        !note.wikiRoot ||
+        String(note.content || "").replace(/^#[^\n]*\n?/, "").trim(),
+    );
     return pages.length ? pages : scoped;
   }, [allowedNotes, role, active?.studentId, route.wikiId]);
   const noteCourseId = active?.courseId || contextCourseId;
@@ -316,6 +356,7 @@ export default function Wiki() {
   const [newTitle, setNewTitle] = useState("");
   const [newCourseId, setNewCourseId] = useState(contextCourseId);
   const [shareOpen, setShareOpen] = useState(false);
+  const [rebuildOpen, setRebuildOpen] = useState(false);
   const articleRef = useRef(null);
   const tabsRef = useRef(null);
   const draft = drafts[active?.id] || {
@@ -347,7 +388,11 @@ export default function Wiki() {
     ...backlinks.map((link) => link.note.id),
   ]);
   const localNotes = knowledgeNotes.filter((note) => localIds.has(note.id));
-  const renderedContent = (active?.content || "").replace(/^# [^\n]+\n*/, "");
+  // The page header already shows the title, so the body's own H1 is skipped.
+  const renderedContent = (active?.content || "").replace(
+    /^(---\n[\s\S]*?\n---\n)?\s*# [^\n]+\n*/,
+    "$1",
+  );
   const headings = renderedContent
     .split("\n")
     .map((line, i) => ({ line, i }))
@@ -355,7 +400,7 @@ export default function Wiki() {
   const openTabs = tabIds
     .map((id) => notes.find((note) => note.id === id))
     .filter(Boolean);
-  const filtered = notes.filter((note) =>
+  const filtered = knowledgeNotes.filter((note) =>
     `${note.title} ${note.category} ${(note.tags || []).join(" ")}`
       .toLowerCase()
       .includes(search.toLowerCase()),
@@ -573,6 +618,54 @@ export default function Wiki() {
       setCreatingWiki(false);
     }
   }
+  // Only a wiki generated from course materials can be generated again.
+  const ingestRoot =
+    role === "student" && route.wikiId && !route.wikiId.startsWith("legacy:")
+      ? allowedNotes.find(
+          (note) =>
+            note.id === route.wikiId &&
+            note.wikiRoot &&
+            allowedNotes.some(
+              (item) =>
+                item.ledger === "manifest" &&
+                item.wikiId === note.id &&
+                item.manifest?.sources?.[`agent:folio/ingest/${note.id}`],
+            ),
+        )
+      : null;
+  async function rebuildWiki() {
+    if (!ingestRoot || creatingWiki) return;
+    setCreatingWiki(true);
+    setWikiProgress(1);
+    try {
+      await flushChanges();
+      const queued = await api("/api/wiki/ingest", {
+        method: "POST",
+        body: { courseId: ingestRoot.courseId, wikiId: ingestRoot.id, rebuild: true },
+      });
+      const result = await waitForJob(queued.jobId, {
+        onUpdate: (job) => setWikiProgress(job.progress || 1),
+        failure: "The wiki could not be regenerated.",
+      });
+      await refreshWorkspace();
+      setRebuildOpen(false);
+      setTabIds([ingestRoot.id]);
+      navigate("wiki", {
+        wikiId: ingestRoot.id,
+        noteId: ingestRoot.id,
+        courseId: ingestRoot.courseId,
+      });
+      toast(
+        result?.saved
+          ? `Regenerated ${result.created || 0} pages in ${ingestRoot.title}`
+          : result?.reason || "Nothing new to add from this course.",
+      );
+    } catch (error) {
+      toast(error.message);
+    } finally {
+      setCreatingWiki(false);
+    }
+  }
   function downloadNote() {
     if (role !== "student" || !canReadPrivateNote(data, actor, active)) return;
     const url = URL.createObjectURL(
@@ -709,8 +802,9 @@ export default function Wiki() {
                         <span>{item.name}</span>
                         <small>
                           {
-                            notes.filter((note) => note.courseId === item.id)
-                              .length
+                            knowledgeNotes.filter(
+                              (note) => note.courseId === item.id,
+                            ).length
                           }
                         </small>
                       </button>
@@ -765,7 +859,7 @@ export default function Wiki() {
               <div>
                 <strong>{owner.name.split(" ")[0]}’s vault</strong>
                 <small>
-                  {notes.length} notes ·{" "}
+                  {knowledgeNotes.length} notes ·{" "}
                   {new Set(notes.map((note) => note.courseId)).size} courses
                   {role === "teacher" ? " · read only" : ""}
                 </small>
@@ -912,6 +1006,15 @@ export default function Wiki() {
                           <button onClick={() => setShareOpen(true)}>
                             <Upload size={14} />
                             <span>Share</span>
+                          </button>
+                        )}
+                        {ingestRoot && (
+                          <button
+                            aria-label="Regenerate wiki from course"
+                            onClick={() => setRebuildOpen(true)}
+                          >
+                            <RotateCcw size={14} />
+                            <span>Regenerate</span>
                           </button>
                         )}
                       </>
@@ -1217,6 +1320,49 @@ export default function Wiki() {
             )}
           </aside>
         </div>
+      )}
+      {rebuildOpen && ingestRoot && (
+        <Modal
+          title="Regenerate this wiki"
+          subtitle={`Rebuild ${ingestRoot.title} from the course materials.`}
+          onClose={() => !creatingWiki && setRebuildOpen(false)}
+          closeDisabled={creatingWiki}
+        >
+          <div className="wiki-modal-form">
+            <p className="wiki-modal-note">
+              Pages generated from the course are replaced by a new set of
+              linked pages. Pages that also hold answers you saved from a
+              chat are kept and updated.
+            </p>
+            {creatingWiki && (
+              <TaskProgress
+                title="Rebuilding your wiki"
+                steps={WIKI_STEPS}
+                percent={wikiProgress}
+                note="This usually takes about a minute. You can keep this window open."
+              />
+            )}
+            <div className="wiki-modal-actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setRebuildOpen(false)}
+                disabled={creatingWiki}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={rebuildWiki}
+                disabled={creatingWiki}
+              >
+                <RotateCcw size={15} />{" "}
+                {creatingWiki ? "Regenerating…" : "Regenerate wiki"}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
       {newOpen && (
         <Modal

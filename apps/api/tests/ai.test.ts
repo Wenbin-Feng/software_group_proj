@@ -360,6 +360,9 @@ async function fixture() {
       if (at < 0) records[collection].push(record);
       else records[collection][at] = record;
     },
+    remove: (collection: string, id: string) => {
+      records[collection] = (records[collection] || []).filter((item) => item.id !== id);
+    },
   };
   await registerAiRoutes(app);
   await app.ready();
@@ -928,6 +931,110 @@ test("courseware generation repairs slides that overflow their layout", async ()
     assert.match(prompts[1], /400 chars, too long/);
     assert.equal(f.records.courseware[0].deck.slides.length, 4);
     assert.equal(f.records.courseware[0].deck.style, "default");
+  } finally {
+    globalThis.fetch = original;
+    if (oldKey === undefined) delete process.env.H2A_LLM_API_KEY;
+    else process.env.H2A_LLM_API_KEY = oldKey;
+    await f.close();
+  }
+});
+
+test("course ingest writes linked pages and an overview, and rebuild replaces only generated pages", async () => {
+  const f = await fixture(),
+    original = globalThis.fetch,
+    oldKey = process.env.H2A_LLM_API_KEY;
+  process.env.H2A_LLM_API_KEY = "mock-test-key";
+  const prompts: string[] = [];
+  let titles = ["Atomic update", "Lost update"];
+  try {
+    globalThis.fetch = (async (_url, init) => {
+      const input = JSON.parse(String(init?.body));
+      prompts.push(input.messages.map((m: any) => m.content).join("\n"));
+      const [a, b] = titles;
+      const page = (title: string, other: string) => ({
+        action: "create",
+        matchTitle: "",
+        type: "concept",
+        title,
+        summary: `${title} in one line.`,
+        tags: ["database", "concurrency"],
+        body: `${title} is explained here. It is the answer to a [[${other}]].\n\n## Example\n\n| Step | Stock |\n| --- | --- |\n| Read | 1 |`,
+        openQuestions: [],
+        links: [other],
+        relationships: [],
+      });
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  worthSaving: true,
+                  reason: "The course defines both ideas.",
+                  takeaways: "Two connected database pages.",
+                  overview: `The course is about safe updates.\n\n## Core ideas\n\n- [[${a}]]\n- [[${b}]]`,
+                  pages: [page(a, b), page(b, a)],
+                }),
+              },
+            },
+          ],
+        }),
+      );
+    }) as typeof fetch;
+    f.records.notes = [
+      { id: "wiki-root", wikiRoot: true, courseId: "course", studentId: "student", title: "Databases", content: "# Databases\n\n", tags: [], links: [] },
+    ];
+    const run = async (body: Record<string, unknown>) => {
+      const start = await f.app.inject({ method: "POST", url: "/api/wiki/ingest", payload: { courseId: "course", wikiId: "wiki-root", ...body } });
+      assert.equal(start.statusCode, 202, start.body);
+      const until = Date.now() + 5000;
+      let job: any;
+      while (Date.now() < until) {
+        job = (await f.app.inject(`/api/jobs/${start.json().jobId}`)).json().job;
+        if (job?.status === "succeeded" || job?.status === "failed") break;
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+      assert.equal(job.status, "succeeded", job.error);
+      return job.result;
+    };
+    const teacher = await f.app.inject({ method: "POST", url: "/api/wiki/ingest", headers: { "x-role": "teacher" }, payload: { courseId: "course", wikiId: "wiki-root" } });
+    assert.equal(teacher.statusCode, 403);
+
+    const first = await run({});
+    assert.equal(first.created, 2);
+    assert.match(prompts[0], /\(page 3\) Atomic update prevents overselling/);
+    assert.match(prompts[0], /plan 8 to 12 pages/);
+    assert.doesNotMatch(prompts[0], /Private text/);
+    const pages = () => f.records.notes.filter((note) => !note.ledger && !note.wikiRoot);
+    const atomic = pages().find((note) => note.title === "Atomic update");
+    const lost = pages().find((note) => note.title === "Lost update");
+    assert.match(atomic.content, /answer to a \[\[Lost update\]\]/);
+    assert.match(atomic.content, /\| Step \| Stock \|/);
+    assert.deepEqual(atomic.links, [lost.id]);
+    const root = f.records.notes.find((note) => note.id === "wiki-root");
+    assert.match(root.content, /^# Databases\n\nThe course is about safe updates\./);
+    assert.deepEqual(new Set(root.links), new Set([atomic.id, lost.id]));
+
+    // A repeat ingest reuses the result without another paid call.
+    assert.equal((await run({})).already, true);
+    assert.equal(prompts.length, 1);
+
+    // A saved chat answer also fed "Lost update", so a rebuild keeps it.
+    lost.wiki.sourceKeys = [...lost.wiki.sourceKeys, "agent:folio/session/m1"];
+    titles = ["Row lock", "Lost update"];
+    const rebuilt = await run({ rebuild: true });
+    assert.equal(prompts.length, 2);
+    assert.equal(rebuilt.created, 1);
+    assert.equal(rebuilt.updated, 1);
+    assert.deepEqual(pages().map((note) => note.title).sort(), ["Lost update", "Row lock"]);
+    assert.equal(f.records.notes.some((note) => note.id === atomic.id), false);
+    assert.equal(pages().find((note) => note.title === "Lost update").id, lost.id);
+    const manifest = f.records.notes.find((note) => note.ledger === "manifest");
+    assert.deepEqual(
+      manifest.manifest.sources["agent:folio/ingest/wiki-root"].pages_produced.sort(),
+      ["concepts/lost-update.md", "concepts/row-lock.md"],
+    );
+    assert.match(f.records.notes.find((note) => note.id === "wiki-root").content, /\[\[Row lock\]\]/);
   } finally {
     globalThis.fetch = original;
     if (oldKey === undefined) delete process.env.H2A_LLM_API_KEY;

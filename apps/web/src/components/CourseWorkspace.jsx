@@ -89,8 +89,12 @@ export default function CourseWorkspace() {
       isTeacher
         ? []
         : (data.notes || []).filter(
+            // Index, log, hot cache and manifest are the wiki engine's own
+            // bookkeeping, not pages to read.
             (note) =>
-              note.courseId === courseId && ownedByStudent(note.studentId),
+              note.courseId === courseId &&
+              ownedByStudent(note.studentId) &&
+              !note.ledger,
           ),
     [data.notes, courseId, isTeacher, ownedByStudent],
   );

@@ -129,6 +129,14 @@ export function incomingLinks(note, notes = []) {
         return alias || destination.replace(/\.md(?=#|$)/i, "");
       })
       .replace(/^\s*[#>*-]+\s*/, "")
+      // A table row reads better as its cells than as pipes.
+      .replace(/^\|(.*)\|?\s*$/, (_, row) =>
+        row
+          .split("|")
+          .map((cell) => cell.trim())
+          .filter(Boolean)
+          .join(" · "),
+      )
       .trim();
     return [{ note: source, excerpt }];
   });

@@ -344,16 +344,40 @@ export async function registerAiRoutes(app: FastifyInstance) {
             !core.canReadNote(user, wiki)
           )
             fail(404, "Wiki not found.");
-          const notes = core.all("notes").filter(
+          let notes = core.all("notes").filter(
             (note) =>
               note.studentId === user.id &&
               note.wikiId === wiki.id &&
               core.canReadNote(user, note),
           );
           const key = wikiSourceKey("ingest", wiki.id);
-          const captured = notes.find((note) => note.ledger === "manifest")
-            ?.manifest?.sources?.[key];
-          if (captured) {
+          const ledger = notes.find((note) => note.ledger === "manifest");
+          const captured = ledger?.manifest?.sources?.[key];
+          if (captured && input.rebuild) {
+            // Rebuilding replaces the pages this ingest wrote. A page that a
+            // saved chat answer also fed into stays, so the student keeps it.
+            const produced = new Set(captured.pages_produced || []);
+            const replaced = notes.filter(
+              (note) =>
+                !note.ledger &&
+                !note.wikiRoot &&
+                produced.has(note.path) &&
+                (note.wiki?.sourceKeys || []).every(
+                  (source: string) => source === key || source.startsWith("material:"),
+                ),
+            );
+            const ids = new Set(replaced.map((note) => note.id));
+            const sources = { ...ledger.manifest.sources };
+            delete sources[key];
+            const manifest = { ...ledger, manifest: { ...ledger.manifest, sources } };
+            core.db.transaction(() => {
+              for (const id of ids) core.remove("notes", id);
+              core.put("notes", manifest);
+            })();
+            notes = notes
+              .filter((note) => !ids.has(note.id))
+              .map((note) => (note.id === manifest.id ? manifest : note));
+          } else if (captured) {
             const page = notes.find(
               (note) => note.path === captured.pages_produced?.[0],
             );
@@ -432,7 +456,7 @@ export async function registerAiRoutes(app: FastifyInstance) {
                       path: note.path,
                       summary: note.summary || "",
                     })),
-                )}\nThis is a whole-course ingest, not a single answer. Cover the material end to end: plan 6 to 10 pages, one per distinct concept, procedure or decision, and make each page substantial with 4 to 8 specific claims that carry the actual commands, definitions, steps, numbers and examples from the excerpts. Do not write generic summaries. Write in the language of the materials.`,
+                )}\nThis is a whole-course ingest, not a single answer. Cover the material end to end: plan 8 to 12 pages, one per distinct concept, procedure or decision, so the wiki forms a connected graph rather than a few long pages. Make each page substantial, with the actual definitions, commands, steps, numbers and examples from the excerpts, and link it to the pages it depends on or contrasts with. Do not write generic summaries. Also write overview: one short paragraph on what the course is about, then ## sections that group the pages, linking every page with [[Exact page title]] and a few words on each. Write in the language of the materials.`,
               },
               {
                 role: "user",
@@ -442,7 +466,7 @@ export async function registerAiRoutes(app: FastifyInstance) {
               },
             ],
             wikiCaptureSchema,
-            11000,
+            14000,
           );
           progress(75);
           const plan = validateWikiPlan(jsonParse(output));
@@ -468,6 +492,7 @@ export async function registerAiRoutes(app: FastifyInstance) {
             existing: notes,
             plan,
             wikiId: wiki.id,
+            root: wiki,
           });
           for (const record of compiled.records) core.put("notes", record);
           return { ...compiled.result, wikiId: wiki.id };
@@ -569,6 +594,7 @@ export async function registerAiRoutes(app: FastifyInstance) {
               },
             ],
             wikiCaptureSchema,
+            8000,
           );
           progress(75);
           const plan = await withObservation("Validate Wiki", {}, () =>
@@ -1226,6 +1252,7 @@ export async function registerAiRoutes(app: FastifyInstance) {
         return queue.enqueue(user.id, courseId, "wiki", {
           mode: "ingest",
           wikiId,
+          ...(input?.rebuild === true ? { rebuild: true } : {}),
         });
       })
       .immediate();
